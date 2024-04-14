@@ -15,7 +15,7 @@
                 "-lglfw3dll",
                 "-lopengl32",
                 "-o",
-                "${workspaceFolder}/main.exe"
+                "${workspaceFolder}/GYARB.exe"
             ],
             "options": {
                 "cwd": "${fileDirname}"

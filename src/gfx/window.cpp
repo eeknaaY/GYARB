@@ -4,7 +4,7 @@
 #include <iostream>
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
-bool window_input_getkey(GLFWwindow* window, int KEYBIND);
+void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
 
 GLFWwindow* createWindow(int SCR_WIDTH, int SCR_HEIGHT){
     // Init
@@ -35,15 +35,27 @@ GLFWwindow* createWindow(int SCR_WIDTH, int SCR_HEIGHT){
     return window;
 }
 
+bool gl_LineEnabled;
+
+void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
+{
+    if(key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
+            glfwSetWindowShouldClose(window, true);
+        
+    if (key == GLFW_KEY_G && action == GLFW_PRESS)
+        if(gl_LineEnabled){
+            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+            gl_LineEnabled = false;
+        }
+
+        else{
+            glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+            gl_LineEnabled = true;
+        }
+}
+
 void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 {
     // Update screen dimensions, dimensions might be fucked on retina displays?
     glViewport(0, 0, width, height);
-}
-
-bool window_input_getkey(GLFWwindow* window, int KEYBIND){
-    if(glfwGetKey(window, KEYBIND) == GLFW_PRESS)
-        return true;
-    else
-        return false;
 }

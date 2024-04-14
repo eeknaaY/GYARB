@@ -1,20 +1,15 @@
-#include <glm/glm.hpp>
-#include <glm/vec4.hpp>
-
-float VoxelVertices[18] = {
-    0.5f, -0.5f, 0.0f,  0.0f, 0.0f, 1.0f,  // bottom right
-    -0.5f, -0.5f, 0.0f,  0.0f, 0.0f, 1.0f,  // bottom left
-    0.0f,  0.5f, 0.0f,  0.0f, 0.0f, 1.0f   // top 
-};
+#include <glm/vec3.hpp>
+#include "window.hpp"
 
 class Voxel
 {
     public:
-        glm::vec4 position;
+        glm::vec3 position;
 
-        Voxel(int _x, int _y, int _z, int _w);
+        Voxel(int _x, int _y, int _z);
+        Voxel() = default;
 };
 
-Voxel::Voxel(int _x, int _y, int _z, int _w){
-    position = glm::vec4(_x, _y, _z, _w);
+Voxel::Voxel(int _x, int _y, int _z){
+    position = glm::vec3(_x, _y, _z);
 }
