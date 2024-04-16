@@ -12,8 +12,9 @@
 
 #include <vector>
 #include <ctime>
+#include <chrono>
 
-glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 3.0f);  
+glm::vec3 cameraPos = glm::vec3(-20.0f, 20.0f, 10.0f);  
 glm::vec3 cameraTarget = glm::vec3(0.0f, 0.0f, 0.0f);
 glm::vec3 cameraDirection = glm::normalize(cameraTarget - cameraPos);
 glm::vec3 cameraUp    = glm::vec3(0.0f, 1.0f,  0.0f);
@@ -23,7 +24,7 @@ glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
 float deltaTime = 0.0f;	// Time between current frame and last frame
 float lastFrame = 0.0f; // Time of last frame
 bool firstMouse = true;
-float yaw   = -90.0f;	// yaw is initialized to -90.0 degrees since a yaw of 0.0 results in a direction vector pointing to the right so we initially rotate a bit to the left.
+float yaw   = 0.0f;	// yaw is initialized to -90.0 degrees since a yaw of 0.0 results in a direction vector pointing to the right so we initially rotate a bit to the left.
 float pitch =  0.0f;
 float lastX =  1600.0f / 2.0;
 float lastY =  900.0 / 2.0;
@@ -41,32 +42,69 @@ int main(){
 
     Shader testShader("src/shaders/vertexshader.vs", "src/shaders/fragmentshader.fs");
 
+    // Actually works btw
+    Chunk tempChunkStore[25];
     ChunkManager chunkManager;
-
-    Chunk chunk1(0, 0);
-    Chunk chunk2(1, 0);
-    Chunk chunk3(1, 1);
-    Chunk chunk4(0, 1);
-    chunkManager.setInvisibleTextureVector();
-    chunk1.setChunkTextures();
-    chunk2.setChunkTextures();
-    chunk3.setChunkTextures();
-    chunk4.setChunkTextures();
-    chunkManager.appendChunk(chunk1);
-    chunkManager.appendChunk(chunk2);
-    chunkManager.appendChunk(chunk3);
-     chunkManager.appendChunk(chunk4);
-    
-    std::vector<glm::vec3> v1 = chunkManager.getBufferArray(chunk1);
-    std::vector<glm::vec3> v2 = chunkManager.getBufferArray(chunk2);
-    std::vector<glm::vec3> v3 = chunkManager.getBufferArray(chunk3);
-    std::vector<glm::vec3> v4 = chunkManager.getBufferArray(chunk4);
-
     std::vector<glm::vec3> buffer;
-    buffer.insert(buffer.end(), v1.begin(), v1.end());
-    buffer.insert(buffer.end(), v2.begin(), v2.end());
-    buffer.insert(buffer.end(), v3.begin(), v3.end());
-    buffer.insert(buffer.end(), v4.begin(), v4.end());
+    chunkManager.setInvisibleTextureVector();
+
+    srand(time(0));
+
+    for (int x = 0; x < 5; x++){
+        for (int z = 0; z < 5; z++){
+            Chunk _chunk(x, z);
+            // initializes all to 1
+            _chunk.setChunkTextures();
+            for (int _x = 0; _x < Chunk::CHUNK_SIZE; _x++){
+                for (int _z = 0; _z < Chunk::CHUNK_SIZE; _z++){
+                    int chosenHeight = rand() % Chunk::CHUNK_HEIGHT;
+                    for (int _y = 0; _y < Chunk::CHUNK_HEIGHT; _y++){
+                        if (_y > chosenHeight && _y > 30) {
+                            _chunk.setChunkTexture(_x, _y, _z, 0);
+                            continue;
+                        } else {
+                            _chunk.setChunkTexture(_x, _y, _z, 1);
+                            continue;
+                        }
+                    }
+                }
+            }
+
+            chunkManager.appendChunk(_chunk);
+            tempChunkStore[5 * x + z] = _chunk;
+        }
+    }
+
+    for (int i = 0; i < 25; i++){
+        std::vector<glm::vec3> v1 = chunkManager.getBufferArray(tempChunkStore[i]);
+        buffer.insert(buffer.end(), v1.begin(), v1.end());
+    }
+
+
+    // Chunk chunk1(0, 0);
+    // Chunk chunk2(1, 0);
+    // Chunk chunk3(1, 1);
+    // Chunk chunk4(0, 1);
+    // chunkManager.setInvisibleTextureVector();
+    // chunk1.setChunkTextures();
+    // chunk2.setChunkTextures();
+    // chunk3.setChunkTextures();
+    // chunk4.setChunkTextures();
+    // chunkManager.appendChunk(chunk1);
+    // chunkManager.appendChunk(chunk2);
+    // chunkManager.appendChunk(chunk3);
+    //  chunkManager.appendChunk(chunk4);
+    
+    // std::vector<glm::vec3> v1 = chunkManager.getBufferArray(chunk1);
+    // std::vector<glm::vec3> v2 = chunkManager.getBufferArray(chunk2);
+    // std::vector<glm::vec3> v3 = chunkManager.getBufferArray(chunk3);
+    // std::vector<glm::vec3> v4 = chunkManager.getBufferArray(chunk4);
+
+    // std::vector<glm::vec3> buffer;
+    // buffer.insert(buffer.end(), v1.begin(), v1.end());
+    // buffer.insert(buffer.end(), v2.begin(), v2.end());
+    // buffer.insert(buffer.end(), v3.begin(), v3.end());
+    // buffer.insert(buffer.end(), v4.begin(), v4.end());
 
 
     // Cursor shit
@@ -106,8 +144,8 @@ int main(){
     testShader.setMat4("projection", projection);
 
     glEnable(GL_CULL_FACE);
-glCullFace(GL_BACK);
-glFrontFace(GL_CCW);
+    glCullFace(GL_BACK);
+    glFrontFace(GL_CCW);
     while (!glfwWindowShouldClose(window))
     {
         if ((difftime(time(NULL), startTime) >= 1)){

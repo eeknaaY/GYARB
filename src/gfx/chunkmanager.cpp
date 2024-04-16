@@ -7,10 +7,10 @@
 
 class ChunkManager{
     public:
-        std::map<int, std::map<int, std::vector<int>>> chunkMap;
+        std::map<int, std::map<int, std::vector<uint8_t>>> chunkMap;
         
         void appendChunk(Chunk _chunk);
-        std::vector<int> getTextureVectorFromPosition(int x, int z);
+        std::vector<uint8_t> getTextureVectorFromPosition(int x, int z);
         std::vector<glm::vec3> getBufferArray(Chunk _chunk);
         void setInvisibleTextureVector();
 };
@@ -21,11 +21,12 @@ std::vector<glm::vec3> ChunkManager::getBufferArray(Chunk _chunk){
     std::vector<glm::vec3> voxelBufferArray;
     int xCoordinate = _chunk.xCoordinate;
     int zCoordinate = _chunk.zCoordinate;
-    int chunkSize = _chunk.chunkSize;
+    int chunkSize = Chunk::CHUNK_SIZE;
+    int chunkHeight = Chunk::CHUNK_HEIGHT;
 
-    for (int y = 0; y < 10; y++){
-        for(int z = 0; z < 10; z++){
-            for(int x = 0; x < 10; x++){
+    for (int y = 0; y < chunkHeight ; y++){
+        for(int z = 0; z < chunkSize; z++){
+            for(int x = 0; x < chunkSize; x++){
 
                 if (_chunk.voxelTextureArray[getTextureVectorIndexFromPosition(x, y, z)] == 0) {continue;}
                 // FIXME : Check the adjacent Chunk
@@ -96,14 +97,14 @@ void ChunkManager::appendChunk(Chunk _chunk){
     chunkMap[_chunk.xCoordinate][_chunk.zCoordinate] = _chunk.voxelTextureArray;
 };
 
-std::vector<int> emptyVoxelTextureArray;
+std::vector<uint8_t> emptyVoxelTextureArray;
 
 void ChunkManager::setInvisibleTextureVector(){
-    emptyVoxelTextureArray = std::vector<int>(1000, 0);
+    emptyVoxelTextureArray = std::vector<uint8_t>(Chunk::CHUNK_HEIGHT * Chunk::CHUNK_SIZE * Chunk::CHUNK_SIZE, 0);
     // std::fill_n(voxelTextureArray, 1000, 1);
 };
 
-std::vector<int> ChunkManager::getTextureVectorFromPosition(int x, int z){
+std::vector<uint8_t> ChunkManager::getTextureVectorFromPosition(int x, int z){
     try{
         return chunkMap.at(x).at(z);
     }
