@@ -1,9 +1,12 @@
-#pragma once
+#ifndef CHUNK_HPP
+#define CHUNK_HPP
+
 
 #include <glm/vec3.hpp>
-#include <vector>
 #include <glm/glm.hpp>
+#include <vector>
 #include <map>
+#include "voxelobject.hpp"
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -12,13 +15,14 @@ class Chunk{
         static const int CHUNK_SIZE = 10;
         static const int CHUNK_HEIGHT = 50;
         int xCoordinate, zCoordinate;
-        // FIXME : Smaller allocation?
-        std::vector<uint8_t> voxelTextureArray;
 
-        unsigned int getTextureFromPosition(int x, int y, int z);
-        void setInvisibleChunkTextures();
+        std::vector<uint8_t> voxelTextureArray;
+        std::vector<Voxel> voxelArray;
         
         void initializeChunkTextureVector();
+        void setInvisibleChunkTextures();
+        uint8_t getTextureFromPosition(int x, int y, int z);
+        
         void setChunkTextures();
         void setChunkTexture(int x, int y, int z, int textureValue);
 
@@ -27,7 +31,6 @@ class Chunk{
             zCoordinate = _zCoordinate;
         }
         Chunk() = default;
-
-    private:
 };
 
+#endif

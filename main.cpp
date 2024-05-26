@@ -1,6 +1,5 @@
 #include <glad/glad.h>
 #include "src/gfx/window.hpp"
-#include "src/gfx/voxel.hpp"
 #include "src/shaders/shaders.hpp"
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -14,11 +13,11 @@
 #include <ctime>
 #include <chrono>
 
-glm::vec3 cameraPos = glm::vec3(-20.0f, 20.0f, 10.0f);  
+glm::vec3 cameraPos = glm::vec3(0.0f, 50.0f, 0.0f);  
 glm::vec3 cameraTarget = glm::vec3(0.0f, 0.0f, 0.0f);
 glm::vec3 cameraDirection = glm::normalize(cameraTarget - cameraPos);
 glm::vec3 cameraUp    = glm::vec3(0.0f, 1.0f,  0.0f);
-glm::vec3 cameraRight = glm::normalize(glm::cross(cameraUp, cameraDirection));
+glm::vec3 cameraRight = -glm::normalize(glm::cross(cameraUp, cameraDirection));
 glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
 
 float deltaTime = 0.0f;	// Time between current frame and last frame
@@ -32,6 +31,7 @@ float fov   =  90.0f;
 
 void processInput(GLFWwindow *window);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
+int numberOfTimesDivisible(float x, int z);
 
 int main(){
     int windowHeight = 900;
@@ -45,7 +45,7 @@ int main(){
     // Actually works btw
     Chunk tempChunkStore[25];
     ChunkManager chunkManager;
-    std::vector<glm::vec3> buffer;
+    std::vector<Chunk> buffer;
     chunkManager.setInvisibleTextureVector();
 
     srand(time(0));
@@ -57,13 +57,10 @@ int main(){
             _chunk.setChunkTextures();
             for (int _x = 0; _x < Chunk::CHUNK_SIZE; _x++){
                 for (int _z = 0; _z < Chunk::CHUNK_SIZE; _z++){
-                    int chosenHeight = rand() % Chunk::CHUNK_HEIGHT;
+                    int chosenHeight = (rand() % Chunk::CHUNK_HEIGHT);
                     for (int _y = 0; _y < Chunk::CHUNK_HEIGHT; _y++){
-                        if (_y > chosenHeight && _y > 30) {
+                        if (_y > chosenHeight && _y > 45) {
                             _chunk.setChunkTexture(_x, _y, _z, 0);
-                            continue;
-                        } else {
-                            _chunk.setChunkTexture(_x, _y, _z, 1);
                             continue;
                         }
                     }
@@ -71,88 +68,79 @@ int main(){
             }
 
             chunkManager.appendChunk(_chunk);
-            tempChunkStore[5 * x + z] = _chunk;
+            buffer.push_back(_chunk);
         }
     }
 
-    for (int i = 0; i < 25; i++){
-        std::vector<glm::vec3> v1 = chunkManager.getBufferArray(tempChunkStore[i]);
-        buffer.insert(buffer.end(), v1.begin(), v1.end());
-    }
-
-
-    // Chunk chunk1(0, 0);
-    // Chunk chunk2(1, 0);
-    // Chunk chunk3(1, 1);
-    // Chunk chunk4(0, 1);
-    // chunkManager.setInvisibleTextureVector();
-    // chunk1.setChunkTextures();
-    // chunk2.setChunkTextures();
-    // chunk3.setChunkTextures();
-    // chunk4.setChunkTextures();
-    // chunkManager.appendChunk(chunk1);
-    // chunkManager.appendChunk(chunk2);
-    // chunkManager.appendChunk(chunk3);
-    //  chunkManager.appendChunk(chunk4);
     
-    // std::vector<glm::vec3> v1 = chunkManager.getBufferArray(chunk1);
-    // std::vector<glm::vec3> v2 = chunkManager.getBufferArray(chunk2);
-    // std::vector<glm::vec3> v3 = chunkManager.getBufferArray(chunk3);
-    // std::vector<glm::vec3> v4 = chunkManager.getBufferArray(chunk4);
 
-    // std::vector<glm::vec3> buffer;
-    // buffer.insert(buffer.end(), v1.begin(), v1.end());
-    // buffer.insert(buffer.end(), v2.begin(), v2.end());
-    // buffer.insert(buffer.end(), v3.begin(), v3.end());
-    // buffer.insert(buffer.end(), v4.begin(), v4.end());
+    for (int i = 0; i < 25; i++){
+        std::vector<Voxel> arr = chunkManager.getBufferArray(buffer[i]);
 
+        if (arr.size() != 0){
+            buffer[i].voxelArray = arr;
+        }
+    }
 
     // Cursor shit
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);  
     glfwSetCursorPosCallback(window, mouse_callback); 
-
-    unsigned int instanceVBO;
-    glGenBuffers(1, &instanceVBO);
-    glBindBuffer(GL_ARRAY_BUFFER, instanceVBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * sizeof(buffer), &buffer[0].x, GL_STATIC_DRAW);
-    glBindBuffer(GL_ARRAY_BUFFER, 0); 
-
-    unsigned int quadVAO, quadVBO;
-    glGenVertexArrays(1, &quadVAO);
-    glGenBuffers(1, &quadVBO);
-    glBindVertexArray(quadVAO);
-    glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(VoxelVertices), VoxelVertices, GL_STATIC_DRAW);
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
-    // also set instance data
-    glEnableVertexAttribArray(2);
-    glBindBuffer(GL_ARRAY_BUFFER, instanceVBO); // this attribute comes from a different vertex buffer
-    glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, 0, (void*)0);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glVertexAttribDivisor(2, 1); // tell OpenGL this is an instanced vertex attribute
+    glfwSwapInterval(0);
 
     unsigned int frameCounter = 0;
-    time_t startTime = time(&startTime);
     glEnable(GL_DEPTH_TEST);
+
+    float const CLOSE_FRUSTUM = 0.1f;
+    float const FAR_FRUSTUM = 100.0f;
 
     testShader.use();
     glm::mat4 projection = glm::mat4(1.0f);
-    projection = glm::perspective(glm::radians(45.0f), (float)windowWidth / (float)windowHeight, 0.1f, 100.0f);
+    projection = glm::perspective(glm::radians(fov), (float)windowWidth / (float)windowHeight, CLOSE_FRUSTUM, FAR_FRUSTUM);
     testShader.setMat4("projection", projection);
 
     glEnable(GL_CULL_FACE);
     glCullFace(GL_BACK);
     glFrontFace(GL_CCW);
+
+    for (int k = 0; k < buffer.size(); k++){
+        for (int i = 0; i < buffer[k].voxelArray.size(); i++){
+            buffer[k].voxelArray[i].CreateArrayAndBufferObjects();
+
+            glm::mat4 model = glm::mat4(1.0f);
+            buffer[k].voxelArray[i].modelMatrix = glm::translate(model, buffer[k].voxelArray[i].position);
+        }   
+    }
+
+    int inChunkXPos = 0;
+    int inChunkZPos = 0;
+
+    double startTime = glfwGetTime();
+
+    // Rewrite everything with building meshes around chunks tyvm
+
     while (!glfwWindowShouldClose(window))
-    {
-        if ((difftime(time(NULL), startTime) >= 1)){
-            std::cout << "FPS: " << std::to_string(frameCounter) << "\n";
-            startTime = time(&startTime);
+    {   
+        frameCounter += 1;
+        if (glfwGetTime() - startTime >= 1.0f){
+            std::cout << "ms/frame: " << 1000.0 / double(frameCounter) << "\n";
             frameCounter = 0;
+            startTime += 1;
         }
+
+        // FIXME : Put this into a function for when changing chunks
+        int _x = numberOfTimesDivisible(cameraPos.x, Chunk::CHUNK_SIZE);
+        int _z = numberOfTimesDivisible(cameraPos.z, Chunk::CHUNK_SIZE);
+
+        if (_x != inChunkXPos){
+            std::cout << "Changing Chunk" << "\n"; 
+            inChunkXPos = _x;
+        } 
+        if (_z != inChunkZPos){
+            std::cout << "Changing Chunk" << "\n"; 
+            inChunkZPos = _z;
+        } 
+
+
 
         float currentFrame = glfwGetTime();
         deltaTime = currentFrame - lastFrame;
@@ -169,25 +157,17 @@ int main(){
         view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
         testShader.setMat4("view", view);
 
+        for (int k = 0; k < buffer.size(); k++){
+            for (int i = 0; i < buffer[k].voxelArray.size(); i++){
+                testShader.setMat4("model", buffer[k].voxelArray[i].modelMatrix);
+                buffer[k].voxelArray[i].Draw();
+            } 
+        } 
 
-        // calculate the model matrix for each object and pass it to shader before drawing
-        for (int i = 0; i < buffer.size(); i++){
-            glm::mat4 model = glm::mat4(1.0f);
-            model = glm::translate(model, buffer[i]);
-            testShader.setMat4("model", model);
-            glBindVertexArray(quadVAO);
-            glDrawArraysInstanced(GL_TRIANGLES, 0, 36, 1); // 100 triangles of 6 vertices each
-            glBindVertexArray(0);
-        }
 
         glfwSwapBuffers(window);
         glfwPollEvents();
-
-        frameCounter += 1;
     }
-
-    glDeleteVertexArrays(1, &quadVAO);
-    glDeleteBuffers(1, &quadVBO);
 
     glfwTerminate();
     return 0;
@@ -195,7 +175,7 @@ int main(){
 
 void processInput(GLFWwindow *window)
 {
-    float cameraSpeed = 5.0f * deltaTime;
+    float cameraSpeed = 10.0f * deltaTime;
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
         cameraPos += cameraSpeed * glm::normalize(glm::vec3(cameraFront.x * cos(pitch * 3.14 / 180), 0, cameraFront.z * cos(pitch * 3.14/180)));
     if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
@@ -247,4 +227,10 @@ void mouse_callback(GLFWwindow* window, double xposIn, double yposIn)
     front.y = sin(glm::radians(pitch));
     front.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
     cameraFront = glm::normalize(front);
+}
+
+int numberOfTimesDivisible(float x, int z){
+    x = (int)round(x);
+    x -= abs((int)x % z);
+    return (int)x / z;
 }

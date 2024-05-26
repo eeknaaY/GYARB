@@ -1,14 +1,17 @@
-#pragma once
+#ifndef CHUNKMANAGER_HPP
+#define CHUNKMANAGER_HPP
 
-#include "voxel.hpp"
+#include "voxelobject.hpp"
 #include <map>
 
 class ChunkManager{
     public:
-        std::map<int, std::map<int, std::vector<uint8_t>>> chunkMap;
+        std::map<int, std::map<int, Chunk>> chunkMap;
         
         void appendChunk(Chunk _chunk);
         std::vector<uint8_t> getTextureVectorFromPosition(int x, int z);
-        std::vector<glm::vec3> getBufferArray(Chunk _chunk);
+        std::vector<Voxel> getBufferArray(Chunk _chunk);
         void setInvisibleTextureVector();
 };
+
+#endif
