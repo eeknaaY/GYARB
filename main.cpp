@@ -85,7 +85,6 @@ int main(){
     // Cursor shit
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);  
     glfwSetCursorPosCallback(window, mouse_callback); 
-    glfwSwapInterval(0);
 
     unsigned int frameCounter = 0;
     glEnable(GL_DEPTH_TEST);
@@ -127,7 +126,7 @@ int main(){
             startTime += 1;
         }
 
-        // FIXME : Put this into a function for when changing chunks
+        // // FIXME : Put this into a function for when changing chunks
         int _x = numberOfTimesDivisible(cameraPos.x, Chunk::CHUNK_SIZE);
         int _z = numberOfTimesDivisible(cameraPos.z, Chunk::CHUNK_SIZE);
 
