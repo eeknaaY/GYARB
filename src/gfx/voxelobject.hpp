@@ -10,7 +10,7 @@ class Voxel
     public:
         glm::vec3 position;
         std::vector<unsigned int> indices;
-        unsigned int VAO, VBO, EBO, instanceVBO;
+        unsigned int VAO, VBO, EBO, instanceVBO, texture;
 
         glm::mat4 modelMatrix;
 
@@ -20,6 +20,10 @@ class Voxel
         void CreateArrayAndBufferObjects();
         void Draw();
         Voxel() = default;
+        
+        ~Voxel(){
+
+        }
 };
 
 #endif

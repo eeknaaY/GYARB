@@ -19,17 +19,20 @@ class Chunk{
         std::vector<uint8_t> voxelTextureArray;
         std::vector<Voxel> voxelArray;
         
-        void initializeChunkTextureVector();
-        void setInvisibleChunkTextures();
         uint8_t getTextureFromPosition(int x, int y, int z);
+        void changeVoxelArray(std::vector<Voxel> arr);
         
         void setChunkTextures();
         void setChunkTexture(int x, int y, int z, int textureValue);
 
         Chunk(int _xCoordinate, int _zCoordinate){
-            xCoordinate = _xCoordinate;
-            zCoordinate = _zCoordinate;
+            this->xCoordinate = _xCoordinate;
+            this->zCoordinate = _zCoordinate;
+
+            this->voxelTextureArray = std::vector<uint8_t>(CHUNK_HEIGHT * CHUNK_SIZE * CHUNK_SIZE, 1);
+            this->setChunkTextures();
         }
+
         Chunk() = default;
 };
 

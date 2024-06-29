@@ -6,12 +6,18 @@
 
 class ChunkManager{
     public:
-        std::map<int, std::map<int, Chunk>> chunkMap;
-        
         void appendChunk(Chunk _chunk);
+        Chunk* getChunk(int x, int z);
+
         std::vector<uint8_t> getTextureVectorFromPosition(int x, int z);
-        std::vector<Voxel> getBufferArray(Chunk _chunk);
+        std::vector<Voxel> getBufferArray(Chunk* _chunk);
         void setInvisibleTextureVector();
+        std::map<std::pair<int, int>, Chunk*> chunkMap;
+
+        
+        ChunkManager(){
+            setInvisibleTextureVector();
+        }
 };
 
 #endif

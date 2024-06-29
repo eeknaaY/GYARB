@@ -60,3 +60,4 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
     // Update screen dimensions, dimensions might be fucked on retina displays?
     glViewport(0, 0, width, height);
 }
+

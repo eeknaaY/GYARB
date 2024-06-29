@@ -27,60 +27,20 @@ float yaw   = 0.0f;	// yaw is initialized to -90.0 degrees since a yaw of 0.0 re
 float pitch =  0.0f;
 float lastX =  1600.0f / 2.0;
 float lastY =  900.0 / 2.0;
-float fov   =  90.0f;
+float fov   =  120.0f;
 
 void processInput(GLFWwindow *window);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
-int numberOfTimesDivisible(float x, int z);
 
 int main(){
+    srand(time(0)); 
+
     int windowHeight = 900;
     int windowWidth = 1600;
-
     GLFWwindow* window = createWindow(windowWidth, windowHeight);
     glfwSetKeyCallback(window, keyCallback);
 
-    Shader testShader("src/shaders/vertexshader.vs", "src/shaders/fragmentshader.fs");
-
-    // Actually works btw
-    Chunk tempChunkStore[25];
-    ChunkManager chunkManager;
-    std::vector<Chunk> buffer;
-    chunkManager.setInvisibleTextureVector();
-
-    srand(time(0));
-
-    for (int x = 0; x < 5; x++){
-        for (int z = 0; z < 5; z++){
-            Chunk _chunk(x, z);
-            // initializes all to 1
-            _chunk.setChunkTextures();
-            for (int _x = 0; _x < Chunk::CHUNK_SIZE; _x++){
-                for (int _z = 0; _z < Chunk::CHUNK_SIZE; _z++){
-                    int chosenHeight = (rand() % Chunk::CHUNK_HEIGHT);
-                    for (int _y = 0; _y < Chunk::CHUNK_HEIGHT; _y++){
-                        if (_y > chosenHeight && _y > 45) {
-                            _chunk.setChunkTexture(_x, _y, _z, 0);
-                            continue;
-                        }
-                    }
-                }
-            }
-
-            chunkManager.appendChunk(_chunk);
-            buffer.push_back(_chunk);
-        }
-    }
-
-    
-
-    for (int i = 0; i < 25; i++){
-        std::vector<Voxel> arr = chunkManager.getBufferArray(buffer[i]);
-
-        if (arr.size() != 0){
-            buffer[i].voxelArray = arr;
-        }
-    }
+    Shader voxelShader("src/shaders/vertexshader.vs", "src/shaders/fragmentshader.fs");
 
     // Cursor shit
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);  
@@ -92,77 +52,93 @@ int main(){
     float const CLOSE_FRUSTUM = 0.1f;
     float const FAR_FRUSTUM = 100.0f;
 
-    testShader.use();
+    voxelShader.use();
+    // testShader.setInt("ourTexture", 0);
+    glUniform1i( glGetUniformLocation(voxelShader.ID, "ourTexture"), 0);
     glm::mat4 projection = glm::mat4(1.0f);
     projection = glm::perspective(glm::radians(fov), (float)windowWidth / (float)windowHeight, CLOSE_FRUSTUM, FAR_FRUSTUM);
-    testShader.setMat4("projection", projection);
+    voxelShader.setMat4("projection", projection);
 
     glEnable(GL_CULL_FACE);
     glCullFace(GL_BACK);
     glFrontFace(GL_CCW);
 
-    for (int k = 0; k < buffer.size(); k++){
-        for (int i = 0; i < buffer[k].voxelArray.size(); i++){
-            buffer[k].voxelArray[i].CreateArrayAndBufferObjects();
+    ChunkManager chunkManager;
 
-            glm::mat4 model = glm::mat4(1.0f);
-            buffer[k].voxelArray[i].modelMatrix = glm::translate(model, buffer[k].voxelArray[i].position);
-        }   
+    const int renderDistance = 3;
+    float chunkPosX = 0;
+    float chunkPosZ = 0;
+
+    // Create starting chunks here, create new in while loop, if they dont exit aka return nullptr, create new one. Something lile that?
+    for (int x = 0; x <= 3; x++){
+        for (int z = 0; z <= 2; z++){
+            // Creating chunks
+            chunkManager.appendChunk(Chunk(x, z));
+        }
     }
 
-    int inChunkXPos = 0;
-    int inChunkZPos = 0;
+    // Create starting chunks here, create new in while loop, if they dont exit aka return nullptr, create new one.
+    for (int x = 0; x <= 3; x++){
+        for (int z = 0; z <= 2; z++){
+            Chunk *_chunk = chunkManager.getChunk(x, z);
+            // Returns nullptr if chunk doesnt exist
+            if (!_chunk) continue;
 
+            // Generates faces for the chunk
+            std::vector<Voxel> arr = chunkManager.getBufferArray(_chunk);
+            if (arr.size() != 0){
+                _chunk->voxelArray = arr;
+            }
+
+            // FIXME
+            // For the fuck all insane amounts of faces that im drawing one by one, create their vao's for some god unknown reason.
+            // Goddamn fix this goddamn ugly shit already.
+            for (int i = 0; i < _chunk->voxelArray.size(); i++){
+                _chunk->voxelArray[i].CreateArrayAndBufferObjects();
+
+                glm::mat4 model = glm::mat4(1.0f);
+                _chunk->voxelArray[i].modelMatrix = glm::translate(model, _chunk->voxelArray[i].position);
+            }
+        }
+    }
+    
     double startTime = glfwGetTime();
-
-    // Rewrite everything with building meshes around chunks tyvm
-
     while (!glfwWindowShouldClose(window))
     {   
         frameCounter += 1;
         if (glfwGetTime() - startTime >= 1.0f){
             std::cout << "ms/frame: " << 1000.0 / double(frameCounter) << "\n";
+            std::cout << "x->" << cameraPos.x << "   z->:"<<cameraPos.z << "\n";
             frameCounter = 0;
             startTime += 1;
         }
-
-        // // FIXME : Put this into a function for when changing chunks
-        int _x = numberOfTimesDivisible(cameraPos.x, Chunk::CHUNK_SIZE);
-        int _z = numberOfTimesDivisible(cameraPos.z, Chunk::CHUNK_SIZE);
-
-        if (_x != inChunkXPos){
-            std::cout << "Changing Chunk" << "\n"; 
-            inChunkXPos = _x;
-        } 
-        if (_z != inChunkZPos){
-            std::cout << "Changing Chunk" << "\n"; 
-            inChunkZPos = _z;
-        } 
-
-
 
         float currentFrame = glfwGetTime();
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;  
         processInput(window);
-        
+        chunkPosX = round(cameraPos.x)/Chunk::CHUNK_SIZE;
+        chunkPosZ = round(cameraPos.z)/Chunk::CHUNK_SIZE;
         
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT); 
 
         glm::mat4 view = glm::mat4(1.0f); // make sure to initialize matrix to identity matrix first
         view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
-        testShader.setMat4("view", view);
+        voxelShader.setMat4("view", view);
 
-        for (int k = 0; k < buffer.size(); k++){
-            for (int i = 0; i < buffer[k].voxelArray.size(); i++){
-                testShader.setMat4("model", buffer[k].voxelArray[i].modelMatrix);
-                buffer[k].voxelArray[i].Draw();
-            } 
-        } 
+        for (int x = (int)(chunkPosX - renderDistance); x <= (int)(chunkPosX + renderDistance); x++){
+            for (int z = (int)(chunkPosZ - renderDistance); z <= (int)(chunkPosZ + renderDistance); z++){
+                Chunk* _chunk = chunkManager.getChunk(x, z);
+                if (!_chunk) continue;
 
+                for (int i = 0; i < _chunk->voxelArray.size(); i++){
+                    voxelShader.setMat4("model", _chunk->voxelArray[i].modelMatrix);
+                    _chunk->voxelArray[i].Draw();
+                }
+            }
+        }
 
         glfwSwapBuffers(window);
         glfwPollEvents();
@@ -174,7 +150,7 @@ int main(){
 
 void processInput(GLFWwindow *window)
 {
-    float cameraSpeed = 10.0f * deltaTime;
+    float cameraSpeed = 5.0f * deltaTime;
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
         cameraPos += cameraSpeed * glm::normalize(glm::vec3(cameraFront.x * cos(pitch * 3.14 / 180), 0, cameraFront.z * cos(pitch * 3.14/180)));
     if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
@@ -226,10 +202,4 @@ void mouse_callback(GLFWwindow* window, double xposIn, double yposIn)
     front.y = sin(glm::radians(pitch));
     front.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
     cameraFront = glm::normalize(front);
-}
-
-int numberOfTimesDivisible(float x, int z){
-    x = (int)round(x);
-    x -= abs((int)x % z);
-    return (int)x / z;
 }
