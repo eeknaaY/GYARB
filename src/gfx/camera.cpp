@@ -4,29 +4,33 @@
 
 
 class Camera{
-    Camera(GLFWwindow* _window){
-        window = _window;
-    }
-
-    Camera() = default;
-    
     public:
+        Camera(GLFWwindow* _window){
+            window = _window;
+        }
+
+        Camera() = default;
+
         void processInput(float deltaTime);
-        float fov   =  120.0f;
-        glm::vec3 position = glm::vec3(0.0f, 50.0f, 0.0f); 
-        glm::vec3 target = glm::vec3(0.0f, 0.0f, 0.0f);
-        glm::vec3 direction = glm::normalize(target - position);
-        glm::vec3 up    = glm::vec3(0.0f, 1.0f,  0.0f);
-        glm::vec3 right = -glm::normalize(glm::cross(up, direction));
-        glm::vec3 front = glm::vec3(0.0f, 0.0f, -1.0f);
-        float yaw   = -90.0f;
-        float pitch =  0.0f;
+
+        glm::vec3 position;
+        glm::vec3 target;
+        glm::vec3 direction;
+        glm::vec3 up;
+        glm::vec3 right;
+        glm::vec3 front;
+
+        float fov;
+        float yaw;
+        float pitch;
+        float lastX;
+        float lastY;
+        bool firstMouse;
 
     private:
         GLFWwindow* window;
 
 };
-
 
 void Camera::processInput(float deltaTime)
 {
