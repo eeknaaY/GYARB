@@ -11,6 +11,7 @@
                 "-I${workspaceFolder}/include",
                 "${workspaceFolder}/include/*.c",
                 "${workspaceFolder}/src/gfx/*.cpp",
+                "${workspaceFolder}/src/structures/*.cpp",
                 "-L${workspaceFolder}/lib",
                 "-lglfw3dll",
                 "-lopengl32",

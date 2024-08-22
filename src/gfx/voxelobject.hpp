@@ -5,20 +5,21 @@
 #include <vector>
 #include <glm/matrix.hpp>
 
+
 class Voxel
 {
     public:
         glm::vec3 position;
         std::vector<unsigned int> indices;
-        unsigned int VAO, VBO, EBO, instanceVBO, texture;
+        unsigned int VAO, VBO, EBO, texture;
 
-        glm::mat4 modelMatrix;
+        static const float VoxelVertices[192];
 
         Voxel(int _x, int _y, int _z);
         Voxel(int _x, int _y, int _z, std::vector<unsigned int> _indices);
-        void AddToIndices(std::vector<unsigned int> _indices);
-        void CreateArrayAndBufferObjects();
-        void Draw();
+        void addToIndices(std::vector<unsigned int> _indices);
+        void createArrayAndBufferObjects();
+        void draw();
         Voxel() = default;
         
         ~Voxel(){

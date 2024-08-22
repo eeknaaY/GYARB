@@ -16,7 +16,7 @@ class Camera{
             right = -glm::normalize(glm::cross(up, direction));
             front = glm::vec3(0.0f, 0.0f, -1.0f);
 
-            fov   =  120.0f;
+            fov   =  90.0f;
             yaw   = -90.0f;
             pitch =  0.0f;
             lastX =  1600.0f / 2.0;

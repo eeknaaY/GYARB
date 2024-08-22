@@ -31,11 +31,13 @@ std::vector<Voxel> ChunkManager::getBufferArray(Chunk* _chunk){
     int chunkSize = Chunk::CHUNK_SIZE;
     int chunkHeight = Chunk::CHUNK_HEIGHT;
 
+    int arrSize = 0;
+
     for (int y = 0; y < chunkHeight ; y++){
         for(int z = 0; z < chunkSize; z++){
             for(int x = 0; x < chunkSize; x++){
                 // FIXME : JUST FOR NOW : DECIDE WHAT TO DO WHEN YOU HAVE AUTO GENERATING TERRAIN, HIDING ALL BLOCKS UNDERNEATH
-                if (y < 44) continue;
+                if (y < 30) continue;
                 
                 if (_chunk->voxelTextureArray[getTextureVectorIndexFromPosition(x, y, z)] == 0) {continue;}
                 
@@ -46,58 +48,60 @@ std::vector<Voxel> ChunkManager::getBufferArray(Chunk* _chunk){
                 bool HAS_RIGHT_FACE = false;
                 bool HAS_BACK_FACE = false;
                 bool HAS_FRONT_FACE = false;
+                bool HAS_TOP_FACE = false;
                 
                 if (x == 0 && getTextureVectorFromPosition(xCoordinate - 1, zCoordinate)[getTextureVectorIndexFromPosition(chunkSize - 1, y, z)] == 0){
                     // voxelBufferArray.push_back(glm::vec3(chunkSize * xCoordinate + x, y, chunkSize * zCoordinate + z));
-                    _voxel.AddToIndices(std::vector<unsigned int>{10, 11, 8, 10, 8, 9});
+                    _voxel.addToIndices(std::vector<unsigned int>{10, 11, 8, 10, 8, 9});
                     HAS_LEFT_FACE = true;
                 }
                 
                 if (x == 9 && getTextureVectorFromPosition(xCoordinate + 1, zCoordinate)[getTextureVectorIndexFromPosition(0, y, z)] == 0){
                     //voxelBufferArray.push_back(glm::vec3(chunkSize * xCoordinate + x, y, chunkSize * zCoordinate + z));
-                    _voxel.AddToIndices(std::vector<unsigned int>{15, 13, 14, 15, 14, 12});
+                    _voxel.addToIndices(std::vector<unsigned int>{15, 13, 14, 15, 14, 12});
                     HAS_RIGHT_FACE = true;
                 }
 
                 if (z == 0 && getTextureVectorFromPosition(xCoordinate, zCoordinate - 1)[getTextureVectorIndexFromPosition(x, y, chunkSize - 1)] == 0){
                     //voxelBufferArray.push_back(glm::vec3(chunkSize * xCoordinate + x, y, chunkSize * zCoordinate + z));
-                    _voxel.AddToIndices(std::vector<unsigned int>{0, 1, 2, 0, 3, 1});
+                    _voxel.addToIndices(std::vector<unsigned int>{0, 1, 2, 0, 3, 1});
                     HAS_BACK_FACE = true;
                 }
 
                 if (z == 9 && getTextureVectorFromPosition(xCoordinate, zCoordinate + 1)[getTextureVectorIndexFromPosition(x, y, 0)] == 0){
                     //voxelBufferArray.push_back(glm::vec3(chunkSize * xCoordinate + x, y, chunkSize * zCoordinate + z));
-                    _voxel.AddToIndices(std::vector<unsigned int>{4, 5, 6, 4, 6, 7});
+                    _voxel.addToIndices(std::vector<unsigned int>{4, 5, 6, 4, 6, 7});
                     HAS_FRONT_FACE = true;
                 }
                     
                 // FIXME : Nearby blocks thats not on a different chunk
                 if (x!=9 && !HAS_RIGHT_FACE && _chunk->voxelTextureArray[getTextureVectorIndexFromPosition(x + 1, y, z)] == 0){
-                    _voxel.AddToIndices(std::vector<unsigned int>{15, 13, 14, 15, 14, 12});
+                    _voxel.addToIndices(std::vector<unsigned int>{15, 13, 14, 15, 14, 12});
                 }
 
                 if (x!=0 && !HAS_LEFT_FACE && _chunk->voxelTextureArray[getTextureVectorIndexFromPosition(x - 1, y, z)] == 0){
-                    _voxel.AddToIndices(std::vector<unsigned int>{10, 11, 8, 10, 8, 9});
+                    _voxel.addToIndices(std::vector<unsigned int>{10, 11, 8, 10, 8, 9});
                 }
 
                 if (_chunk->voxelTextureArray[getTextureVectorIndexFromPosition(x, y + 1, z)] == 0){
-                    _voxel.AddToIndices(std::vector<unsigned int>{23, 21, 22, 23, 22, 20});
+                    _voxel.addToIndices(std::vector<unsigned int>{23, 21, 22, 23, 22, 20});
+                    HAS_TOP_FACE = true;
                 }
 
                 if (y!=0 && _chunk->voxelTextureArray[getTextureVectorIndexFromPosition(x, y - 1, z)] == 0){
-                    _voxel.AddToIndices(std::vector<unsigned int>{18, 19, 16, 18, 16, 17});
+                    _voxel.addToIndices(std::vector<unsigned int>{18, 19, 16, 18, 16, 17});
                 }
 
                 if (z!=9 && !HAS_FRONT_FACE && _chunk->voxelTextureArray[getTextureVectorIndexFromPosition(x, y, z + 1)] == 0){
-                    _voxel.AddToIndices(std::vector<unsigned int>{4, 5, 6, 4, 6, 7});
+                    _voxel.addToIndices(std::vector<unsigned int>{4, 5, 6, 4, 6, 7});
                 }
 
                 if (z!=0 && !HAS_BACK_FACE && _chunk->voxelTextureArray[getTextureVectorIndexFromPosition(x, y, z - 1)] == 0){
-                    _voxel.AddToIndices(std::vector<unsigned int>{0, 1, 2, 0, 3, 1});
+                    _voxel.addToIndices(std::vector<unsigned int>{0, 1, 2, 0, 3, 1});
                 }
 
-                if (_chunk->voxelTextureArray[getTextureVectorIndexFromPosition(x, y + 1, z)] == 0){
-                    _voxel.AddToIndices(std::vector<unsigned int>{23, 21, 22, 23, 22, 20});
+                if (!HAS_TOP_FACE && _chunk->voxelTextureArray[getTextureVectorIndexFromPosition(x, y + 1, z)] == 0){
+                    _voxel.addToIndices(std::vector<unsigned int>{23, 21, 22, 23, 22, 20});
                 }
 
                 if (_voxel.indices.size() != 0){
@@ -106,7 +110,6 @@ std::vector<Voxel> ChunkManager::getBufferArray(Chunk* _chunk){
             }
         }
     }
-
     return voxelBufferArray;
 }
 

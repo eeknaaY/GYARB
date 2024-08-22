@@ -1,4 +1,5 @@
 #include <glm/vec3.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 #include <algorithm>
 #include <vector>
 #include <map>
@@ -6,6 +7,7 @@
 #include "voxelobject.hpp"
 #include <glad/glad.h>
 #include <stdexcept>      // std::out_of_range
+#include "../shaders/shaders.hpp"
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -15,22 +17,24 @@ class Chunk{
         static const int CHUNK_HEIGHT = 50;
         int xCoordinate, zCoordinate;
 
-        // FIXME : Use bitset? Nah not really
+        // FIXME : Use bitset? Nah not really, maybe, if you can get binary greedy meshing to work
         // std::bitset<CHUNK_SIZE * CHUNK_SIZE * CHUNK_HEIGHT> voxelTextureArray;
         std::vector<uint8_t> voxelTextureArray;
         std::vector<Voxel> voxelArray;
-        std::vector<GLfloat> indices;
+        std::vector<unsigned int> indices;
 
-        // Always gonna have 6 in length so dont need vector
-        // std::vector<unsigned int> VAOs;
-        // std::vector<unsigned int> VBOs;
-        // std::vector<unsigned int> EBOs;
+        unsigned int instanceVBO;
 
         uint8_t getTextureFromPosition(int x, int y, int z);
         void changeVoxelArray(std::vector<Voxel> arr);
+        void updateVerticesArray();
         
         void setChunkTextures();
         void setChunkTexture(int x, int y, int z, int textureValue);
+
+        void addToIndices(std::vector<unsigned int> _indices);
+        void createArrayAndBufferObjects();
+        void draw(Shader shader);
 
         Chunk(int _xCoordinate, int _zCoordinate){
             this->xCoordinate = _xCoordinate;
@@ -43,6 +47,12 @@ class Chunk{
         Chunk() = default;
 };
 
+void Chunk::updateVerticesArray(){
+    for(Voxel _voxel : voxelArray){
+        indices.insert(indices.end(), _voxel.indices.begin(), _voxel.indices.end());
+    }
+}
+
 void Chunk::setChunkTextures(){
     // FIXME : Set the different textures, 0 == Air/See through
     for (int i = 4900; i<5000; i++){
@@ -52,9 +62,9 @@ void Chunk::setChunkTextures(){
     // FIXME : Change this for the perlin noise
     for (int _x = 0; _x < Chunk::CHUNK_SIZE; _x++){
         for (int _z = 0; _z < Chunk::CHUNK_SIZE; _z++){
-            int chosenHeight = (rand() % Chunk::CHUNK_HEIGHT);
+            int chosenHeight = 40 + static_cast<int>(cos(time(nullptr))) + static_cast<int>(round(2 * sin(0.3f * (_x + Chunk::CHUNK_SIZE * this->xCoordinate + _z + Chunk::CHUNK_SIZE * this->zCoordinate) )));
             for (int _y = 0; _y < Chunk::CHUNK_HEIGHT; _y++){
-                if (_y > chosenHeight && _y > 45) {
+                if (_y > chosenHeight) {
                     setChunkTexture(_x, _y, _z, 0);
                 }
             }
@@ -63,7 +73,7 @@ void Chunk::setChunkTextures(){
 }
 
 void Chunk::changeVoxelArray(std::vector<Voxel> arr){
-    this->voxelArray = arr;
+    voxelArray = arr;
 }
 
 void Chunk::setChunkTexture(int x, int y, int z, int textureValue){
@@ -76,3 +86,20 @@ uint8_t Chunk::getTextureFromPosition(int x, int y, int z){
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+void Chunk::createArrayAndBufferObjects(){
+    for (unsigned int i = 0; i < voxelArray.size(); i++){
+        voxelArray[i].createArrayAndBufferObjects();
+    }
+}
+
+void Chunk::draw(Shader shader){
+    // FIXME : Make every chunk/entire world draw with 6 draw calls, 1 for each amount of sides drawing.
+    // Look at instancing, linking matrix with VAO, since uniform in shader cant hold that many matrices
+    // Occlusion culling?
+    for (Voxel _voxel : voxelArray){
+        shader.setMat4("model", glm::translate(glm::mat4(1.0f), _voxel.position));
+        glBindVertexArray(_voxel.VAO);
+        glDrawElements(GL_TRIANGLES, _voxel.indices.size(), GL_UNSIGNED_INT, 0);
+    }
+    glBindVertexArray(0);
+}

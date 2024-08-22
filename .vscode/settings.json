@@ -71,5 +71,6 @@
         "stop_token": "cpp",
         "thread": "cpp",
         "bitset": "cpp"
-    }
+    },
+    "C_Cpp.errorSquiggles": "enabled"
 }
