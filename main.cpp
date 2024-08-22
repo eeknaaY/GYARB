@@ -81,35 +81,8 @@ int main(){
 
     double startTime = glfwGetTime();
 
-    Octree* tree[1];
-    bool created = false;
-    bool deleted = false;
     while (!glfwWindowShouldClose(window))
     {   
-            ////////////////////////////////////////////////////////////// TESTING _ REMOVE THIS
-            if (glfwGetKey(window, GLFW_KEY_O) == GLFW_PRESS && !created){
-                for (int i = 0; i < 1; i++){
-                    tree[i] = new Octree();
-                    tree[i]->TEMP_setBlockValues();
-                }
-                created = true;
-            }
-            if (glfwGetKey(window, GLFW_KEY_P) == GLFW_PRESS && !deleted){
-                for (int i = 0; i < 1; i++){
-                    int before = tree[i]->nodeAmount();
-                    tree[i]->TEMP_optimizeTree();
-                    int after = tree[i]->nodeAmount();
-                    int k = 0;
-                } 
-                deleted = true;
-            }
-
-            if (glfwGetKey(window, GLFW_KEY_I) == GLFW_PRESS){
-                for (int i = 0; i < 1; i++){
-                    delete tree[i];
-                } 
-            }
-
         frameCounter += 1;
         if (glfwGetTime() - startTime >= 1.0f){
             std::cout << "ms/frame: " << 1000.0 / double(frameCounter) << "\n";
