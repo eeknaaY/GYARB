@@ -76,7 +76,6 @@ int main(){
 
     while (!glfwWindowShouldClose(window))
     {   
-            
         frameCounter += 1;
         if (glfwGetTime() - startTime >= 1.0f){
             std::cout << "ms/frame: " << 1000.0 / double(frameCounter) << "\n";
