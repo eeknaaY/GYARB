@@ -171,7 +171,7 @@ Node* Octree::getNodeFromPosition(int _x, int _y, int _z, int _depth){
 
 int Octree::getAverageBlockValueFromChildren(Node* parentNode){
     // Node has no children
-    if (parentNode->isEndNode) return -1;
+    if (parentNode->isEndNode) return parentNode->blockValue;
 
     std::map<int, int> mp;
     int curMaxKey = -1;

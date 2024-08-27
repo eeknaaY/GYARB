@@ -3,6 +3,7 @@
 
 #include "voxelobject.hpp"
 #include <map>
+#include "mesh.hpp"
 
 class ChunkManager{
     public:
@@ -10,7 +11,7 @@ class ChunkManager{
         Chunk* getChunk(int x, int z);
 
         std::vector<uint8_t> getTextureVectorFromPosition(int x, int z);
-        std::vector<Voxel> getBufferArray(Chunk* _chunk);
+        Mesh getBufferArray(Chunk* _chunk);
         void setInvisibleTextureVector();
         std::map<std::pair<int, int>, Chunk*> chunkMap;
 

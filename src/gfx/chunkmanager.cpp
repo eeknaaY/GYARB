@@ -2,6 +2,7 @@
 #include <vector>
 #include "chunk.hpp"
 #include "voxelobject.hpp"
+#include "mesh.hpp"
 #include <stdexcept>      // std::out_of_range
 
 
@@ -12,7 +13,7 @@ class ChunkManager{
         Chunk* getChunk(int x, int z);
 
         std::vector<uint8_t> getTextureVectorFromPosition(int x, int z);
-        std::vector<Voxel> getBufferArray(Chunk* _chunk);
+        Mesh getBufferArray(Chunk* _chunk);
         void setInvisibleTextureVector();
         std::map<std::pair<int, int>, Chunk*> chunkMap;
 
@@ -24,14 +25,15 @@ class ChunkManager{
 unsigned int getTextureVectorIndexFromPosition(int x, int y, int z);
 
 // FIXME : Why the fuck is this in chunkmanager, right because you need adjecent chunks
-std::vector<Voxel> ChunkManager::getBufferArray(Chunk* _chunk){
-    std::vector<Voxel> voxelBufferArray;
+Mesh ChunkManager::getBufferArray(Chunk* _chunk){
+    std::vector<Vertex> vertices;
+    std::vector<unsigned int> indices;
+    unsigned int vertexCount = 0;
+
     int xCoordinate = _chunk->xCoordinate;
     int zCoordinate = _chunk->zCoordinate;
     int chunkSize = Chunk::CHUNK_SIZE;
     int chunkHeight = Chunk::CHUNK_HEIGHT;
-
-    int arrSize = 0;
 
     for (int y = 0; y < chunkHeight ; y++){
         for(int z = 0; z < chunkSize; z++){
@@ -52,65 +54,211 @@ std::vector<Voxel> ChunkManager::getBufferArray(Chunk* _chunk){
                 
                 if (x == 0 && getTextureVectorFromPosition(xCoordinate - 1, zCoordinate)[getTextureVectorIndexFromPosition(chunkSize - 1, y, z)] == 0){
                     // voxelBufferArray.push_back(glm::vec3(chunkSize * xCoordinate + x, y, chunkSize * zCoordinate + z));
-                    _voxel.addToIndices(std::vector<unsigned int>{10, 11, 8, 10, 8, 9});
+                    //_voxel.addToIndices(std::vector<unsigned int>{10, 11, 8, 10, 8, 9});
+                    // int u, v;
+                    // Mesh::getTextureCoordinate(x, y, z, u, v);
+
+                    vertices.push_back(Vertex(x - 0.5f, y + 0.5f, z + 0.5f, 1.0f, 1.0f));
+                    vertices.push_back(Vertex(x - 0.5f, y + 0.5f, z - 0.5f, 0.0f, 1.0f));
+                    vertices.push_back(Vertex(x - 0.5f, y - 0.5f, z - 0.5f, 0.0f, 0.0f));
+                    vertices.push_back(Vertex(x - 0.5f, y - 0.5f, z + 0.5f, 1.0f, 0.0f));
+
+                    indices.push_back(vertexCount + 2);
+                    indices.push_back(vertexCount + 3);
+                    indices.push_back(vertexCount + 0);
+                    indices.push_back(vertexCount + 2);
+                    indices.push_back(vertexCount + 0);
+                    indices.push_back(vertexCount + 1);
+
+                    vertexCount += 4;
                     HAS_LEFT_FACE = true;
                 }
                 
                 if (x == 9 && getTextureVectorFromPosition(xCoordinate + 1, zCoordinate)[getTextureVectorIndexFromPosition(0, y, z)] == 0){
-                    //voxelBufferArray.push_back(glm::vec3(chunkSize * xCoordinate + x, y, chunkSize * zCoordinate + z));
-                    _voxel.addToIndices(std::vector<unsigned int>{15, 13, 14, 15, 14, 12});
+                    //voxelBufferArray.push_back(glm::vec3(chunkSize * xCoordinate + x, y, chunkSize * zCoordinate + z, 0.0f, 1.0f));
+                    //_voxel.addToIndices(std::vector<unsigned int>{15, 13, 14, 15, 14, 12});
+                    vertices.push_back(Vertex(x + 0.5f, y + 0.5f, z + 0.5f, 0.0f, 1.0f));
+                    vertices.push_back(Vertex(x + 0.5f, y - 0.5f, z - 0.5f, 1.0f, 0.0f));
+                    vertices.push_back(Vertex(x + 0.5f, y + 0.5f, z - 0.5f, 1.0f, 1.0f));
+                    vertices.push_back(Vertex(x + 0.5f, y - 0.5f, z + 0.5f, 0.0f, 0.0f));
+
+                    indices.push_back(vertexCount + 3);
+                    indices.push_back(vertexCount + 1);
+                    indices.push_back(vertexCount + 2);
+                    indices.push_back(vertexCount + 3);
+                    indices.push_back(vertexCount + 2);
+                    indices.push_back(vertexCount + 0);
+
+                    vertexCount += 4;
                     HAS_RIGHT_FACE = true;
                 }
 
                 if (z == 0 && getTextureVectorFromPosition(xCoordinate, zCoordinate - 1)[getTextureVectorIndexFromPosition(x, y, chunkSize - 1)] == 0){
-                    //voxelBufferArray.push_back(glm::vec3(chunkSize * xCoordinate + x, y, chunkSize * zCoordinate + z));
-                    _voxel.addToIndices(std::vector<unsigned int>{0, 1, 2, 0, 3, 1});
+                    //voxelBufferArray.push_back(glm::vec3(chunkSize * xCoordinate + x, y, chunkSize * zCoordinate + z, 0.0f, 1.0f));
+                    //_voxel.addToIndices(std::vector<unsigned int>{0, 1, 2, 0, 3, 1});
+                    vertices.push_back(Vertex(x - 0.5f, y - 0.5f, z - 0.5f, 0.00390625f, 0.93359375f));
+                    vertices.push_back(Vertex(x + 0.5f, y + 0.5f, z - 0.5f, 0.06640625f, 0.99609375f));
+                    vertices.push_back(Vertex(x + 0.5f, y - 0.5f, z - 0.5f, 0.06640625f, 0.93359375f));
+                    vertices.push_back(Vertex(x - 0.5f, y + 0.5f, z - 0.5f, 0.00390625f, 0.99609375f));
+
+                    indices.push_back(vertexCount + 0);
+                    indices.push_back(vertexCount + 1);
+                    indices.push_back(vertexCount + 2);
+                    indices.push_back(vertexCount + 0);
+                    indices.push_back(vertexCount + 3);
+                    indices.push_back(vertexCount + 1);
+
+                    vertexCount += 4;
                     HAS_BACK_FACE = true;
                 }
 
                 if (z == 9 && getTextureVectorFromPosition(xCoordinate, zCoordinate + 1)[getTextureVectorIndexFromPosition(x, y, 0)] == 0){
-                    //voxelBufferArray.push_back(glm::vec3(chunkSize * xCoordinate + x, y, chunkSize * zCoordinate + z));
-                    _voxel.addToIndices(std::vector<unsigned int>{4, 5, 6, 4, 6, 7});
+                    //voxelBufferArray.push_back(glm::vec3(chunkSize * xCoordinate + x, y, chunkSize * zCoordinate + z, 0.0f, 1.0f));
+                    //_voxel.addToIndices(std::vector<unsigned int>{4, 5, 6, 4, 6, 7});
+                    vertices.push_back(Vertex(x - 0.5f, y - 0.5f, z + 0.5f, 0.0f, 0.0f));
+                    vertices.push_back(Vertex(x + 0.5f, y - 0.5f, z + 0.5f, 1.0f, 0.0f));
+                    vertices.push_back(Vertex(x + 0.5f, y + 0.5f, z + 0.5f, 1.0f, 1.0f));
+                    vertices.push_back(Vertex(x - 0.5f, y + 0.5f, z + 0.5f, 0.0f, 1.0f));
+
+                    indices.push_back(vertexCount + 0);
+                    indices.push_back(vertexCount + 1);
+                    indices.push_back(vertexCount + 2);
+                    indices.push_back(vertexCount + 0);
+                    indices.push_back(vertexCount + 2);
+                    indices.push_back(vertexCount + 3);
+                    
+                    vertexCount += 4;
                     HAS_FRONT_FACE = true;
                 }
                     
                 // FIXME : Nearby blocks thats not on a different chunk
                 if (x!=9 && !HAS_RIGHT_FACE && _chunk->voxelTextureArray[getTextureVectorIndexFromPosition(x + 1, y, z)] == 0){
-                    _voxel.addToIndices(std::vector<unsigned int>{15, 13, 14, 15, 14, 12});
+                    //_voxel.addToIndices(std::vector<unsigned int>{15, 13, 14, 15, 14, 12});
+                    vertices.push_back(Vertex(x + 0.5f, y + 0.5f, z + 0.5f, 0.0f, 1.0f));
+                    vertices.push_back(Vertex(x + 0.5f, y - 0.5f, z - 0.5f, 1.0f, 0.0f));
+                    vertices.push_back(Vertex(x + 0.5f, y + 0.5f, z - 0.5f, 1.0f, 1.0f));
+                    vertices.push_back(Vertex(x + 0.5f, y - 0.5f, z + 0.5f, 0.0f, 0.0f));
+
+                    indices.push_back(vertexCount + 3);
+                    indices.push_back(vertexCount + 1);
+                    indices.push_back(vertexCount + 2);
+                    indices.push_back(vertexCount + 3);
+                    indices.push_back(vertexCount + 2);
+                    indices.push_back(vertexCount + 0);
+
+                    vertexCount += 4;
                 }
 
                 if (x!=0 && !HAS_LEFT_FACE && _chunk->voxelTextureArray[getTextureVectorIndexFromPosition(x - 1, y, z)] == 0){
-                    _voxel.addToIndices(std::vector<unsigned int>{10, 11, 8, 10, 8, 9});
+                    //_voxel.addToIndices(std::vector<unsigned int>{10, 11, 8, 10, 8, 9});
+                    vertices.push_back(Vertex(x - 0.5f, y + 0.5f, z + 0.5f, 1.0f, 1.0f));
+                    vertices.push_back(Vertex(x - 0.5f, y + 0.5f, z - 0.5f, 0.0f, 1.0f));
+                    vertices.push_back(Vertex(x - 0.5f, y - 0.5f, z - 0.5f, 0.0f, 0.0f));
+                    vertices.push_back(Vertex(x - 0.5f, y - 0.5f, z + 0.5f, 1.0f, 0.0f));
+
+                    indices.push_back(vertexCount + 2);
+                    indices.push_back(vertexCount + 3);
+                    indices.push_back(vertexCount + 0);
+                    indices.push_back(vertexCount + 2);
+                    indices.push_back(vertexCount + 0);
+                    indices.push_back(vertexCount + 1);
+
+                    vertexCount += 4;
                 }
 
                 if (_chunk->voxelTextureArray[getTextureVectorIndexFromPosition(x, y + 1, z)] == 0){
-                    _voxel.addToIndices(std::vector<unsigned int>{23, 21, 22, 23, 22, 20});
+                    //_voxel.addToIndices(std::vector<unsigned int>{23, 21, 22, 23, 22, 20});
+                    vertices.push_back(Vertex(x - 0.5f, y + 0.5f, z - 0.5f, 0.0f, 1.0f));
+                    vertices.push_back(Vertex(x + 0.5f, y + 0.5f, z + 0.5f, 1.0f, 0.0f));
+                    vertices.push_back(Vertex(x + 0.5f, y + 0.5f, z - 0.5f, 1.0f, 1.0f));
+                    vertices.push_back(Vertex(x - 0.5f, y + 0.5f, z + 0.5f, 0.0f, 0.0f));
+                    
+                    indices.push_back(vertexCount + 3);
+                    indices.push_back(vertexCount + 1);
+                    indices.push_back(vertexCount + 2);
+                    indices.push_back(vertexCount + 3);
+                    indices.push_back(vertexCount + 2);
+                    indices.push_back(vertexCount + 0);
+
+                    vertexCount += 4;
                     HAS_TOP_FACE = true;
                 }
 
                 if (y!=0 && _chunk->voxelTextureArray[getTextureVectorIndexFromPosition(x, y - 1, z)] == 0){
-                    _voxel.addToIndices(std::vector<unsigned int>{18, 19, 16, 18, 16, 17});
+                    //_voxel.addToIndices(std::vector<unsigned int>{18, 19, 16, 18, 16, 17});
+                    vertices.push_back(Vertex(x - 0.5f, y - 0.5f, z - 0.5f, 0.0f, 1.0f));
+                    vertices.push_back(Vertex(x + 0.5f, y - 0.5f, z - 0.5f, 0.0f, 1.0f));
+                    vertices.push_back(Vertex(x + 0.5f, y - 0.5f, z + 0.5f, 0.0f, 1.0f));
+                    vertices.push_back(Vertex(x - 0.5f, y - 0.5f, z + 0.5f, 0.0f, 1.0f));
+
+                    indices.push_back(vertexCount + 2);
+                    indices.push_back(vertexCount + 3);
+                    indices.push_back(vertexCount + 0);
+                    indices.push_back(vertexCount + 2);
+                    indices.push_back(vertexCount + 0);
+                    indices.push_back(vertexCount + 1);
+                    
+                    vertexCount += 4;
                 }
 
                 if (z!=9 && !HAS_FRONT_FACE && _chunk->voxelTextureArray[getTextureVectorIndexFromPosition(x, y, z + 1)] == 0){
-                    _voxel.addToIndices(std::vector<unsigned int>{4, 5, 6, 4, 6, 7});
+                    //_voxel.addToIndices(std::vector<unsigned int>{4, 5, 6, 4, 6, 7});
+                    vertices.push_back(Vertex(x - 0.5f, y - 0.5f, z + 0.5f, 0.0f, 0.0f));
+                    vertices.push_back(Vertex(x + 0.5f, y - 0.5f, z + 0.5f, 1.0f, 0.0f));
+                    vertices.push_back(Vertex(x + 0.5f, y + 0.5f, z + 0.5f, 1.0f, 1.0f));
+                    vertices.push_back(Vertex(x - 0.5f, y + 0.5f, z + 0.5f, 0.0f, 1.0f));
+
+                    indices.push_back(vertexCount + 0);
+                    indices.push_back(vertexCount + 1);
+                    indices.push_back(vertexCount + 2);
+                    indices.push_back(vertexCount + 0);
+                    indices.push_back(vertexCount + 2);
+                    indices.push_back(vertexCount + 3);
+
+                    vertexCount += 4;
                 }
 
                 if (z!=0 && !HAS_BACK_FACE && _chunk->voxelTextureArray[getTextureVectorIndexFromPosition(x, y, z - 1)] == 0){
-                    _voxel.addToIndices(std::vector<unsigned int>{0, 1, 2, 0, 3, 1});
+                    //_voxel.addToIndices(std::vector<unsigned int>{0, 1, 2, 0, 3, 1});
+                    vertices.push_back(Vertex(x - 0.5f, y - 0.5f, z - 0.5f, 0.00390625f, 0.93359375f));
+                    vertices.push_back(Vertex(x + 0.5f, y + 0.5f, z - 0.5f, 0.06640625f, 0.99609375f));
+                    vertices.push_back(Vertex(x + 0.5f, y - 0.5f, z - 0.5f, 0.06640625f, 0.93359375f));
+                    vertices.push_back(Vertex(x - 0.5f, y + 0.5f, z - 0.5f, 0.00390625f, 0.99609375f));
+
+                    indices.push_back(vertexCount + 0);
+                    indices.push_back(vertexCount + 1);
+                    indices.push_back(vertexCount + 2);
+                    indices.push_back(vertexCount + 0);
+                    indices.push_back(vertexCount + 3);
+                    indices.push_back(vertexCount + 1);
+
+                    vertexCount += 4;
                 }
 
                 if (!HAS_TOP_FACE && _chunk->voxelTextureArray[getTextureVectorIndexFromPosition(x, y + 1, z)] == 0){
-                    _voxel.addToIndices(std::vector<unsigned int>{23, 21, 22, 23, 22, 20});
+                   // _voxel.addToIndices(std::vector<unsigned int>{23, 21, 22, 23, 22, 20});
+                    vertices.push_back(Vertex(x - 0.5f, y + 0.5f, z - 0.5f, 0.0f, 1.0f));
+                    vertices.push_back(Vertex(x + 0.5f, y + 0.5f, z + 0.5f, 1.0f, 0.0f));
+                    vertices.push_back(Vertex(x + 0.5f, y + 0.5f, z - 0.5f, 1.0f, 1.0f));
+                    vertices.push_back(Vertex(x - 0.5f, y + 0.5f, z + 0.5f, 0.0f, 0.0f));
+
+                    indices.push_back(vertexCount + 3);
+                    indices.push_back(vertexCount + 1);
+                    indices.push_back(vertexCount + 2);
+                    indices.push_back(vertexCount + 3);
+                    indices.push_back(vertexCount + 2);
+                    indices.push_back(vertexCount + 0);
+
+                    vertexCount += 4;
                 }
 
-                if (_voxel.indices.size() != 0){
-                    voxelBufferArray.push_back(_voxel);
-                }
+                // if (_voxel.indices.size() != 0){
+                //     voxelBufferArray.push_back(_voxel);
+                // }
             }
         }
     }
-    return voxelBufferArray;
+    return Mesh(vertices, indices);
 }
 
 void ChunkManager::appendChunk(Chunk _chunk){

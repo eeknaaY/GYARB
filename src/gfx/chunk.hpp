@@ -8,6 +8,7 @@
 #include <map>
 #include "voxelobject.hpp"
 #include "../shaders/shaders.hpp"
+#include "mesh.hpp"
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -21,7 +22,7 @@ class Chunk{
         std::vector<Voxel> voxelArray;
         std::vector<unsigned int> indices;
 
-        unsigned int instanceVBO;
+        Mesh mesh;
         
         uint8_t getTextureFromPosition(int x, int y, int z);
         void changeVoxelArray(std::vector<Voxel> arr);
@@ -31,8 +32,7 @@ class Chunk{
         void setChunkTexture(int x, int y, int z, int textureValue);
 
         void addToIndices(std::vector<unsigned int> _indices);
-        void createArrayAndBufferObjects();
-        void draw(Shader shader);
+        void draw(const Shader &shader);
 
         Chunk(int _xCoordinate, int _zCoordinate){
             this->xCoordinate = _xCoordinate;

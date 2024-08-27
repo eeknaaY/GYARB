@@ -8,6 +8,7 @@
 #include <glad/glad.h>
 #include <stdexcept>      // std::out_of_range
 #include "../shaders/shaders.hpp"
+#include "mesh.hpp"
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -23,7 +24,7 @@ class Chunk{
         std::vector<Voxel> voxelArray;
         std::vector<unsigned int> indices;
 
-        unsigned int instanceVBO;
+        Mesh mesh;
 
         uint8_t getTextureFromPosition(int x, int y, int z);
         void changeVoxelArray(std::vector<Voxel> arr);
@@ -33,8 +34,7 @@ class Chunk{
         void setChunkTexture(int x, int y, int z, int textureValue);
 
         void addToIndices(std::vector<unsigned int> _indices);
-        void createArrayAndBufferObjects();
-        void draw(Shader shader);
+        void draw(const Shader &shader);
 
         Chunk(int _xCoordinate, int _zCoordinate){
             this->xCoordinate = _xCoordinate;
@@ -86,20 +86,6 @@ uint8_t Chunk::getTextureFromPosition(int x, int y, int z){
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void Chunk::createArrayAndBufferObjects(){
-    for (unsigned int i = 0; i < voxelArray.size(); i++){
-        voxelArray[i].createArrayAndBufferObjects();
-    }
-}
-
-void Chunk::draw(Shader shader){
-    // FIXME : Make every chunk/entire world draw with 6 draw calls, 1 for each amount of sides drawing.
-    // Look at instancing, linking matrix with VAO, since uniform in shader cant hold that many matrices
-    // Occlusion culling?
-    for (Voxel _voxel : voxelArray){
-        shader.setMat4("model", glm::translate(glm::mat4(1.0f), _voxel.position));
-        glBindVertexArray(_voxel.VAO);
-        glDrawElements(GL_TRIANGLES, _voxel.indices.size(), GL_UNSIGNED_INT, 0);
-    }
-    glBindVertexArray(0);
+void Chunk::draw(const Shader &shader){
+    mesh.draw(shader, xCoordinate, zCoordinate);
 }

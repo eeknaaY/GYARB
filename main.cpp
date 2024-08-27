@@ -6,6 +6,7 @@
 #include "src/gfx/chunkmanager.hpp"
 #include "src/gfx/camera.hpp"
 #include "src/gfx/window.hpp"
+#include "src/gfx/mesh.hpp"
 
 #include "src/shaders/shaders.hpp"
 
@@ -52,64 +53,30 @@ int main(){
 
     ChunkManager chunkManager;
 
-    const int renderDistance = 3;
+    const int RENDER_DISTANCE = 5;
     float chunkPosX = 0;
     float chunkPosZ = 0;
 
     // Create starting chunks here, create new in while loop, if they dont exit aka return nullptr, create new one. Something lile that?
-    for (int x = 0; x <= 3; x++){
-        for (int z = 0; z <= 2; z++){
+    for (int x = 0; x <= 9; x++){
+        for (int z = 0; z <= 9; z++){
             // Creating chunks
             chunkManager.appendChunk(Chunk(x, z));
         }
     }
 
-    for (int x = 0; x <= 3; x++){
-        for (int z = 0; z <= 2; z++){
+    for (int x = 0; x <= 9; x++){
+        for (int z = 0; z <= 9; z++){
             Chunk* _chunk = chunkManager.getChunk(x, z);
-            _chunk->voxelArray = chunkManager.getBufferArray(_chunk);
-            _chunk->createArrayAndBufferObjects();
+            _chunk->mesh = chunkManager.getBufferArray(_chunk); //chunkManager.getBufferArray(_chunk);
         }
     }
 
-
-    // We only use 1 texture.
-    Voxel textureVoxel = chunkManager.getChunk(0, 0)->voxelArray[0];
-    textureVoxel.createArrayAndBufferObjects();
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, textureVoxel.texture);
-
     double startTime = glfwGetTime();
 
-    Octree* tree[1];
-    bool created = false;
-    bool deleted = false;
     while (!glfwWindowShouldClose(window))
     {   
-            ////////////////////////////////////////////////////////////// TESTING _ REMOVE THIS
-            if (glfwGetKey(window, GLFW_KEY_O) == GLFW_PRESS && !created){
-                for (int i = 0; i < 1; i++){
-                    tree[i] = new Octree();
-                    tree[i]->TEMP_setBlockValues();
-                }
-                created = true;
-            }
-            if (glfwGetKey(window, GLFW_KEY_P) == GLFW_PRESS && !deleted){
-                for (int i = 0; i < 1; i++){
-                    int before = tree[i]->nodeAmount();
-                    tree[i]->TEMP_optimizeTree();
-                    int after = tree[i]->nodeAmount();
-                    int k = 0;
-                } 
-                deleted = true;
-            }
-
-            if (glfwGetKey(window, GLFW_KEY_I) == GLFW_PRESS){
-                for (int i = 0; i < 1; i++){
-                    delete tree[i];
-                } 
-            }
-
+            
         frameCounter += 1;
         if (glfwGetTime() - startTime >= 1.0f){
             std::cout << "ms/frame: " << 1000.0 / double(frameCounter) << "\n";
@@ -133,8 +100,8 @@ int main(){
         view = glm::lookAt(gameCamera.position, gameCamera.position + gameCamera.front, gameCamera.up);
         voxelShader.setMat4("view", view);
 
-        for (int x = (int)(chunkPosX - renderDistance); x <= (int)(chunkPosX + renderDistance); x++){
-            for (int z = (int)(chunkPosZ - renderDistance); z <= (int)(chunkPosZ + renderDistance); z++){
+        for (int x = (int)(chunkPosX - RENDER_DISTANCE); x <= (int)(chunkPosX + RENDER_DISTANCE); x++){
+            for (int z = (int)(chunkPosZ - RENDER_DISTANCE); z <= (int)(chunkPosZ + RENDER_DISTANCE); z++){
                 Chunk* _chunk = chunkManager.getChunk(x, z);
                 if (!_chunk) continue;
                 _chunk->draw(voxelShader);
