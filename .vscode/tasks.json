@@ -12,6 +12,7 @@
                 "${workspaceFolder}/include/*.c",
                 "${workspaceFolder}/src/gfx/*.cpp",
                 "${workspaceFolder}/src/structures/*.cpp",
+                "${workspaceFolder}/src/textures/*.cpp",
                 "-L${workspaceFolder}/lib",
                 "-lglfw3dll",
                 "-lopengl32",

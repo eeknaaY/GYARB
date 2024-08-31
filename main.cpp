@@ -9,7 +9,6 @@
 #include "src/gfx/mesh.hpp"
 
 #include "src/shaders/shaders.hpp"
-
 #include "src/structures/octree.hpp"
 
 
@@ -20,7 +19,7 @@ float deltaTime = 0.0f;
 Camera gameCamera;
 
 int main(){
-    srand(time(0)); 
+    srand(time(0));
 
     int windowHeight = 900;
     int windowWidth = 1600;
@@ -53,22 +52,22 @@ int main(){
 
     ChunkManager chunkManager;
 
-    const int RENDER_DISTANCE = 5;
+    const int RENDER_DISTANCE = 3;
     float chunkPosX = 0;
     float chunkPosZ = 0;
 
     // Create starting chunks here, create new in while loop, if they dont exit aka return nullptr, create new one. Something lile that?
-    for (int x = 0; x <= 9; x++){
-        for (int z = 0; z <= 9; z++){
+    for (int x = 0; x <= 0; x++){
+        for (int z = 0; z <= 0; z++){
             // Creating chunks
             chunkManager.appendChunk(Chunk(x, z));
         }
     }
 
-    for (int x = 0; x <= 9; x++){
-        for (int z = 0; z <= 9; z++){
+    for (int x = 0; x <= 0; x++){
+        for (int z = 0; z <= 0; z++){
             Chunk* _chunk = chunkManager.getChunk(x, z);
-            _chunk->mesh = chunkManager.getBufferArray(_chunk); //chunkManager.getBufferArray(_chunk);
+            _chunk->mesh = chunkManager.getBufferArray(_chunk, voxelShader); //chunkManager.getBufferArray(_chunk);
         }
     }
 
@@ -93,8 +92,7 @@ int main(){
         
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT); 
-
+        
         glm::mat4 view = glm::mat4(1.0f); // make sure to initialize matrix to identity matrix first
         view = glm::lookAt(gameCamera.position, gameCamera.position + gameCamera.front, gameCamera.up);
         voxelShader.setMat4("view", view);

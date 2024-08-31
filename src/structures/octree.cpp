@@ -35,7 +35,7 @@ class Node{
 
 
             if (initChildren && !isEndNode){
-                if (depth < 3) {
+                if (depth < 4) {
                     for (int i = 0; i < 8; i++){
                         children.push_back(new Node(value, depth + 1, this, false, initChildren));
                     }
@@ -80,7 +80,7 @@ class Octree{
         Octree();
         ~Octree();
         Node* mainNode;
-        Node* getNodeFromPosition(int _x, int _y, int _z, int _depth = 4);
+        Node* getNodeFromPosition(int _x, int _y, int _z, int _depth = 5);
         int getAverageBlockValueFromChildren(Node* parentNode);
         bool allChildrenAreEqual(Node* parentNode);
         bool aChildIsNotAnEndpoint(Node* parentNode);
@@ -93,6 +93,8 @@ class Octree{
 
 Octree::Octree(){
     mainNode = new Node(-1, 0, nullptr, false, true);
+    TEMP_setBlockValues();
+    TEMP_optimizeTree();
 }
 
 Octree::~Octree(){
@@ -106,7 +108,7 @@ Node* Octree::getNodeFromPosition(int _x, int _y, int _z, int _depth){
         if (currentNode->isEndNode) return currentNode;
 
         // Since we only need reduction of power of 2 we can use bit shift for fast calculations
-        int midLine = 1 << (4 - depth);
+        int midLine = 1 << (5 - depth);
         int positionReduction = midLine;
 
         if (_x < midLine){
@@ -218,10 +220,12 @@ bool Octree::aChildIsNotAnEndpoint(Node* parentNode){
     return false;
 }
 
+#include <ctime>
+
 void Octree::TEMP_setBlockValues(){
-    for (int x = 0; x < 16; x++){
-        for (int y = 0; y < 16; y++){
-            for (int z = 0; z < 16; z++){
+    for (int x = 0; x < 32; x++){
+        for (int y = 0; y < 32; y++){
+            for (int z = 0; z < 32; z++){
                 getNodeFromPosition(x, y, z)->blockValue = blockDeterminationFunc(x, y, z);
             }
         }
@@ -229,19 +233,22 @@ void Octree::TEMP_setBlockValues(){
 }
 
 int Octree::blockDeterminationFunc(int x, int y, int z){
+    if (y < 10) return 2;
     if (y == 10) return 1;
     if (y > 10) return 0;
-    if (y < 10) return 2;
 }
 
 void Octree::TEMP_optimizeTree(){
     for (Node* node_1 : mainNode->children){
         for (Node* node_2 : node_1->children){
             for (Node* node_3 : node_2->children){
-                if (this->allChildrenAreEqual(node_3) && !this->aChildIsNotAnEndpoint(node_3)){
-                    node_3->makeNodeEndPoint(node_3->children[0]->blockValue);
-                } else {
-                    node_3->blockValue = this->getAverageBlockValueFromChildren(node_3);
+                for (Node* node_4 : node_3->children){
+                    if (this->allChildrenAreEqual(node_4) && !this->aChildIsNotAnEndpoint(node_4)){
+                        node_4->makeNodeEndPoint(node_4->children[0]->blockValue);
+                    } else {
+                        node_4->blockValue = this->getAverageBlockValueFromChildren(node_4);
+                    }
+
                 }
             }
 
