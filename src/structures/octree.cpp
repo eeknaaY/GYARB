@@ -80,7 +80,8 @@ class Octree{
         Octree();
         ~Octree();
         Node* mainNode;
-        Node* getNodeFromPosition(int _x, int _y, int _z, int _depth = 5);
+        Node* getNodeFromPosition(int _x, int _y, int _z, int &width, int _depth = 5);
+        Node* getNodeFromPosition(int _x, int _y, int _z);
         int getAverageBlockValueFromChildren(Node* parentNode);
         bool allChildrenAreEqual(Node* parentNode);
         bool aChildIsNotAnEndpoint(Node* parentNode);
@@ -101,15 +102,22 @@ Octree::~Octree(){
     delete mainNode;
 }
 
-Node* Octree::getNodeFromPosition(int _x, int _y, int _z, int _depth){
+Node* Octree::getNodeFromPosition(int _x, int _y, int _z){
+    int non_use;
+    return getNodeFromPosition(_x, _y, _z, non_use);
+}
+
+Node* Octree::getNodeFromPosition(int _x, int _y, int _z, int &width, int _depth){
     Node* currentNode = mainNode;
     for (int depth = 1; depth <= _depth; depth++){
-        // If current node doesnt have children -> return
-        if (currentNode->isEndNode) return currentNode;
 
         // Since we only need reduction of power of 2 we can use bit shift for fast calculations
         int midLine = 1 << (5 - depth);
         int positionReduction = midLine;
+        width = midLine;
+
+        // If current node doesnt have children -> return
+        if (currentNode->isEndNode) return currentNode;
 
         if (_x < midLine){
             if (_y < midLine){
@@ -236,6 +244,7 @@ int Octree::blockDeterminationFunc(int x, int y, int z){
     if (y < 10) return 2;
     if (y == 10) return 1;
     if (y > 10) return 0;
+    return -1;
 }
 
 void Octree::TEMP_optimizeTree(){
@@ -249,6 +258,12 @@ void Octree::TEMP_optimizeTree(){
                         node_4->blockValue = this->getAverageBlockValueFromChildren(node_4);
                     }
 
+                }
+
+                if (this->allChildrenAreEqual(node_3) && !this->aChildIsNotAnEndpoint(node_3)){
+                    node_3->makeNodeEndPoint(node_3->children[0]->blockValue);
+                } else {
+                    node_3->blockValue = this->getAverageBlockValueFromChildren(node_3);
                 }
             }
 

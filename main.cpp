@@ -36,7 +36,7 @@ int main(){
     glEnable(GL_DEPTH_TEST);
 
     float const CLOSE_FRUSTUM = 0.1f;
-    float const FAR_FRUSTUM = 100.0f;
+    float const FAR_FRUSTUM = 200.0f;
 
     Shader voxelShader("src/shaders/vertexshader.vs", "src/shaders/fragmentshader.fs");
     voxelShader.use();
@@ -57,15 +57,15 @@ int main(){
     float chunkPosZ = 0;
 
     // Create starting chunks here, create new in while loop, if they dont exit aka return nullptr, create new one. Something lile that?
-    for (int x = 0; x <= 0; x++){
-        for (int z = 0; z <= 0; z++){
+    for (int x = 0; x <= 3; x++){
+        for (int z = 0; z <= 3; z++){
             // Creating chunks
-            chunkManager.appendChunk(Chunk(x, z));
+            chunkManager.appendChunk(x, z);
         }
     }
 
-    for (int x = 0; x <= 0; x++){
-        for (int z = 0; z <= 0; z++){
+    for (int x = 0; x <= 3; x++){
+        for (int z = 0; z <= 3; z++){
             Chunk* _chunk = chunkManager.getChunk(x, z);
             _chunk->mesh = chunkManager.getBufferArray(_chunk, voxelShader); //chunkManager.getBufferArray(_chunk);
         }

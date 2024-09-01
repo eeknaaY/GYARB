@@ -24,6 +24,7 @@ class Chunk{
             this->xCoordinate = _xCoordinate;
             this->zCoordinate = _zCoordinate;
         }
+        ~Chunk();
 
         Chunk() = default;
 };

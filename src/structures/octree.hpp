@@ -19,7 +19,8 @@ class Octree{
         Octree();
         ~Octree();
         Node* mainNode;
-        Node* getNodeFromPosition(int _x, int _y, int _z, int _depth = 5);
+        Node* getNodeFromPosition(int _x, int _y, int _z, int &width, int _depth = 5);
+        Node* getNodeFromPosition(int _x, int _y, int _z);
         int getAverageBlockValueFromChildren(Node* parentNode);
         bool allChildrenAreEqual(Node* parentNode);
         bool aChildIsNotAnEndpoint(Node* parentNode);

@@ -19,7 +19,7 @@ class Chunk{
         int xCoordinate, zCoordinate;
 
         Mesh mesh;
-        Octree octree = Octree();
+        Octree* octree = new Octree();
 
         void draw(const Shader &shader);
 
@@ -27,9 +27,13 @@ class Chunk{
             this->xCoordinate = _xCoordinate;
             this->zCoordinate = _zCoordinate;
         }
-
+        ~Chunk();
         Chunk() = default;
 };
+
+Chunk::~Chunk(){
+    delete octree;
+}
 
 
 void Chunk::draw(const Shader &shader){
