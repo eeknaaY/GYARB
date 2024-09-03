@@ -1,5 +1,10 @@
 #pragma once
 
+#include <vector>
+
+#include "../shaders/shaders.hpp"
+#include "glm/glm.hpp"
+
 struct Vertex {
     glm::vec3 Position;
     glm::vec2 TexCoords;

@@ -1,14 +1,5 @@
-#include <glm/vec3.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <algorithm>
-#include <vector>
-#include <map>
-#include <tuple>
-#include "voxelobject.hpp"
-#include <glad/glad.h>
-#include <stdexcept>      // std::out_of_range
-#include "../shaders/shaders.hpp"
 #include "mesh.hpp"
+#include "../shaders/shaders.hpp"
 #include "../structures/octree.hpp"
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -19,7 +10,7 @@ class Chunk{
         int xCoordinate, zCoordinate;
 
         Mesh mesh;
-        Octree* octree = new Octree();
+        Octree octree = Octree();
 
         void draw(const Shader &shader);
 
@@ -27,13 +18,9 @@ class Chunk{
             this->xCoordinate = _xCoordinate;
             this->zCoordinate = _zCoordinate;
         }
-        ~Chunk();
         Chunk() = default;
 };
 
-Chunk::~Chunk(){
-    delete octree;
-}
 
 
 void Chunk::draw(const Shader &shader){

@@ -1,7 +1,6 @@
 #include <map>
 #include <vector>
 #include "chunk.hpp"
-#include "voxelobject.hpp"
 #include "mesh.hpp"
 #include <stdexcept>      // std::out_of_range
 #include "../structures/octree.hpp"

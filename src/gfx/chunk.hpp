@@ -1,13 +1,8 @@
 #ifndef CHUNK_HPP
 #define CHUNK_HPP
 
-#include <glm/vec3.hpp>
-#include <glm/glm.hpp>
-#include <vector>
-#include <map>
-#include "voxelobject.hpp"
-#include "../shaders/shaders.hpp"
 #include "mesh.hpp"
+#include "../shaders/shaders.hpp"
 #include "../structures/octree.hpp"
 
 class Chunk{
@@ -16,7 +11,7 @@ class Chunk{
         int xCoordinate, zCoordinate;
 
         Mesh mesh;
-        Octree octree = Octree();
+        Octree octree;
 
         void draw(const Shader &shader);
 
@@ -24,8 +19,6 @@ class Chunk{
             this->xCoordinate = _xCoordinate;
             this->zCoordinate = _zCoordinate;
         }
-        ~Chunk();
-
         Chunk() = default;
 };
 

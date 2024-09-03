@@ -5,9 +5,6 @@
 #include "../shaders/shaders.hpp"
 #include "../textures/textures.hpp"
 
-#define STB_IMAGE_IMPLEMENTATION
-#include "stb_image.h"
-
 struct Vertex {
     glm::vec3 Position;
     glm::vec2 TexCoords;
@@ -71,8 +68,6 @@ void Mesh::setupMesh()
     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)sizeof(glm::vec3));
 
     // Set texture
-    //Textures _text = Textures();
-    //texture = _text.getTextureIndex();
     texture = Textures::getTextureIndex();
 
     glBindVertexArray(0);

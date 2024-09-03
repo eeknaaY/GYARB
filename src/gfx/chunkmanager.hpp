@@ -1,7 +1,6 @@
 #ifndef CHUNKMANAGER_HPP
 #define CHUNKMANAGER_HPP
 
-#include "voxelobject.hpp"
 #include <map>
 #include "mesh.hpp"
 #include "../shaders/shaders.hpp"
