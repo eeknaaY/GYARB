@@ -1,4 +1,3 @@
-#include <glad/glad.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
@@ -10,6 +9,7 @@
 
 #include "src/shaders/shaders.hpp"
 #include "src/structures/octree.hpp"
+
 
 
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
@@ -67,7 +67,7 @@ int main(){
     for (int x = 0; x <= 3; x++){
         for (int z = 0; z <= 3; z++){
             Chunk* _chunk = chunkManager.getChunk(x, z);
-            _chunk->mesh = chunkManager.getBufferArray(_chunk, voxelShader); //chunkManager.getBufferArray(_chunk);
+            _chunk->mesh = chunkManager.buildMesh(_chunk, voxelShader, 1); //chunkManager.getBufferArray(_chunk);
         }
     }
 
@@ -81,7 +81,7 @@ int main(){
             frameCounter = 0;
             startTime += 1;
         }
-
+        
         chunkPosX = round(gameCamera.position.x)/Chunk::CHUNK_SIZE;
         chunkPosZ = round(gameCamera.position.z)/Chunk::CHUNK_SIZE;
 

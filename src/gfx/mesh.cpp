@@ -3,6 +3,7 @@
 #include "glm/glm.hpp"
 #include <glad/glad.h>
 #include "../shaders/shaders.hpp"
+#include "../textures/textures.hpp"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
@@ -31,7 +32,7 @@ class Mesh {
         Mesh(std::vector<Vertex> _vertices, std::vector<unsigned int> _indices);
 
     private:
-        unsigned int VAO, VBO, EBO, texture;
+        unsigned int VAO, VBO, EBO, texture = 1;
         void setupMesh();
 };
 
@@ -69,28 +70,10 @@ void Mesh::setupMesh()
     glEnableVertexAttribArray(1);	
     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)sizeof(glm::vec3));
 
-    glGenTextures(1, &texture);
-    glBindTexture(GL_TEXTURE_2D, texture);  
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);	
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-
-    int textureWidth, textureHeight, nrChannels;
-    unsigned char *data = stbi_load("C:/Users/Johannes/Desktop/GYARB/src/gfx/TextureAtlas.png", &textureWidth, &textureHeight, &nrChannels, 0);
-
-    if (data)
-    {
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, textureWidth, textureHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
-        //glGenerateMipmap(GL_TEXTURE_2D);
-    }
-    else
-    {
-        std::cout << "Failed to load texture" << std::endl;
-    }
-
-    stbi_image_free(data);
+    // Set texture
+    //Textures _text = Textures();
+    //texture = _text.getTextureIndex();
+    texture = Textures::getTextureIndex();
 
     glBindVertexArray(0);
 }  

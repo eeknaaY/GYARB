@@ -22,7 +22,11 @@ class Node{
         Node* parent;
         std::vector<Node*> children;
         
-        void makeNodeEndPoint(int value);
+        void makeNodeEndPoint();
+        int getAverageBlockValueFromChildren();
+        bool allChildrenAreEqual();
+        bool aChildIsNotAnEndpoint();
+
         ~Node();
         Node(){
             blockValue = -1;
@@ -53,15 +57,17 @@ Node::~Node(){
         delete child;
         child = 0;
     }
+
     children.clear();
+    children.shrink_to_fit();
 
     if (parent != nullptr){
         isEndNode = true;
     }
 }
 
-void Node::makeNodeEndPoint(int value){
-    blockValue = value;
+void Node::makeNodeEndPoint(){
+    blockValue = this->children[0]->blockValue;
 
     if (!isEndNode){
         for (int i = 0; i < 8; i++){
@@ -72,6 +78,58 @@ void Node::makeNodeEndPoint(int value){
 
     isEndNode = true;
     children.clear();
+    children.shrink_to_fit();
+}
+
+int Node::getAverageBlockValueFromChildren(){
+    // Node has no children
+    if (this->isEndNode) return this->blockValue;
+
+    std::map<int, int> mp;
+    int curMaxKey = -1;
+    int curMaxValue = 0;
+    for (int i = 0; i < 8; i++){
+        int blockValue = this->children[i]->blockValue;
+        if (mp.find(blockValue) == mp.end()) {
+            // not found
+            mp[blockValue] = 1;
+            if (std::max(curMaxValue, mp[blockValue]) == mp[blockValue] && curMaxKey != blockValue){
+                curMaxKey = blockValue;
+                curMaxValue = mp[blockValue];
+            }
+
+        } else {
+            // found
+            mp[blockValue] += 1;
+            if (std::max(curMaxValue, mp[blockValue]) == mp[blockValue]){
+                curMaxKey = blockValue;
+                curMaxValue = mp[blockValue];
+            }
+        }
+
+        // Prioritize non-air blocks if its a 50/50
+        if (curMaxKey != 0 && curMaxValue >= 4) return curMaxKey;
+        if (curMaxValue >= 5) return curMaxKey;
+    }
+
+    return curMaxKey;
+}
+
+bool Node::allChildrenAreEqual(){
+    int firstVal = this->children[0]->blockValue;
+    for (Node* node : this->children){
+        if (node->blockValue != firstVal) return false;
+    }
+    
+    return true;
+}
+
+bool Node::aChildIsNotAnEndpoint(){
+    for (Node* node : this->children){
+        if (!node->isEndNode) return true;
+    }
+    
+    return false;
 }
 
 // Depth 0 = Main Node, 1 = First 8 partions, 2 = 64 partions...
@@ -80,16 +138,13 @@ class Octree{
         Octree();
         ~Octree();
         Node* mainNode;
-        Node* getNodeFromPosition(int _x, int _y, int _z, int &width, int _depth = 5);
-        Node* getNodeFromPosition(int _x, int _y, int _z);
-        int getAverageBlockValueFromChildren(Node* parentNode);
-        bool allChildrenAreEqual(Node* parentNode);
-        bool aChildIsNotAnEndpoint(Node* parentNode);
+        Node* getNodeFromPosition(int _x, int _y, int _z, int _depth = 5);
+        Node* getNodeFromPosition(int _x, int _y, int _z, short &width, int _depth = 5);
         
         int nodeAmount();
         void TEMP_setBlockValues();
         void TEMP_optimizeTree();
-        int blockDeterminationFunc(int x, int y, int z);
+        int TEMP_blockDeterminationFunc(int x, int y, int z);
 };
 
 Octree::Octree(){
@@ -102,22 +157,29 @@ Octree::~Octree(){
     delete mainNode;
 }
 
-Node* Octree::getNodeFromPosition(int _x, int _y, int _z){
-    int non_use;
-    return getNodeFromPosition(_x, _y, _z, non_use);
+Node* Octree::getNodeFromPosition(int _x, int _y, int _z, int _depth){
+    short non_use;
+    return getNodeFromPosition(_x, _y, _z, non_use, _depth);
 }
 
-Node* Octree::getNodeFromPosition(int _x, int _y, int _z, int &width, int _depth){
+#include <iostream>
+
+Node* Octree::getNodeFromPosition(int _x, int _y, int _z, short &width, int _depth){
     Node* currentNode = mainNode;
+
+    if (currentNode->parent != nullptr){
+        return nullptr;
+        std::cout << "Trying to get position of invalid node // Octree.getNodeFromPosition()" << std::endl;
+    }
+
     for (int depth = 1; depth <= _depth; depth++){
+        // If current node doesnt have children -> return
+        if (currentNode->isEndNode) return currentNode;
 
         // Since we only need reduction of power of 2 we can use bit shift for fast calculations
         int midLine = 1 << (5 - depth);
         int positionReduction = midLine;
         width = midLine;
-
-        // If current node doesnt have children -> return
-        if (currentNode->isEndNode) return currentNode;
 
         if (_x < midLine){
             if (_y < midLine){
@@ -179,71 +241,20 @@ Node* Octree::getNodeFromPosition(int _x, int _y, int _z, int &width, int _depth
     return currentNode;
 }
 
-int Octree::getAverageBlockValueFromChildren(Node* parentNode){
-    // Node has no children
-    if (parentNode->isEndNode) return parentNode->blockValue;
-
-    std::map<int, int> mp;
-    int curMaxKey = -1;
-    int curMaxValue = 0;
-    for (int i = 0; i < 8; i++){
-        int blockValue = parentNode->children[i]->blockValue;
-        if (mp.find(blockValue) == mp.end()) {
-            // not found
-            mp[blockValue] = 1;
-            if (std::max(curMaxValue, mp[blockValue]) == mp[blockValue] && curMaxKey != blockValue){
-                curMaxKey = blockValue;
-                curMaxValue = mp[blockValue];
-            }
-
-        } else {
-            // found
-            mp[blockValue] += 1;
-            if (std::max(curMaxValue, mp[blockValue]) == mp[blockValue] && curMaxKey != blockValue){
-                curMaxKey = blockValue;
-                curMaxValue = mp[blockValue];
-            }
-        }
-
-        if (curMaxValue >= 4) return curMaxKey;
-    }
-
-    return curMaxKey;
-}
-
-bool Octree::allChildrenAreEqual(Node* parentNode){
-    int firstVal = parentNode->children[0]->blockValue;
-    for (Node* node : parentNode->children){
-        if (node->blockValue != firstVal) return false;
-    }
-    
-    return true;
-}
-
-bool Octree::aChildIsNotAnEndpoint(Node* parentNode){
-    for (Node* node : parentNode->children){
-        if (!node->isEndNode) return true;
-    }
-    
-    return false;
-}
-
-#include <ctime>
-
 void Octree::TEMP_setBlockValues(){
     for (int x = 0; x < 32; x++){
         for (int y = 0; y < 32; y++){
             for (int z = 0; z < 32; z++){
-                getNodeFromPosition(x, y, z)->blockValue = blockDeterminationFunc(x, y, z);
+                getNodeFromPosition(x, y, z)->blockValue = TEMP_blockDeterminationFunc(x, y, z);
             }
         }
     }
 }
 
-int Octree::blockDeterminationFunc(int x, int y, int z){
-    if (y < 10) return 2;
-    if (y == 10) return 1;
-    if (y > 10) return 0;
+int Octree::TEMP_blockDeterminationFunc(int x, int y, int z){
+    if (y < 8) return 2;
+    if (y == 10 || y == 11) return 1;
+    if (y > 11) return 0;
     return -1;
 }
 
@@ -252,32 +263,32 @@ void Octree::TEMP_optimizeTree(){
         for (Node* node_2 : node_1->children){
             for (Node* node_3 : node_2->children){
                 for (Node* node_4 : node_3->children){
-                    if (this->allChildrenAreEqual(node_4) && !this->aChildIsNotAnEndpoint(node_4)){
-                        node_4->makeNodeEndPoint(node_4->children[0]->blockValue);
+                    if (node_4->allChildrenAreEqual() && !node_4->aChildIsNotAnEndpoint()){
+                        node_4->makeNodeEndPoint();
                     } else {
-                        node_4->blockValue = this->getAverageBlockValueFromChildren(node_4);
+                        node_4->blockValue = node_4->getAverageBlockValueFromChildren();
                     }
 
                 }
 
-                if (this->allChildrenAreEqual(node_3) && !this->aChildIsNotAnEndpoint(node_3)){
-                    node_3->makeNodeEndPoint(node_3->children[0]->blockValue);
+                if (node_3->allChildrenAreEqual() && !node_3->aChildIsNotAnEndpoint()){
+                    node_3->makeNodeEndPoint();
                 } else {
-                    node_3->blockValue = this->getAverageBlockValueFromChildren(node_3);
+                    node_3->blockValue = node_3->getAverageBlockValueFromChildren();
                 }
             }
 
-            if (this->allChildrenAreEqual(node_2) && !this->aChildIsNotAnEndpoint(node_2)){
-                node_2->makeNodeEndPoint(node_2->children[0]->blockValue);
+            if (node_2->allChildrenAreEqual() && !node_2->aChildIsNotAnEndpoint()){
+                node_2->makeNodeEndPoint();
             } else {
-                node_2->blockValue = this->getAverageBlockValueFromChildren(node_2);
+                node_2->blockValue = node_2->getAverageBlockValueFromChildren();
             }
         }
 
-        if (this->allChildrenAreEqual(node_1) && !this->aChildIsNotAnEndpoint(node_1)){
-            node_1->makeNodeEndPoint(node_1->children[0]->blockValue);
+        if (node_1->allChildrenAreEqual() && !node_1->aChildIsNotAnEndpoint()){
+            node_1->makeNodeEndPoint();
         } else {
-            node_1->blockValue = this->getAverageBlockValueFromChildren(node_1);
+            node_1->blockValue = node_1->getAverageBlockValueFromChildren();
         }
     }
 }
