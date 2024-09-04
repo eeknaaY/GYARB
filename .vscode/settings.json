@@ -70,7 +70,8 @@
         "ratio": "cpp",
         "stop_token": "cpp",
         "thread": "cpp",
-        "bitset": "cpp"
+        "bitset": "cpp",
+        "random": "cpp"
     },
     "C_Cpp.errorSquiggles": "enabled"
 }

@@ -13,8 +13,8 @@ class Camera{
             target = glm::vec3(0.0f, 0.0f, 0.0f);
             direction = glm::normalize(target - position);
             up    = glm::vec3(0.0f, 1.0f,  0.0f);
-            right = -glm::normalize(glm::cross(up, direction));
             front = glm::vec3(0.0f, 0.0f, -1.0f);
+            right = glm::normalize(glm::cross(front, up));
 
             fov   =  90.0f;
             yaw   = -90.0f;

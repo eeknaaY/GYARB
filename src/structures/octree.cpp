@@ -4,6 +4,8 @@
 #include <math.h>
 #include <memory>
 
+#include "FastNoiseLite.h"
+
 enum nodePositions{
     BottomLeftFront,
     BottomLeftBack,
@@ -31,6 +33,7 @@ class Node{
         Node(){
             blockValue = -1;
             isEndNode = true;
+            parent = nullptr;
         }
         Node(int value, int depth, Node* parentPtr, bool _isEndNode, bool initChildren){
             blockValue = value;
@@ -136,20 +139,29 @@ bool Node::aChildIsNotAnEndpoint(){
 class Octree{
     public:
         Octree();
+        Octree(int chunk_xcoord, int chunk_zcoord);
         ~Octree();
         Node* mainNode;
         Node* getNodeFromPosition(int _x, int _y, int _z, int _depth = 5);
         Node* getNodeFromPosition(int _x, int _y, int _z, short &width, int _depth = 5);
         
         int nodeAmount();
-        void TEMP_setBlockValues();
+        void TEMP_setBlockValues(int chunk_xcoord, int chunk_zcoord);
         void TEMP_optimizeTree();
-        int TEMP_blockDeterminationFunc(int x, int y, int z);
+        int TEMP_blockDeterminationFunc(int y, int maxHeight);
+    private:
+        int chunk_xcoord, chunk_zcoord;
 };
 
 Octree::Octree(){
+    mainNode = new Node();
+}
+
+Octree::Octree(int _chunk_xcoord, int _chunk_zcoord){
     mainNode = new Node(-1, 0, nullptr, false, true);
-    TEMP_setBlockValues();
+    chunk_xcoord = _chunk_xcoord;
+    chunk_zcoord = _chunk_zcoord;
+    TEMP_setBlockValues(_chunk_xcoord, _chunk_zcoord);
     TEMP_optimizeTree();
 }
 
@@ -181,7 +193,7 @@ Node* Octree::getNodeFromPosition(int _x, int _y, int _z, short &width, int _dep
         int positionReduction = midLine;
         width = midLine;
 
-        if (_x < midLine){
+if (_x < midLine){
             if (_y < midLine){
                 if (_z < midLine){           
                     currentNode = currentNode->children[BottomLeftFront];
@@ -241,21 +253,27 @@ Node* Octree::getNodeFromPosition(int _x, int _y, int _z, short &width, int _dep
     return currentNode;
 }
 
-void Octree::TEMP_setBlockValues(){
+void Octree::TEMP_setBlockValues(int _chunk_xcoord, int _chunk_zcoord){
+    FastNoiseLite noise;
+    noise.SetNoiseType(FastNoiseLite::NoiseType_OpenSimplex2);
+    noise.SetFractalType(FastNoiseLite::FractalType_FBm);
+    noise.SetFractalOctaves(3);
+    
     for (int x = 0; x < 32; x++){
-        for (int y = 0; y < 32; y++){
-            for (int z = 0; z < 32; z++){
-                getNodeFromPosition(x, y, z)->blockValue = TEMP_blockDeterminationFunc(x, y, z);
+        for (int z = 0; z < 32; z++){
+            float noiseVal = noise.GetNoise((float)(x + 32 * _chunk_xcoord), (float)(z + 32 * _chunk_zcoord));
+            for (int y = 0; y < 32; y++){
+                getNodeFromPosition(x, y, z)->blockValue = TEMP_blockDeterminationFunc(y, 16 + (int)(16.f * noiseVal));;
             }
         }
     }
 }
 
-int Octree::TEMP_blockDeterminationFunc(int x, int y, int z){
-    if (y < 8) return 2;
-    if (y == 10 || y == 11) return 1;
-    if (y > 11) return 0;
-    return -1;
+int Octree::TEMP_blockDeterminationFunc(int y, int maxHeight){
+    if (y == 0) return 2;
+    if (y > maxHeight) return 0;
+    if (y > (maxHeight - 2)) return 1;
+    return 2;
 }
 
 void Octree::TEMP_optimizeTree(){

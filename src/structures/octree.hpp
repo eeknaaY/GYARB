@@ -21,13 +21,16 @@ class Node{
 class Octree{
     public:
         Octree();
+        Octree(int chunk_xcoord, int chunk_zcoord);
         ~Octree();
         Node* mainNode;
         Node* getNodeFromPosition(int _x, int _y, int _z, int _depth = 5);
         Node* getNodeFromPosition(int _x, int _y, int _z, short &width, int _depth = 5);
         
         int nodeAmount();
-        void TEMP_setBlockValues();
+        void TEMP_setBlockValues(int chunk_xcoord, int chunk_zcoord);
         void TEMP_optimizeTree();
-        int TEMP_blockDeterminationFunc(int x, int y, int z);
+        int TEMP_blockDeterminationFunc(int y, int maxHeight);
+    private:
+        int chunk_xcoord, chunk_zcoord;
 };

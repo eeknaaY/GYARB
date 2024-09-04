@@ -85,17 +85,21 @@ int ChunkManager::getBlockValueFromPosition(Chunk* chunk, int x, int y, int z, i
     if (chunkChanged){
         if (!_chunk) return 0;
 
-        Node* node = chunk->octree.getNodeFromPosition(x, y, z, LoD);
-        if (!node) return 0;
+        Node* node = _chunk->octree->getNodeFromPosition(x, y, z, LoD);
         return node->blockValue;
     }
 
-    Node* node = chunk->octree.getNodeFromPosition(x, y, z, LoD);
-    if (!node) return 0;
+    Node* node = chunk->octree->getNodeFromPosition(x, y, z, LoD);
     return node->blockValue;
 }
 
 bool ChunkManager::isAccountedFor(bool accountedVoxels[], int x, int y, int z){
+    if (x > 31) return true;
+    if (y > 31) return true;
+    if (z > 31) return true;
+    if (x < 0) return true;
+    if (y < 0) return true;
+    if (z < 0) return true;
     return accountedVoxels[x + 32 * z + 32 * 32 * y];
 }
 
@@ -124,7 +128,7 @@ Mesh ChunkManager::buildMesh(Chunk* _chunk, const Shader &shader, int LoD){
     auto start = std::chrono::high_resolution_clock::now();
     std::vector<Vertex> vertices;
     std::vector<unsigned int> indices;
-    short voxelWidth = 1;
+    short voxelWidth;
 
     int jumpLength = 1 << (5 - LoD);
     for (int w = 0; w < 6; w++){
@@ -143,19 +147,22 @@ Mesh ChunkManager::buildMesh(Chunk* _chunk, const Shader &shader, int LoD){
                      isFacingAirblock(_chunk, x, y, z, reverseConstant, 2, LoD) && 
                     !isAirBlock(_chunk, x, y, z, LoD)){
 
-                    bool a = !isAccountedFor(accountedVoxels, x, y, z);
-                    bool b = isFacingAirblock(_chunk, x, y, z, reverseConstant, 2, LoD);
-                    bool c = !isAirBlock(_chunk, x, y, z, LoD);
-
                     voxelFace face(x, y, z);
-                    face.texture = _chunk->octree.getNodeFromPosition(x, y, z, voxelWidth, LoD)->blockValue;
-                    face.width = voxelWidth; 
+                    face.texture = _chunk->octree->getNodeFromPosition(x, y, z, voxelWidth, LoD)->blockValue;
+                    face.width = voxelWidth - (x % voxelWidth);
+
+                    for (int dx = x; dx < x + face.width; dx++){
+                        if (isAccountedFor(accountedVoxels, dx, y, z) || !isFacingAirblock(_chunk, dx, y, z, reverseConstant, 2, LoD)){
+                            face.width = dx - x;
+                            break;
+                        }
+                    }
 
                     for (int dx = x + voxelWidth; dx < 32; dx++){
                         if (!isAccountedFor(accountedVoxels, dx, y, z) &&
                              isFacingAirblock(_chunk, dx, y, z, reverseConstant, 2, LoD) && 
                             !isAirBlock(_chunk, dx, y, z, LoD) && 
-                             _chunk->octree.getNodeFromPosition(dx, y, z, voxelWidth, LoD)->blockValue == face.texture){
+                             _chunk->octree->getNodeFromPosition(dx, y, z, voxelWidth, LoD)->blockValue == face.texture){
 
                             face.width += voxelWidth;
                             dx += voxelWidth - 1;
@@ -164,13 +171,17 @@ Mesh ChunkManager::buildMesh(Chunk* _chunk, const Shader &shader, int LoD){
                         }
                     }
 
+                    if (face.x + face.width > 32){
+                        std::cout << "Face larger than chunk";
+                    }
+
                     bool shouldBreak = false;
                     for (int dz = z + 1; dz < 32; dz++){
                         for (int dx = x; dx < x + face.width; dx++){
                             if (!isAccountedFor(accountedVoxels, dx, y, dz) &&
                                  isFacingAirblock(_chunk, dx, y, dz, reverseConstant, 2, LoD) && 
                                 !isAirBlock(_chunk, dx, y, dz, LoD) && 
-                                 _chunk->octree.getNodeFromPosition(dx, y, dz, voxelWidth, LoD)->blockValue == face.texture){
+                                 _chunk->octree->getNodeFromPosition(dx, y, dz, voxelWidth, LoD)->blockValue == face.texture){
                                     dx += voxelWidth - 1;
                                  }
                             else{
@@ -192,6 +203,11 @@ Mesh ChunkManager::buildMesh(Chunk* _chunk, const Shader &shader, int LoD){
                 int vertexCount = vertices.size();
                 float u, v;
                 getTextureCoordinates(face.texture, u, v);
+
+                if (face.x + face.width > 32){
+                    std::cout << "Face larger than chunk";
+                }
+
                 if (w == 0){
                     vertices.push_back(Vertex(face.x,              face.y + jumpLength, face.z,               u,              v)); 
                     vertices.push_back(Vertex(face.x + face.width, face.y + jumpLength, face.z + face.height, u + face.width, v + face.height));
@@ -220,21 +236,28 @@ Mesh ChunkManager::buildMesh(Chunk* _chunk, const Shader &shader, int LoD){
             }
         }
 
-        // LEFT & RIGHT FACE
+        // FRONT & BACK FACE
         if (w == 2 || w == 3){
             if (!isAccountedFor(accountedVoxels, x, y, z) &&
                  isFacingAirblock(_chunk, x, y, z, reverseConstant, 1, LoD) && 
                 !isAirBlock(_chunk, x, y, z, LoD)){
 
                 voxelFace face(x, y, z);
-                face.texture = _chunk->octree.getNodeFromPosition(x, y, z, voxelWidth, LoD)->blockValue;
-                face.width = voxelWidth; 
+                face.texture = _chunk->octree->getNodeFromPosition(x, y, z, voxelWidth, LoD)->blockValue;
+                face.width = voxelWidth - (z % voxelWidth);
+
+                for (int dz = z; dz < z + face.width; dz++){
+                    if (isAccountedFor(accountedVoxels, x, y, dz) || !isFacingAirblock(_chunk, x, y, dz, reverseConstant, 1, LoD)){
+                        face.width = dz - z;
+                        break;
+                    }
+                }
 
                 for (int dz = z + voxelWidth; dz < 32; dz++){
                     if (!isAccountedFor(accountedVoxels, x, y, dz) &&
                          isFacingAirblock(_chunk, x, y, dz, reverseConstant, 1, LoD) && 
                         !isAirBlock(_chunk, x, y, dz, LoD) && 
-                         _chunk->octree.getNodeFromPosition(x, y, dz, voxelWidth, LoD)->blockValue == face.texture){
+                         _chunk->octree->getNodeFromPosition(x, y, dz, voxelWidth, LoD)->blockValue == face.texture){
 
                         face.width += voxelWidth;
                         dz += voxelWidth - 1;
@@ -249,9 +272,10 @@ Mesh ChunkManager::buildMesh(Chunk* _chunk, const Shader &shader, int LoD){
                         if (!isAccountedFor(accountedVoxels, x, dy, dz) &&
                              isFacingAirblock(_chunk, x, dy, dz, reverseConstant, 1, LoD) && 
                             !isAirBlock(_chunk, x, dy, dz, LoD) && 
-                             _chunk->octree.getNodeFromPosition(x, dy, dz, voxelWidth, LoD)->blockValue == face.texture){
-                                dz += voxelWidth - 1;
+                             _chunk->octree->getNodeFromPosition(x, dy, dz, voxelWidth, LoD)->blockValue == face.texture){
+                                    dz += voxelWidth - 1;
                              }
+
                         else{
                             shouldBreak = true;
                             break;
@@ -259,7 +283,7 @@ Mesh ChunkManager::buildMesh(Chunk* _chunk, const Shader &shader, int LoD){
                     }
 
                     if (shouldBreak) break;
-                    face.height += 1;
+                    face.height += 1;        
                 }
 
                 for (int dy = y; dy < y + face.height; dy++){
@@ -299,52 +323,59 @@ Mesh ChunkManager::buildMesh(Chunk* _chunk, const Shader &shader, int LoD){
             }
         }
 
-        // FRONT & BACK FACE
+        // RIGHT & LEFT FACE
         if (w == 4 || w == 5){
             if (!isAccountedFor(accountedVoxels, x, y, z) &&
                  isFacingAirblock(_chunk, x, y, z, reverseConstant, 3, LoD) && 
                 !isAirBlock(_chunk, x, y, z, LoD)){
 
-                voxelFace face(x, y, z);
-                face.texture = _chunk->octree.getNodeFromPosition(x, y, z, voxelWidth, LoD)->blockValue;
-                face.width = voxelWidth; 
+            voxelFace face(x, y, z);
+            face.texture = _chunk->octree->getNodeFromPosition(x, y, z, voxelWidth, LoD)->blockValue;
+            face.width = voxelWidth - (x % voxelWidth);
 
-                for (int dx = x + voxelWidth; dx < 32; dx++){
-                    if (!isAccountedFor(accountedVoxels, dx, y, z) &&
-                         isFacingAirblock(_chunk, dx, y, z, reverseConstant, 3, LoD) && 
-                        !isAirBlock(_chunk, dx, y, z, LoD) && 
-                         _chunk->octree.getNodeFromPosition(dx, y, z, voxelWidth, LoD)->blockValue == face.texture){
+            for (int dx = x; dx < x + face.width; dx++){
+                if (isAccountedFor(accountedVoxels, dx, y, z) || !isFacingAirblock(_chunk, dx, y, z, reverseConstant, 3, LoD)){
+                    face.width = dx - x;
+                    break;
+                }
+            }
 
-                        face.width += voxelWidth;
-                        dx += voxelWidth - 1;
-                    } else{
+            for (int dx = x + voxelWidth; dx < 32; dx++){
+                if (!isAccountedFor(accountedVoxels, dx, y, z) &&
+                     isFacingAirblock(_chunk, dx, y, z, reverseConstant, 3, LoD) && 
+                    !isAirBlock(_chunk, dx, y, z, LoD) && 
+                        _chunk->octree->getNodeFromPosition(dx, y, z, voxelWidth, LoD)->blockValue == face.texture){
+
+                    face.width += voxelWidth;
+                    dx += voxelWidth - 1;
+                } else{
+                    break;
+                }
+            }
+
+            if (face.x + face.width > 32){
+                std::cout << "Face larger than chunk";
+            }
+
+            bool shouldBreak = false;
+            for (int dy = y + 1; dy < 32; dy++){
+                for (int dx = x; dx < x + face.width; dx++){
+                    if (!isAccountedFor(accountedVoxels, dx, dy, z) &&
+                            isFacingAirblock(_chunk, dx, dy, z, reverseConstant, 3, LoD) && 
+                        !isAirBlock(_chunk, dx, dy, z, LoD) && 
+                            _chunk->octree->getNodeFromPosition(dx, dy, z, voxelWidth, LoD)->blockValue == face.texture){
+                                dx += voxelWidth - 1;
+                            }
+
+                    else{
+                        shouldBreak = true;
                         break;
                     }
                 }
 
-                bool shouldBreak = false;
-                for (int dy = y + 1; dy < 32; dy++){
-                    for (int dx = x; dx < x + face.width; dx++){
-                        if (!isAccountedFor(accountedVoxels, dx, dy, z) &&
-                             isFacingAirblock(_chunk, dx, dy, z, reverseConstant, 3, LoD) && 
-                            !isAirBlock(_chunk, dx, dy, z, LoD) && 
-                             _chunk->octree.getNodeFromPosition(dx, dy, z, voxelWidth, LoD)->blockValue == face.texture){
-                                    dx += voxelWidth - 1;
-                             }
-
-                        else{
-                            shouldBreak = true;
-                            break;
-                        }
-                    }
-
-                    if (shouldBreak) break;
-                    face.height += 1;
-                    for (int dx = x; dx < x + face.width; dx++){
-                        accountedVoxels[dx + 32 * z + 32 * 32 * dy] = true;
-                    }
-                    
-                }
+                if (shouldBreak) break;
+                face.height += 1;              
+            }
 
             for (int dy = y; dy < y + face.height; dy++){
                 for (int dx = x; dx < x + face.width; dx++){
@@ -385,7 +416,7 @@ Mesh ChunkManager::buildMesh(Chunk* _chunk, const Shader &shader, int LoD){
     }}}}
 
     auto stop = std::chrono::high_resolution_clock::now();
-    auto duration = std::chrono::duration_cast<std::chrono::microseconds> (stop-start);
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds> (stop-start);
     std::cout << "Meshing took: " << duration.count() << "ms \n";
     return Mesh(vertices, indices);
 }

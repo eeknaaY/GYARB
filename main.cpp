@@ -56,18 +56,22 @@ int main(){
     float chunkPosX = 0;
     float chunkPosZ = 0;
 
+    int LoDLevel = 5;
+    bool changedLoD = false;
+    int chunksToDraw = 3;
+
     // Create starting chunks here, create new in while loop, if they dont exit aka return nullptr, create new one. Something lile that?
-    for (int x = 0; x <= 3; x++){
-        for (int z = 0; z <= 3; z++){
+    for (int x = 0; x < chunksToDraw; x++){
+        for (int z = 0; z < chunksToDraw; z++){
             // Creating chunks
             chunkManager.appendChunk(x, z);
         }
     }
 
-    for (int x = 0; x <= 3; x++){
-        for (int z = 0; z <= 3; z++){
+    for (int x = 0; x < chunksToDraw; x++){
+        for (int z = 0; z < chunksToDraw; z++){
             Chunk* _chunk = chunkManager.getChunk(x, z);
-            _chunk->mesh = chunkManager.buildMesh(_chunk, voxelShader, 1); //chunkManager.getBufferArray(_chunk);
+            _chunk->mesh = chunkManager.buildMesh(_chunk, voxelShader, 5);
         }
     }
 
@@ -78,6 +82,7 @@ int main(){
         frameCounter += 1;
         if (glfwGetTime() - startTime >= 1.0f){
             std::cout << "ms/frame: " << 1000.0 / double(frameCounter) << "\n";
+            std::cout << gameCamera.position.x << " : " << gameCamera.position.z << "\n";
             frameCounter = 0;
             startTime += 1;
         }
@@ -89,6 +94,32 @@ int main(){
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;  
         gameCamera.processInput(deltaTime);
+
+
+        if (glfwGetKey(window, GLFW_KEY_Y) == GLFW_PRESS) changedLoD = false;
+        if (!changedLoD && glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS){
+            if (LoDLevel >= 2) LoDLevel--;
+            for (int x = 0; x < chunksToDraw; x++){
+                for (int z = 0; z < chunksToDraw; z++){
+                    Chunk* _chunk = chunkManager.getChunk(x, z);
+                    _chunk->mesh = chunkManager.buildMesh(_chunk, voxelShader, LoDLevel);
+                }
+            }
+            changedLoD = true;
+        }
+
+        if (!changedLoD && glfwGetKey(window, GLFW_KEY_T) == GLFW_PRESS){
+            if (LoDLevel <= 4) LoDLevel++;
+
+            for (int x = 0; x < chunksToDraw; x++){
+                for (int z = 0; z < chunksToDraw; z++){
+                    Chunk* _chunk = chunkManager.getChunk(x, z);
+                    _chunk->mesh = chunkManager.buildMesh(_chunk, voxelShader, LoDLevel);
+                }
+            }
+            changedLoD = true;
+        }
+
         
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);

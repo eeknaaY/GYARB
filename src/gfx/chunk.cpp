@@ -10,15 +10,9 @@ class Chunk{
         int xCoordinate, zCoordinate;
 
         Mesh mesh;
-        Octree octree = Octree();
+        Octree octree;
 
         void draw(const Shader &shader);
-
-        Chunk(int _xCoordinate, int _zCoordinate){
-            this->xCoordinate = _xCoordinate;
-            this->zCoordinate = _zCoordinate;
-        }
-        Chunk() = default;
 };
 
 
