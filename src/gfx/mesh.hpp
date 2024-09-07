@@ -23,12 +23,14 @@ class Mesh {
     public:
         std::vector<Vertex> vertices;
         std::vector<unsigned int> indices;
+        bool bufferExists;
 
         void draw(const Shader &shader, int x, int z);
+        void updateMesh();
+        void bindMesh();
         Mesh();
         Mesh(std::vector<Vertex> _vertices, std::vector<unsigned int> _indices);
 
     private:
-        unsigned int VAO, VBO, EBO, texture;
-        void setupMesh();
+        unsigned int VAO, VBO, EBO, texture = 1;
 };

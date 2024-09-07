@@ -23,14 +23,16 @@ class Mesh {
     public:
         std::vector<Vertex> vertices;
         std::vector<unsigned int> indices;
+        bool bufferExists = false;
 
         void draw(const Shader &shader, int x, int z);
+        void updateMesh();
+        void bindMesh();
         Mesh();
         Mesh(std::vector<Vertex> _vertices, std::vector<unsigned int> _indices);
 
     private:
         unsigned int VAO, VBO, EBO, texture = 1;
-        void setupMesh();
 };
 
 Mesh::Mesh(){
@@ -40,25 +42,23 @@ Mesh::Mesh(){
 Mesh::Mesh(std::vector<Vertex> _vertices, std::vector<unsigned int> _indices){
     this->vertices = _vertices;
     this->indices = _indices;
-    
-
-    setupMesh();
 }
 
-void Mesh::setupMesh()
+void Mesh::bindMesh()
 {
     glGenVertexArrays(1, &VAO);
     glGenBuffers(1, &VBO);
     glGenBuffers(1, &EBO);
+    bufferExists = true;
   
     glBindVertexArray(VAO);
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
 
-    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), &vertices[0], GL_STATIC_DRAW);  
+    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), &vertices[0], GL_DYNAMIC_DRAW);  
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), 
-                 &indices[0], GL_STATIC_DRAW);
+                 &indices[0], GL_DYNAMIC_DRAW);
 
     // vertex positions
     glEnableVertexAttribArray(0);	
@@ -67,11 +67,23 @@ void Mesh::setupMesh()
     glEnableVertexAttribArray(1);	
     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)sizeof(glm::vec3));
 
-    // Set texture
+    glBindVertexArray(0);
+
     texture = Textures::getTextureIndex();
+}  
+
+void Mesh::updateMesh(){
+    glBindVertexArray(VAO);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+
+    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), &vertices[0], GL_DYNAMIC_DRAW);  
+
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), 
+                 &indices[0], GL_DYNAMIC_DRAW);
 
     glBindVertexArray(0);
-}  
+}
 
 void Mesh::draw(const Shader &shader, int x, int z) 
 {

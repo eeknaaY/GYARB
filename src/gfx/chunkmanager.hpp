@@ -9,9 +9,10 @@ class ChunkManager{
     public:
         std::map<std::pair<int, int>, Chunk*> chunkMap;
 
-        void appendChunk(int x, int z);
+        void appendChunk(int x, int z, int LoD);
+        void removeChunk(int x, int z);
         Chunk* getChunk(int x, int z);
-        Mesh buildMesh(Chunk* _chunk, const Shader &shader, int LoD);
+        Mesh buildMesh(Chunk* _chunk, const Shader &shader);
 
         ChunkManager(){
         }

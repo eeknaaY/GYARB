@@ -150,6 +150,7 @@ class Octree{
         void TEMP_optimizeTree();
         int TEMP_blockDeterminationFunc(int y, int maxHeight);
     private:
+        int LoD;
         int chunk_xcoord, chunk_zcoord;
 };
 

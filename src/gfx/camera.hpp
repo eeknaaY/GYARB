@@ -25,7 +25,15 @@ class Camera{
         }
         Camera() = default;
 
+        void updateChunkPosition();
         void processInput(float deltaTime);
+        void updateMovement(float deltaTime);
+        bool hasChangedChunk();
+
+        int currentChunk_x = 0;
+        int currentChunk_z = 0;
+        int oldChunk_x = 0;
+        int oldChunk_z = 0;
 
         glm::vec3 position;
         glm::vec3 target;
