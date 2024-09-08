@@ -28,7 +28,9 @@ class Mesh {
         void draw(const Shader &shader, int x, int z);
         void updateMesh();
         void bindMesh();
+
         Mesh();
+        ~Mesh();
         Mesh(std::vector<Vertex> _vertices, std::vector<unsigned int> _indices);
 
     private:
@@ -37,6 +39,14 @@ class Mesh {
 
 Mesh::Mesh(){
 
+}
+
+Mesh::~Mesh(){
+    if (bufferExists){
+        glDeleteVertexArrays(1, &VAO);
+        glDeleteBuffers(1, &VBO);
+        glDeleteBuffers(1, &EBO);
+    }
 }
 
 Mesh::Mesh(std::vector<Vertex> _vertices, std::vector<unsigned int> _indices){

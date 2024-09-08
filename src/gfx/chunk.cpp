@@ -11,7 +11,6 @@ class Chunk{
         int LoD;
 
         Mesh mesh;
-        Octree* octree;
 
         void draw(const Shader &shader);
         void updateMesh();

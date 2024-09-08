@@ -3,6 +3,7 @@
 #include <algorithm> 
 #include <math.h>
 #include <memory>
+#include <iostream>
 
 #include "FastNoiseLite.h"
 
@@ -60,9 +61,6 @@ Node::~Node(){
         delete child;
         child = 0;
     }
-
-    children.clear();
-    children.shrink_to_fit();
 
     if (parent != nullptr){
         isEndNode = true;
@@ -168,6 +166,7 @@ Octree::Octree(int _chunk_xcoord, int _chunk_zcoord){
 
 Octree::~Octree(){
     delete mainNode;
+    mainNode = 0;
 }
 
 Node* Octree::getNodeFromPosition(int _x, int _y, int _z, int _depth){
@@ -271,7 +270,7 @@ void Octree::TEMP_setBlockValues(int _chunk_xcoord, int _chunk_zcoord){
 }
 
 int Octree::TEMP_blockDeterminationFunc(int y, int maxHeight){
-    if (y == 0) return 2;
+    maxHeight = 10;
     if (y > maxHeight) return 0;
     if (y > (maxHeight - 2)) return 1;
     return 2;

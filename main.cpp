@@ -11,18 +11,17 @@
 #include "src/structures/octree.hpp"
 
 #include <thread>
-#include <mutex>
-
 
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
-void checkAllChunksAndDrawThemForNow(ChunkManager* _chunkManager, Shader _voxelShader, int* _chunkPosX, int* _chunkPosZ, std::vector<std::pair<int, int>>* finishedMesh);
-void updateChunkMeshes(int* zPos, int* xPos, ChunkManager* chunkManager, Shader voxelShader, std::vector<std::pair<int, int>>* finishedMesh);
+void checkAllChunksAndDrawThemForNow(ChunkManager* _chunkManager, Shader _voxelShader, int* _chunkPosX, int* _chunkPosZ, std::vector<Chunk*>* finishedMesh);
+void updateChunkMeshes(int* zPos, int* xPos, ChunkManager* chunkManager, Shader voxelShader, std::vector<Chunk*>* finishedMesh, std::vector<std::pair<int, int>>* chunksToRemove);
 
 float lastFrame = 0.0f;
 float deltaTime = 0.0f;
 
 Camera gameCamera;
-std::vector<std::pair<int, int>> finishedMeshes;
+std::vector<Chunk*> finishedMeshes;
+std::vector<std::pair<int, int>> chunksToRemove;
 
 std::thread testThread;
 
@@ -65,8 +64,9 @@ int main(){
     worker1.join();
 
     while (finishedMeshes.size() != 0){
-        std::pair<int, int> pair = finishedMeshes[0];
-        chunkManager->getChunk(pair.first, pair.second)->updateMesh();
+        Chunk* chunk = finishedMeshes[0];
+        chunkManager->appendChunk(chunk->xCoordinate, chunk->zCoordinate, chunk);
+        chunk->updateMesh();
         finishedMeshes.erase(finishedMeshes.begin());
     }
 
@@ -74,8 +74,8 @@ int main(){
     {   
         frameCounter += 1;
         if (glfwGetTime() - startTime >= 1.0f){
-            std::cout << "ms/frame: " << 1000.0 / double(frameCounter) << "\n";
-            std::cout << "Chunk: " << gameCamera.currentChunk_x << " : " << gameCamera.currentChunk_z << "\n";
+            // std::cout << "ms/frame: " << 1000.0 / double(frameCounter) << "\n";
+            // std::cout << "Chunk: " << gameCamera.currentChunk_x << " : " << gameCamera.currentChunk_z << "\n";
             frameCounter = 0;
             startTime += 1;
         }
@@ -85,6 +85,7 @@ int main(){
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;  
         gameCamera.processInput(deltaTime);
+        gameCamera.position.x += 0.2;
 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
@@ -96,13 +97,21 @@ int main(){
         if (gameCamera.hasChangedChunk()){
             // Joining instead of detaching for now.
             if (testThread.joinable()) testThread.join();
-            testThread = std::thread(updateChunkMeshes, &gameCamera.currentChunk_z, &gameCamera.currentChunk_x, chunkManager, voxelShader, &finishedMeshes);
-        } 
-        
+            
+            //updateChunkMeshes(&gameCamera.currentChunk_z, &gameCamera.currentChunk_x, chunkManager, voxelShader, &finishedMeshes, &chunksToRemove);
+            testThread = std::thread(updateChunkMeshes, &gameCamera.currentChunk_z, &gameCamera.currentChunk_x, chunkManager, voxelShader, &finishedMeshes, &chunksToRemove);
+        }
+
+        while (chunksToRemove.size() != 0){
+                std::pair<int, int> pair = chunksToRemove[0];
+                chunkManager->removeChunk(pair.first, pair.second);
+                chunksToRemove.erase(chunksToRemove.begin());
+            }
+
         while (finishedMeshes.size() != 0){
-            std::pair<int, int> pair = finishedMeshes[0];
-            Chunk* _chunk = chunkManager->getChunk(pair.first, pair.second);
-            _chunk->updateMesh();
+            Chunk* chunk = finishedMeshes[0];
+            chunkManager->appendChunk(chunk->xCoordinate, chunk->zCoordinate, chunk);
+            chunk->updateMesh();
             finishedMeshes.erase(finishedMeshes.begin());
         }
 
@@ -118,7 +127,7 @@ int main(){
     return 0;
 }
 
-void checkAllChunksAndDrawThemForNow(ChunkManager* _chunkManager, Shader _voxelShader, int* _chunkPosX, int* _chunkPosZ, std::vector<std::pair<int, int>>* finishedMesh){
+void checkAllChunksAndDrawThemForNow(ChunkManager* chunkManager, Shader voxelShader, int* _chunkPosX, int* _chunkPosZ, std::vector<Chunk*>* finishedMesh){
     for (int dx = *_chunkPosX - 1; dx <= *_chunkPosX + 1; dx++){
             for (int dz = *_chunkPosZ - 1; dz <= *_chunkPosZ + 1; dz++){
                 int curLoD = 1;
@@ -134,47 +143,39 @@ void checkAllChunksAndDrawThemForNow(ChunkManager* _chunkManager, Shader _voxelS
                 }
 
 
-                Chunk* chunk = _chunkManager->getChunk(dx, dz);
+                Chunk* chunk = chunkManager->getChunk(dx, dz);
                 if (chunk){
                     //chunk->mesh = _chunkManager->buildMesh(_chunkManager->getChunk(dx, dz), _voxelShader, 5);
                 } else{
-                    _chunkManager->appendChunk(dx, dz, curLoD);
-
-                    Chunk* _chunk = _chunkManager->getChunk(dx, dz);
-                    Mesh updatedMesh = _chunkManager->buildMesh(_chunkManager->getChunk(dx, dz), _voxelShader);
+                    Chunk* _chunk = new Chunk(dx, dz, 5);
+                    Mesh updatedMesh = chunkManager->buildMesh(_chunk, voxelShader);
                     _chunk->mesh.vertices = updatedMesh.vertices;
                     _chunk->mesh.indices = updatedMesh.indices;
-                    
-                    finishedMesh->push_back(move(std::make_pair(dx, dz)));
-                    //_chunk->draw(voxelShader);
+                    finishedMesh->push_back(_chunk);
                 }
             }
         }
 }
 
-void updateChunkMeshes(int* zPos, int* xPos, ChunkManager* chunkManager, Shader voxelShader, std::vector<std::pair<int, int>>* finishedMesh){
-    for (int dz = *zPos - 1; dz <= *zPos + 1; dz++){
-        for (int dx = *xPos - 1; dx <= *xPos + 1; dx++){
+void updateChunkMeshes(int* zPos, int* xPos, ChunkManager* chunkManager, Shader voxelShader, std::vector<Chunk*>* finishedMesh, std::vector<std::pair<int, int>>* chunksToRemove){
+    for (int dz = *zPos - 4; dz <= *zPos + 4; dz++){
+        for (int dx = *xPos - 4; dx <= *xPos + 4; dx++){
             Chunk* chunk = chunkManager->getChunk(dx, dz);
+
+            if (dz >= *zPos + 2 || dz <= *zPos - 2 || dx >= *xPos + 2 || dx <= *xPos - 2){
+                chunksToRemove->push_back(move(std::make_pair(dx, dz)));
+                continue;
+            }
+
             if (chunk){
-                if (chunk->currentLoD == 5) chunk->currentLoD = 4;
-                else chunk->currentLoD = 5;
                 
-                Mesh updatedMesh = chunkManager->buildMesh(chunkManager->getChunk(dx, dz), voxelShader);
-                chunk->mesh.vertices = updatedMesh.vertices;
-                chunk->mesh.indices = updatedMesh.indices;
-
-                finishedMesh->push_back(move(std::make_pair(dx, dz)));
             } else{
-                chunkManager->appendChunk(dx, dz, 5);
-
-                Chunk* _chunk = chunkManager->getChunk(dx, dz);
-                Mesh updatedMesh = chunkManager->buildMesh(chunkManager->getChunk(dx, dz), voxelShader);
+                Chunk* _chunk = new Chunk(dx, dz, 5);
+                Mesh updatedMesh = chunkManager->buildMesh(_chunk, voxelShader);
                 _chunk->mesh.vertices = updatedMesh.vertices;
                 _chunk->mesh.indices = updatedMesh.indices;
                 
-                finishedMesh->push_back(move(std::make_pair(dx, dz)));
-                //_chunk->draw(voxelShader);
+                finishedMesh->push_back(_chunk);
             }
         }
     }

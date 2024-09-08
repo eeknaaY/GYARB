@@ -21,6 +21,7 @@ class ChunkManager{
         std::map<std::pair<int, int>, Chunk*> chunkMap;
 
         void appendChunk(int x, int z, int LoD);
+        void appendChunk(int x, int z, Chunk* ptr);
         void removeChunk(int x, int z);
         Chunk* getChunk(int x, int z);
         Mesh buildMesh(Chunk* _chunk, const Shader &shader);
@@ -41,8 +42,14 @@ void ChunkManager::appendChunk(int x, int z, int LoD){
     chunkMap[std::make_pair(x, z)] = new Chunk(x, z, LoD);
 }
 
+void ChunkManager::appendChunk(int x, int z, Chunk* ptr){
+    chunkMap[std::make_pair(x, z)] = ptr;
+}
+
 void ChunkManager::removeChunk(int x, int z){
-    delete getChunk(x, z);
+    Chunk* ptr = getChunk(x, z);
+    delete ptr;
+    ptr = 0;
     chunkMap.erase(std::make_pair(x, z));
 }
 
@@ -411,7 +418,7 @@ Mesh ChunkManager::buildMesh(Chunk* _chunk, const Shader &shader){
 
     auto stop = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds> (stop-start);
-    std::cout << "Meshing took: " << duration.count() << "ms \n";
+    //std::cout << "Meshing took: " << duration.count() << "ms \n";
     return Mesh(vertices, indices);
 }
 

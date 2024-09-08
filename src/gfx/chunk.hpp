@@ -5,6 +5,9 @@
 #include "../shaders/shaders.hpp"
 #include "../structures/octree.hpp"
 
+#include <memory>
+#include <iostream>
+
 class Chunk{
     public:
         static const int CHUNK_SIZE = 32;
@@ -26,6 +29,7 @@ class Chunk{
 
         ~Chunk(){
             delete octree;
+            octree = 0;
         }
         
         Chunk() = default;
