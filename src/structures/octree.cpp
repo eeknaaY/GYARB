@@ -270,7 +270,6 @@ void Octree::TEMP_setBlockValues(int _chunk_xcoord, int _chunk_zcoord){
 }
 
 int Octree::TEMP_blockDeterminationFunc(int y, int maxHeight){
-    maxHeight = 10;
     if (y > maxHeight) return 0;
     if (y > (maxHeight - 2)) return 1;
     return 2;
