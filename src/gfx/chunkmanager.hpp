@@ -5,6 +5,15 @@
 #include "mesh.hpp"
 #include "../shaders/shaders.hpp"
 
+enum voxelFaces{
+    TOP_FACE,
+    BOTTOM_FACE,
+    LEFT_FACE,
+    RIGHT_FACE,
+    FRONT_FACE,
+    BACK_FACE
+};
+
 class ChunkManager{
     public:
         std::map<std::pair<int, int>, Chunk*> chunkMap;
@@ -24,7 +33,7 @@ class ChunkManager{
         bool isAirBlock(Chunk* chunk, int x, int y, int z, int LoD);
         bool isAccountedFor(bool accountedVoxels[], int x, int y, int z);
         bool isFacingAirblock(Chunk* chunk, int x, int y, int z, int reverseConstant, int constantPos, int LoD);
-        void getTextureCoordinates(int textureValue, float &u, float &v);
+        void getTextureCoordinates(int textureValue, float &u, float &v, voxelFaces face);
 };
 
 #endif

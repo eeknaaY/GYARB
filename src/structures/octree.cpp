@@ -255,25 +255,27 @@ if (_x < midLine){
 
 void Octree::TEMP_setBlockValues(int _chunk_xcoord, int _chunk_zcoord){
     FastNoiseLite noise;
-    noise.SetNoiseType(FastNoiseLite::NoiseType_OpenSimplex2);
+    noise.SetNoiseType(FastNoiseLite::NoiseType_Perlin);
     noise.SetFractalType(FastNoiseLite::FractalType_FBm);
+    noise.SetFrequency(0.01);
     noise.SetFractalOctaves(3);
+    noise.SetFractalWeightedStrength(8);
     
     for (int x = 0; x < 32; x++){
         for (int z = 0; z < 32; z++){
             float noiseVal = noise.GetNoise((float)(x + 32 * _chunk_xcoord), (float)(z + 32 * _chunk_zcoord));
             for (int y = 0; y < 32; y++){
-                getNodeFromPosition(x, y, z)->blockValue = TEMP_blockDeterminationFunc(y, 16 + (int)(16.f * noiseVal));;
+                getNodeFromPosition(x, y, z)->blockValue = TEMP_blockDeterminationFunc(y, std::clamp(16 + (int)(16.f * noiseVal), 0, 31));;
             }
         }
     }
 }
 
 int Octree::TEMP_blockDeterminationFunc(int y, int maxHeight){
-    maxHeight = 10;
-    if (y > maxHeight) return 0;
-    if (y > (maxHeight - 2)) return 1;
-    return 2;
+    if (y > maxHeight) return 0; // Air
+    if (y > (maxHeight - 1)) return 1; // Grass
+    if (y > (maxHeight - 2)) return 3; // Dirt
+    return 2; // Stone
 }
 
 void Octree::TEMP_optimizeTree(){

@@ -12,10 +12,8 @@ uniform mat4 projection;
 
 void main()
 {
-    // Like this -> gl_Position = projection * view * matrixArray[glInstanceID] * vec4(aPos, 1.0);
-    // note that we read the multiplication from right to left
     gl_Position = projection * view * model * vec4(aPos, 1.0);
 
     tilePos = fract(aTexCoord);
-    TexCoord = aTexCoord;
+    TexCoord = floor(aTexCoord);
 }

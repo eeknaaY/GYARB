@@ -16,6 +16,15 @@ struct voxelFace{
     }
 };
 
+enum voxelFaces{
+    TOP_FACE,
+    BOTTOM_FACE,
+    LEFT_FACE,
+    RIGHT_FACE,
+    FRONT_FACE,
+    BACK_FACE
+};
+
 class ChunkManager{
     public:
         std::map<std::pair<int, int>, Chunk*> chunkMap;
@@ -31,11 +40,11 @@ class ChunkManager{
     private:
         // These shouldn't really be inside ChunkManager, but in a meshing class, couldnt fix that so now its here for now
         int getBlockValueFromPosition(Chunk* chunk, int x, int y, int z, int LoD);
-        void makeVoxelAccountedFor(bool bitset[], int x, int y, int z);
+        void makeVoxelAccountedFor(bool accountedVoxels[], int x, int y, int z);
         bool isAirBlock(Chunk* chunk, int x, int y, int z, int LoD);
         bool isAccountedFor(bool accountedVoxels[], int x, int y, int z);
         bool isFacingAirblock(Chunk* chunk, int x, int y, int z, int reverseConstant, int constantPos, int LoD);
-        void getTextureCoordinates(int textureValue, float &u, float &v);
+        void getTextureCoordinates(int textureValue, float &u, float &v, voxelFaces face);
 };
 
 void ChunkManager::appendChunk(int x, int z, int LoD){
@@ -64,8 +73,8 @@ Chunk* ChunkManager::getChunk(int x, int z){
 
 ////////////////////////////////////////////////////  MESHING PART ///////////////////////////////////////////////////////////////////////////////
 
-inline void ChunkManager::makeVoxelAccountedFor(bool bitset[], int x, int y, int z){
-    bitset[x + 32 * z + 32 * 32 * y] = true;
+inline void ChunkManager::makeVoxelAccountedFor(bool accountedVoxels[], int x, int y, int z){
+    accountedVoxels[x + 32 * z + 32 * 32 * y] = true;
 }
 
 int ChunkManager::getBlockValueFromPosition(Chunk* chunk, int x, int y, int z, int LoD){
@@ -122,15 +131,42 @@ bool ChunkManager::isAirBlock(Chunk* chunk, int x, int y, int z, int LoD){
 }
 
 bool ChunkManager::isFacingAirblock(Chunk* chunk, int x, int y, int z, int reverseConstant, int constantPos, int LoD){
-    if (constantPos == 1) x = x + reverseConstant;
-    if (constantPos == 2) y = y + reverseConstant;
-    if (constantPos == 3) z = z + reverseConstant;
+    switch (constantPos)
+    {
+    case 1:
+        x = x + reverseConstant;
+        break;
+    case 2:
+        y = y + reverseConstant;
+        break;
+    case 3:
+        z = z + reverseConstant;
+        break;
+
+    default:
+        break;
+    }
+
     return getBlockValueFromPosition(chunk, x, y, z, LoD) == 0;
 }
 
-void ChunkManager::getTextureCoordinates(int textureValue, float &u, float &v){
-    const float textureBlockSize = 0.0625f;
+void ChunkManager::getTextureCoordinates(int textureValue, float &u, float &v, voxelFaces face){ // Replace sides of a grass block to semi dirt + semi grass
+    switch (textureValue)
+    {
+    case 1:
+        if (face != TOP_FACE) textureValue = 4;
+        break;
+    
+    default:
+        break;
+    }
+
+    constexpr float textureBlockSize = 0.0625f;
+
+    // Since air is the value 0, we need to remove one value so textures begin at 0.
     textureValue -= 1;
+
+
     u = textureBlockSize * (textureValue % 16);
     v = textureBlockSize * (textureValue - textureValue % 16)/16; 
 }
@@ -178,9 +214,9 @@ Mesh ChunkManager::buildMesh(Chunk* _chunk, const Shader &shader){
                              isFacingAirblock(_chunk, dx, y, z, reverseConstant, 2, LoD) && 
                             !isAirBlock(_chunk, dx, y, z, LoD) && 
                              _chunk->octree->getNodeFromPosition(dx, y, z, voxelWidth, LoD)->blockValue == face.texture){
-
+                                
                             face.width += 1;
-                        } else{
+                        } else {
                             break;
                         }
                     }
@@ -192,8 +228,8 @@ Mesh ChunkManager::buildMesh(Chunk* _chunk, const Shader &shader){
                                  isFacingAirblock(_chunk, dx, y, dz, reverseConstant, 2, LoD) && 
                                 !isAirBlock(_chunk, dx, y, dz, LoD) && 
                                  _chunk->octree->getNodeFromPosition(dx, y, dz, voxelWidth, LoD)->blockValue == face.texture){
-                                 //dx += voxelWidth - 1;
-                                 }
+                                    dx += voxelWidth - 1;
+                                }
                             else{
                                 shouldBreak = true;
                                 break;
@@ -206,15 +242,16 @@ Mesh ChunkManager::buildMesh(Chunk* _chunk, const Shader &shader){
 
                 for (int dx = x; dx < x + face.width; dx++){
                     for (int dz = z; dz < z + face.height; dz++){
-                        accountedVoxels[dx + 32 * dz + 32 * 32 * y] = true;
+                        makeVoxelAccountedFor(accountedVoxels, dx, y, dz);
                     }
                 }
 
                 int vertexCount = vertices.size();
                 float u, v;
-                getTextureCoordinates(face.texture, u, v);
 
                 if (w == 0){
+                    getTextureCoordinates(face.texture, u, v, TOP_FACE);
+
                     vertices.push_back(Vertex(face.x,              face.y + jumpLength, face.z,               u,              v)); 
                     vertices.push_back(Vertex(face.x + face.width, face.y + jumpLength, face.z + face.height, u + face.width, v + face.height));
                     vertices.push_back(Vertex(face.x + face.width, face.y + jumpLength, face.z,               u + face.width, v));
@@ -227,6 +264,8 @@ Mesh ChunkManager::buildMesh(Chunk* _chunk, const Shader &shader){
                     indices.push_back(vertexCount + 2);
                     indices.push_back(vertexCount + 0);
                 } else {
+                    getTextureCoordinates(face.texture, u, v, BOTTOM_FACE);
+
                     vertices.push_back(Vertex(face.x,              face.y, face.z,               u,              v)); 
                     vertices.push_back(Vertex(face.x + face.width, face.y, face.z,               u + face.width, v));
                     vertices.push_back(Vertex(face.x + face.width, face.y, face.z + face.height, u + face.width, v + face.height));
@@ -279,7 +318,7 @@ Mesh ChunkManager::buildMesh(Chunk* _chunk, const Shader &shader){
                              isFacingAirblock(_chunk, x, dy, dz, reverseConstant, 1, LoD) && 
                             !isAirBlock(_chunk, x, dy, dz, LoD) && 
                              _chunk->octree->getNodeFromPosition(x, dy, dz, voxelWidth, LoD)->blockValue == face.texture){
-                                    //dz += voxelWidth - 1;
+                                    dz += voxelWidth - 1;
                              }
 
                         else{
@@ -294,14 +333,16 @@ Mesh ChunkManager::buildMesh(Chunk* _chunk, const Shader &shader){
 
                 for (int dy = y; dy < y + face.height; dy++){
                     for (int dz = z; dz < z + face.width; dz++){
-                        accountedVoxels[x + 32 * dz + 32 * 32 * dy] = true;
+                        makeVoxelAccountedFor(accountedVoxels, x, dy, dz);
                     }
                 }
 
                 int vertexCount = vertices.size();
                 float u, v;
-                getTextureCoordinates(face.texture, u, v);
+
                 if (w == 3){
+                    getTextureCoordinates(face.texture, u, v, FRONT_FACE);
+
                     vertices.push_back(Vertex(face.x, face.y + face.height, face.z + face.width, u + face.width, v + face.height));
                     vertices.push_back(Vertex(face.x, face.y + face.height, face.z,              u,              v + face.height));
                     vertices.push_back(Vertex(face.x, face.y,               face.z,              u,              v));
@@ -314,6 +355,8 @@ Mesh ChunkManager::buildMesh(Chunk* _chunk, const Shader &shader){
                     indices.push_back(vertexCount + 0);
                     indices.push_back(vertexCount + 1);
                 } else {
+                    getTextureCoordinates(face.texture, u, v, BACK_FACE);
+
                     vertices.push_back(Vertex(face.x + jumpLength, face.y + face.height, face.z + face.width, u,              v + face.height));
                     vertices.push_back(Vertex(face.x + jumpLength, face.y,               face.z,              u + face.width, v));
                     vertices.push_back(Vertex(face.x + jumpLength, face.y + face.height, face.z,              u + face.width, v + face.height));
@@ -350,7 +393,7 @@ Mesh ChunkManager::buildMesh(Chunk* _chunk, const Shader &shader){
                 if (!isAccountedFor(accountedVoxels, dx, y, z) &&
                      isFacingAirblock(_chunk, dx, y, z, reverseConstant, 3, LoD) && 
                     !isAirBlock(_chunk, dx, y, z, LoD) && 
-                        _chunk->octree->getNodeFromPosition(dx, y, z, voxelWidth, LoD)->blockValue == face.texture){
+                     _chunk->octree->getNodeFromPosition(dx, y, z, voxelWidth, LoD)->blockValue == face.texture){
 
                     face.width += 1;
                 } else{
@@ -362,9 +405,9 @@ Mesh ChunkManager::buildMesh(Chunk* _chunk, const Shader &shader){
             for (int dy = y + 1; dy < 32; dy++){
                 for (int dx = x; dx < x + face.width; dx++){
                     if (!isAccountedFor(accountedVoxels, dx, dy, z) &&
-                            isFacingAirblock(_chunk, dx, dy, z, reverseConstant, 3, LoD) && 
+                         isFacingAirblock(_chunk, dx, dy, z, reverseConstant, 3, LoD) && 
                         !isAirBlock(_chunk, dx, dy, z, LoD) && 
-                            _chunk->octree->getNodeFromPosition(dx, dy, z, voxelWidth, LoD)->blockValue == face.texture){
+                         _chunk->octree->getNodeFromPosition(dx, dy, z, voxelWidth, LoD)->blockValue == face.texture){
                             dx += voxelWidth - 1;
                             }
 
@@ -380,14 +423,16 @@ Mesh ChunkManager::buildMesh(Chunk* _chunk, const Shader &shader){
 
             for (int dy = y; dy < y + face.height; dy++){
                 for (int dx = x; dx < x + face.width; dx++){
-                    accountedVoxels[dx + 32 * z + 32 * 32 * dy] = true;
+                    makeVoxelAccountedFor(accountedVoxels, dx, dy, z);
                 }
             }
-            
+
             int vertexCount = vertices.size();
             float u, v;
-            getTextureCoordinates(face.texture, u, v);
+            
             if (w == 4){
+                getTextureCoordinates(face.texture, u, v, LEFT_FACE);
+
                 vertices.push_back(Vertex(face.x,              face.y,               face.z + jumpLength, u,              v)); 
                 vertices.push_back(Vertex(face.x + face.width, face.y,               face.z + jumpLength, u + face.width, v));
                 vertices.push_back(Vertex(face.x + face.width, face.y + face.height, face.z + jumpLength, u + face.width, v + face.height));
@@ -400,6 +445,8 @@ Mesh ChunkManager::buildMesh(Chunk* _chunk, const Shader &shader){
                 indices.push_back(vertexCount + 2);
                 indices.push_back(vertexCount + 3);
             } else {
+                getTextureCoordinates(face.texture, u, v, RIGHT_FACE);
+
                 vertices.push_back(Vertex(face.x,              face.y,               face.z, u,              v)); 
                 vertices.push_back(Vertex(face.x + face.width, face.y + face.height, face.z, u + face.width, v + face.height));
                 vertices.push_back(Vertex(face.x + face.width, face.y,               face.z, u + face.width, v));
@@ -418,7 +465,7 @@ Mesh ChunkManager::buildMesh(Chunk* _chunk, const Shader &shader){
 
     auto stop = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds> (stop-start);
-    //std::cout << "Meshing took: " << duration.count() << "ms \n";
+    std::cout << "Meshing took: " << duration.count() << "ms \n";
     return Mesh(vertices, indices);
 }
 
