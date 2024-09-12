@@ -12,7 +12,6 @@ void main()
 	vec2 dx = dFdx(TexCoord);
 	vec2 dy = dFdy(TexCoord);
 	vec2 texcoord = tilePos + vec2(1.0/16, 1.0/16) * fract(TexCoord);
-	vec4 color = textureGrad(ourTexture, texcoord, dx, dy);
-
-	FragColor = color;
+	FragColor = textureGrad(ourTexture, texcoord, dx, dy);
 }
+
