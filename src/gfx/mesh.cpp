@@ -6,13 +6,11 @@
 #include "../textures/textures.hpp"
 
 struct Vertex {
-    glm::vec3 Position;
+    int Position;
     glm::vec2 TexCoords;
 
-    Vertex(float _x, float _y, float _z, float u, float v){
-        Position.x = _x;
-        Position.y = _y;
-        Position.z = _z;
+    Vertex(int _x, int _y, int _z, float u, float v){
+        Position = (_x << 12) | (_y << 6) | _z;
 
         TexCoords.x = u;
         TexCoords.y = v;
@@ -72,10 +70,10 @@ void Mesh::bindMesh()
 
     // vertex positions
     glEnableVertexAttribArray(0);	
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)0);
+    glVertexAttribIPointer(0, 1, GL_INT, sizeof(Vertex), (void*)0);
     // vertex texture coords
     glEnableVertexAttribArray(1);	
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)sizeof(glm::vec3));
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)sizeof(int));
 
     glBindVertexArray(0);
 

@@ -6,13 +6,11 @@
 #include "glm/glm.hpp"
 
 struct Vertex {
-    glm::vec3 Position;
+    int Position;
     glm::vec2 TexCoords;
 
-    Vertex(float _x, float _y, float _z, float u, float v){
-        Position.x = _x;
-        Position.y = _y;
-        Position.z = _z;
+    Vertex(int _x, int _y, int _z, float u, float v){
+        Position = (_x << 12) | (_y << 6) | _z;
 
         TexCoords.x = u;
         TexCoords.y = v;
