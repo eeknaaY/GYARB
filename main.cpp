@@ -48,18 +48,36 @@ int main(){
     glFrontFace(GL_CCW);
 
     ChunkManager* chunkManager = new ChunkManager();
+    
+    chunkManager->noise.SetNoiseType(FastNoiseLite::NoiseType_Perlin);
+    chunkManager->noise.SetFractalType(FastNoiseLite::FractalType_FBm);
+    chunkManager->noise.SetFrequency(0.01);
+    chunkManager->noise.SetFractalOctaves(3);
+    chunkManager->noise.SetFractalWeightedStrength(8);
 
     for (int dz = -12; dz <= 12; dz++){
         for (int dx = -12; dx <= 12; dx++){
-            Chunk* chunk = chunkManager->getChunk(dx, dz);
+            Chunk* chunk = chunkManager->getChunk(dx, 0, dz);
 
             if (!chunk){
-                Chunk* _chunk = new Chunk(dx, dz, 5);
+                Chunk* _chunk = new Chunk(dx, 0, dz, 5, chunkManager->noise);
                 chunkManager->appendChunk(_chunk);
                 continue;
             }
         }
     }
+
+    for (int dz = -12; dz <= 12; dz++){
+        for (int dx = -12; dx <= 12; dx++){
+            Chunk* chunk = chunkManager->getChunk(dx, 0, dz);
+
+            if (!chunk){
+                chunkManager->updateChunkMesh(chunk, gameCamera);
+                continue;
+            }
+        }
+    }
+
 
     double startTime = glfwGetTime();
 
@@ -90,23 +108,39 @@ int main(){
             chunkManager->testStartMT(&gameCamera);
         }
 
-        while (chunkManager->chunksToRemove.size() != 0){
-            std::pair<int, int> pair = chunkManager->chunksToRemove[0];
+        while (chunkManager->chunksToRemoveth1.size() != 0){
+            std::pair<int, int> pair = chunkManager->chunksToRemoveth1[0];
             chunkManager->removeChunk(pair.first, pair.second);
-            chunkManager->chunksToRemove.erase(chunkManager->chunksToRemove.begin());
+            chunkManager->chunksToRemoveth1.erase(chunkManager->chunksToRemoveth1.begin());
         }
 
-        while (chunkManager->finishedMeshes.size() != 0){
-            Chunk* chunk = chunkManager->finishedMeshes[0];
-            if (!chunkManager->getChunk(chunk->xCoordinate, chunk->zCoordinate)){
-                chunkManager->appendChunk(chunk);
+        while (chunkManager->chunksToRemoveth2.size() != 0){
+            std::pair<int, int> pair = chunkManager->chunksToRemoveth2[0];
+            chunkManager->removeChunk(pair.first, pair.second);
+            chunkManager->chunksToRemoveth2.erase(chunkManager->chunksToRemoveth2.begin());
+        }
+
+        while (chunkManager->finishedMeshesth1.size() != 0){
+            Chunk* chunk = chunkManager->finishedMeshesth1[0];
+            if (chunk->mesh.vertices.size() != 0){
+                chunk->updateMesh();
             }
-            chunk->updateMesh();
-            chunkManager->finishedMeshes.erase(chunkManager->finishedMeshes.begin());
+            chunkManager->finishedMeshesth1.erase(chunkManager->finishedMeshesth1.begin());
+        }
+        
+        while (chunkManager->finishedMeshesth2.size() != 0){
+            Chunk* chunk = chunkManager->finishedMeshesth2[0];
+            if (chunk->mesh.vertices.size() != 0){
+                chunk->updateMesh();
+            }
+            chunkManager->finishedMeshesth2.erase(chunkManager->finishedMeshesth2.begin());
         }
 
         for (auto const& [key, val] : chunkManager->chunkMap){
-            val->draw(voxelShader);
+            // FIXME remove chunks that are out of range here
+            for (Chunk* chunk : val){
+                chunk->draw(voxelShader);
+            }
         }
 
         glfwSwapBuffers(window);

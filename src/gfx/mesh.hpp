@@ -23,7 +23,7 @@ class Mesh {
         std::vector<unsigned int> indices;
         bool bufferExists;
 
-        void draw(const Shader &shader, int x, int z);
+        void draw(const Shader &shader, int x, int y, int z);
         void updateMesh();
         void bindMesh();
         Mesh();

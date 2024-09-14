@@ -23,7 +23,7 @@ class Mesh {
         std::vector<unsigned int> indices;
         bool bufferExists = false;
 
-        void draw(const Shader &shader, int x, int z);
+        void draw(const Shader &shader, int x, int y, int z);
         void updateMesh();
         void bindMesh();
 
@@ -93,11 +93,11 @@ void Mesh::updateMesh(){
     glBindVertexArray(0);
 }
 
-void Mesh::draw(const Shader &shader, int x, int z) 
+void Mesh::draw(const Shader &shader, int x, int y, int z) 
 {
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, texture);
-    shader.setMat4("model", glm::translate(glm::mat4(1.0f), glm::vec3(32 * x, 0, 32 * z)));
+    shader.setMat4("model", glm::translate(glm::mat4(1.0f), glm::vec3(32 * x, 32 * y, 32 * z)));
 
     glBindVertexArray(VAO);
     glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);

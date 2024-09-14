@@ -1,5 +1,6 @@
 #pragma once
 #include <vector>
+#include "FastNoiseLite.h"
 
 class Node{
     public:
@@ -21,16 +22,17 @@ class Node{
 class Octree{
     public:
         Octree();
-        Octree(int chunk_xcoord, int chunk_zcoord);
+        Octree(int _chunk_xcoord, int _chunk_ycoord, int _chunk_zcoord, FastNoiseLite noise);
         ~Octree();
         Node* mainNode;
         Node* getNodeFromPosition(int _x, int _y, int _z, int _depth = 5);
         Node* getNodeFromPosition(int _x, int _y, int _z, short &width, int _depth = 5);
         
         int nodeAmount();
-        void TEMP_setBlockValues(int chunk_xcoord, int chunk_zcoord);
+        void TEMP_setBlockValues(int _chunk_xcoord, int _chunk_ycoord, int _chunk_zcoord, FastNoiseLite noise);
         void TEMP_optimizeTree();
         int TEMP_blockDeterminationFunc(int y, int maxHeight);
     private:
+        int LoD;
         int chunk_xcoord, chunk_zcoord;
 };

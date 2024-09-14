@@ -8,6 +8,7 @@
 #include "camera.hpp"
 #include <iostream>
 #include <thread>
+#include "FastNoiseLite.h"
 
 struct voxelFace{
     short x, y, z, width = 0, height = 1, texture;
@@ -30,24 +31,29 @@ enum voxelFaces{
 
 class ChunkManager{
     public:
-        std::vector<Chunk*> finishedMeshes;
-        std::vector<std::pair<int, int>> chunksToRemove;
+        std::vector<Chunk*> finishedMeshesth1;
+        std::vector<Chunk*> finishedMeshesth2;
+        std::vector<std::pair<int, int>> chunksToRemoveth1;
+        std::vector<std::pair<int, int>> chunksToRemoveth2;
 
-        std::map<std::pair<int, int>, Chunk*> chunkMap;
+        FastNoiseLite noise;
+        std::map<std::pair<int, int>, std::vector<Chunk*>> chunkMap;
 
         void appendChunk(int x, int z, int LoD);
         void appendChunk(Chunk* ptr);
         void removeChunk(int x, int z);
-        Chunk* getChunk(int x, int z);
+        Chunk* getChunk(int x, int y, int z);
+        std::vector<Chunk*> getChunkVector(int x, int z);
         Mesh buildMesh(Chunk* _chunk, Camera gameCamera);
         void updateChunkMesh(Chunk* _chunk, Camera gameCamera);
         void updateChunkMesh_MT(Chunk* _chunk, Camera gameCamera);
         void testStartMT(Camera* gameCamera);
-        void updateTerrain(Camera* gameCamera);
+        void updateTerrain(Camera* gameCamera, int threadMultiplier);
 
         ChunkManager(){}
     private:
-        std::thread testThread;
+        std::thread meshingThread1;
+        std::thread meshingThread2;
         
         // These shouldn't really be inside ChunkManager, but in a meshing class, couldnt fix that so now its here for now
         int getBlockValueFromPosition(Chunk* chunk, int x, int y, int z, int LoD);
@@ -61,26 +67,70 @@ class ChunkManager{
 ////////////////////////////////////////////////////  CHUNK HANDLING  ///////////////////////////////////////////////////////////////////////////////
 
 void ChunkManager::appendChunk(int x, int z, int LoD){
-    chunkMap[std::make_pair(x, z)] = new Chunk(x, z, LoD);
+    if (getChunkVector(x, z).size() == 0){
+        chunkMap[std::make_pair(x, z)] = std::vector<Chunk*>{new Chunk(x, 0, z, LoD, noise)};
+    } else {
+        chunkMap[std::make_pair(x, z)].push_back(new Chunk(x, 0, z, LoD, noise));
+    }
+
+    for (int _x = 0; _x < 32; _x++){
+        for (int _z = 0; _z < 32; _z++){
+            float noiseVal = noise.GetNoise((float)(_x + 32 * x), (float)(_z + 32 * z));
+            // Change height here and in octree
+            int maxHeight = 48 + (int)(16.f * noiseVal);
+            if (maxHeight - (getChunkVector(x, z).size()) * 32 > 32){
+                appendChunk(new Chunk(x, getChunkVector(x, z).size(), z, LoD, noise));
+                return;
+            }
+        }
+    }
 }
 
 void ChunkManager::appendChunk(Chunk* ptr){
-    chunkMap[std::make_pair(ptr->xCoordinate, ptr->zCoordinate)] = ptr;
+    if (getChunkVector(ptr->xCoordinate, ptr->zCoordinate).size() == 0){
+        chunkMap[std::make_pair(ptr->xCoordinate, ptr->zCoordinate)] = std::vector<Chunk*>{ptr};
+    } else {
+        chunkMap[std::make_pair(ptr->xCoordinate, ptr->zCoordinate)].push_back(ptr);
+    }
+
+    for (int x = 0; x < 32; x++){
+        for (int z = 0; z < 32; z++){
+            float noiseVal = noise.GetNoise((float)(x + 32 * ptr->xCoordinate), (float)(z + 32 * ptr->zCoordinate));
+            // Change height here and in octree
+            int maxHeight = 48 + (int)(16.f * noiseVal);
+            if (maxHeight - (ptr->yCoordinate + 1) * 32 > 32){
+                appendChunk(new Chunk(ptr->xCoordinate, ptr->yCoordinate + 1, ptr->zCoordinate, ptr->currentLoD, noise));
+                return;
+            }
+        }
+    }
 }
 
 void ChunkManager::removeChunk(int x, int z){
-    Chunk* ptr = getChunk(x, z);
-    delete ptr;
-    ptr = 0;
+    for (Chunk* chunkptr : getChunkVector(x, z)){
+        delete chunkptr;
+        chunkptr = 0;
+    }
+
     chunkMap.erase(std::make_pair(x, z));
 }
 
-Chunk* ChunkManager::getChunk(int x, int z){
+Chunk* ChunkManager::getChunk(int x, int y, int z){
+    try{
+        if (y > chunkMap.at(std::make_pair(x, z)).size() - 1) return nullptr;
+        return chunkMap.at(std::make_pair(x, z))[y];
+    }
+    catch (const std::out_of_range& oor){
+        return nullptr;
+    }
+}
+
+std::vector<Chunk*> ChunkManager::getChunkVector(int x, int z){
     try{
         return chunkMap.at(std::make_pair(x, z));
     }
     catch (const std::out_of_range& oor){
-        return nullptr;
+        return std::vector<Chunk*>{};
     }
 }
 
@@ -98,59 +148,77 @@ void ChunkManager::updateChunkMesh_MT(Chunk* _chunk, Camera gameCamera){
 }
 
 void ChunkManager::testStartMT(Camera* gameCamera){
-    if (testThread.joinable()) testThread.join();
-    testThread = std::thread(updateTerrain, this, gameCamera);
+    if (meshingThread1.joinable()) meshingThread1.join();
+   if (meshingThread2.joinable()) meshingThread2.join();
+    meshingThread1 = std::thread(updateTerrain, this, gameCamera, 0);
+   meshingThread2 = std::thread(updateTerrain, this, gameCamera, 1);
 
 }
 
-void ChunkManager::updateTerrain(Camera* gameCamera){
+void ChunkManager::updateTerrain(Camera* gameCamera, int threadMultiplier){
     int c_dXPos = gameCamera->currentChunk_x - gameCamera->oldChunk_x;
     int c_dZPos = gameCamera->currentChunk_z - gameCamera->oldChunk_z;
     int xPos = gameCamera->currentChunk_x;
     int zPos = gameCamera->currentChunk_z;
+
+    std::vector<Chunk*>* finishedMeshes;
+    std::vector<std::pair<int, int>>* chunksToRemove;
+
+    if (threadMultiplier == 0){
+        finishedMeshes = &this->finishedMeshesth1;
+        chunksToRemove = &this->chunksToRemoveth1;
+    } else {
+        finishedMeshes = &this->finishedMeshesth2;
+        chunksToRemove = &this->chunksToRemoveth2;
+    }
+
     if (c_dXPos != 0){
-        for (int dz = zPos - 12; dz <= zPos + 12; dz++){
+        for (int dz = zPos - 12 * (1 - threadMultiplier); dz <= zPos + 12 * threadMultiplier + (threadMultiplier - 1); dz++){
             for (int dx = xPos - 12; dx <= xPos + 12; dx++){
-                Chunk* chunk = getChunk(dx, dz);
+                Chunk* chunk = getChunk(dx, 0, dz);
 
                 if (!chunk){
-                    Chunk* _chunk = new Chunk(dx, dz, 5);
-                    this->finishedMeshes.push_back(_chunk);
+                    Chunk* _chunk = new Chunk(dx, 0, dz, 5, noise);
+                    appendChunk(_chunk);
                     continue;
                 }
 
                 if (dx == xPos - c_dXPos * 12){
-                    removeChunk(dx, dz);
+                    chunksToRemove->push_back(std::make_pair(dx, dz));
                     continue;
                 }
 
-                if (dx == xPos + c_dXPos || dx == xPos || dx == xPos + c_dXPos * 11){
-                    updateChunkMesh_MT(chunk, *gameCamera);
-                    this->finishedMeshes.push_back(chunk);
+                if (dx == xPos || dx == xPos + c_dXPos * 11){
+                    for (Chunk* _chunkptr : getChunkVector(dx, dz)){
+                        updateChunkMesh_MT(_chunkptr, *gameCamera);
+                        finishedMeshes->push_back(_chunkptr);
+                    }
                 }
             }
         }
     }
 
     if (c_dZPos != 0){
-        for (int dz = zPos - 12; dz <= zPos + 12; dz++){
+        for (int dz = zPos - 12 * (1 - threadMultiplier); dz <= zPos + 12 * threadMultiplier + (threadMultiplier - 1); dz++){
             for (int dx = xPos - 12; dx <= xPos + 12; dx++){
-                Chunk* chunk = getChunk(dx, dz);
+                Chunk* chunk = getChunk(dx, 0, dz);
 
                 if (!chunk){
-                    Chunk* _chunk = new Chunk(dx, dz, 5);
-                    this->finishedMeshes.push_back(_chunk);
+                    Chunk* _chunk = new Chunk(dx, 0, dz, 5, noise);
+                    appendChunk(_chunk);
                     continue;
                 }
 
                 if (dz == zPos - c_dZPos * 12){
-                    removeChunk(dx, dz);
+                    chunksToRemove->push_back(std::make_pair(dx, dz));
                     continue;
                 }
 
-                if (dz == zPos + c_dZPos || dz == zPos || dz == zPos + c_dZPos * 11){
-                    updateChunkMesh_MT(chunk, *gameCamera);
-                    this->finishedMeshes.push_back(chunk);
+                if (dz == zPos || dz == zPos + c_dZPos * 11){
+                    for (Chunk* _chunkptr : getChunkVector(dx, dz)){
+                        updateChunkMesh_MT(_chunkptr, *gameCamera);
+                        finishedMeshes->push_back(_chunkptr);
+                    }
                 }
             }
         }
@@ -165,29 +233,36 @@ inline void ChunkManager::makeVoxelAccountedFor(bool accountedVoxels[], int x, i
 }
 
 int ChunkManager::getBlockValueFromPosition(Chunk* chunk, int x, int y, int z, int LoD){
-    if (y >= 32) return 0;
-    if (y <= -1) return 0;
-
     bool chunkChanged = false;
     Chunk* _chunk;
+    if (y >= 32){
+        chunkChanged = true;
+        _chunk = getChunk(chunk->xCoordinate, chunk->yCoordinate + 1, chunk->zCoordinate);   
+        y-=32;
+    }
+    if (y <= -1){
+        chunkChanged = true;
+        _chunk = getChunk(chunk->xCoordinate, chunk->yCoordinate - 1, chunk->zCoordinate); 
+        y+=32;
+    } 
     if (x >= 32){
         chunkChanged = true;
-        _chunk = getChunk(chunk->xCoordinate + 1, chunk->zCoordinate);   
+        _chunk = getChunk(chunk->xCoordinate + 1, chunk->yCoordinate, chunk->zCoordinate);   
         x-=32;
     }
     if (x <= -1){
         chunkChanged = true;
-        _chunk = getChunk(chunk->xCoordinate - 1, chunk->zCoordinate); 
+        _chunk = getChunk(chunk->xCoordinate - 1, chunk->yCoordinate, chunk->zCoordinate); 
         x+=32;
     } 
     if (z >= 32){
         chunkChanged = true;
-        _chunk = getChunk(chunk->xCoordinate, chunk->zCoordinate + 1); 
+        _chunk = getChunk(chunk->xCoordinate, chunk->yCoordinate, chunk->zCoordinate + 1); 
         z-=32;
     } 
     if (z <= -1){
         chunkChanged = true;
-        _chunk = getChunk(chunk->xCoordinate, chunk->zCoordinate - 1); 
+        _chunk = getChunk(chunk->xCoordinate, chunk->yCoordinate, chunk->zCoordinate - 1); 
         z+=32;
     }
 
@@ -278,6 +353,7 @@ Mesh ChunkManager::buildMesh(Chunk* _chunk, Camera gameCamera){
         if (chunk_dx < 0 && currentFace == BACK_FACE) continue;
         if (chunk_dz < 0 && currentFace == RIGHT_FACE) continue;
         if (chunk_dz > 0 && currentFace == LEFT_FACE) continue;
+        if (currentFace == BOTTOM_FACE) continue;
         if (chunk_dx != 0 && chunk_dz != 0){
             if (chunk_dx == 0 && (currentFace == FRONT_FACE || currentFace == BACK_FACE)) continue;
             if (chunk_dz == 0 && (currentFace == RIGHT_FACE || currentFace == LEFT_FACE)) continue;

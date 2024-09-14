@@ -137,14 +137,14 @@ bool Node::aChildIsNotAnEndpoint(){
 class Octree{
     public:
         Octree();
-        Octree(int chunk_xcoord, int chunk_zcoord);
+        Octree(int _chunk_xcoord, int _chunk_ycoord, int _chunk_zcoord, FastNoiseLite noise);
         ~Octree();
         Node* mainNode;
         Node* getNodeFromPosition(int _x, int _y, int _z, int _depth = 5);
         Node* getNodeFromPosition(int _x, int _y, int _z, short &width, int _depth = 5);
         
         int nodeAmount();
-        void TEMP_setBlockValues(int chunk_xcoord, int chunk_zcoord);
+        void TEMP_setBlockValues(int _chunk_xcoord, int _chunk_ycoord, int _chunk_zcoord, FastNoiseLite noise);
         void TEMP_optimizeTree();
         int TEMP_blockDeterminationFunc(int y, int maxHeight);
     private:
@@ -156,11 +156,12 @@ Octree::Octree(){
     mainNode = new Node();
 }
 
-Octree::Octree(int _chunk_xcoord, int _chunk_zcoord){
+Octree::Octree(int _chunk_xcoord, int _chunk_ycoord, int _chunk_zcoord, FastNoiseLite noise){
+    std::cout << _chunk_xcoord << _chunk_ycoord << _chunk_zcoord << "\n";
     mainNode = new Node(-1, 0, nullptr, false, true);
     chunk_xcoord = _chunk_xcoord;
     chunk_zcoord = _chunk_zcoord;
-    TEMP_setBlockValues(_chunk_xcoord, _chunk_zcoord);
+    TEMP_setBlockValues(_chunk_xcoord, _chunk_ycoord, _chunk_zcoord, noise);
     TEMP_optimizeTree();
 }
 
@@ -253,19 +254,15 @@ if (_x < midLine){
     return currentNode;
 }
 
-void Octree::TEMP_setBlockValues(int _chunk_xcoord, int _chunk_zcoord){
-    FastNoiseLite noise;
-    noise.SetNoiseType(FastNoiseLite::NoiseType_Perlin);
-    noise.SetFractalType(FastNoiseLite::FractalType_FBm);
-    noise.SetFrequency(0.01);
-    noise.SetFractalOctaves(3);
-    noise.SetFractalWeightedStrength(8);
+void Octree::TEMP_setBlockValues(int _chunk_xcoord, int _chunk_ycoord, int _chunk_zcoord, FastNoiseLite noise){
     
     for (int x = 0; x < 32; x++){
         for (int z = 0; z < 32; z++){
             float noiseVal = noise.GetNoise((float)(x + 32 * _chunk_xcoord), (float)(z + 32 * _chunk_zcoord));
+            int localMaxHeight = 16 + (int)(16.f * noiseVal) - 32 * _chunk_ycoord;
+            if (localMaxHeight < 0 && _chunk_ycoord == 0) localMaxHeight = 0;
             for (int y = 0; y < 32; y++){
-                getNodeFromPosition(x, y, z)->blockValue = TEMP_blockDeterminationFunc(y, std::clamp(16 + (int)(16.f * noiseVal), 0, 31));;
+                getNodeFromPosition(x, y, z)->blockValue = TEMP_blockDeterminationFunc(y, localMaxHeight);
             }
         }
     }

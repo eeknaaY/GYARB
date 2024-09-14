@@ -7,7 +7,7 @@
 class Chunk{
     public:
         static const int CHUNK_SIZE = 32;
-        int xCoordinate, zCoordinate;
+        int xCoordinate, yCoordinate, zCoordinate;
         int LoD;
 
         Mesh mesh;
@@ -17,7 +17,7 @@ class Chunk{
 };
 
 void Chunk::draw(const Shader &shader){
-    mesh.draw(shader, xCoordinate, zCoordinate);
+    mesh.draw(shader, xCoordinate, yCoordinate, zCoordinate);
 }
 
 void Chunk::updateMesh(){
