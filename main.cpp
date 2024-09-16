@@ -34,12 +34,20 @@ int main(){
     float const CLOSE_FRUSTUM = 0.1f;
     float const FAR_FRUSTUM = 600.0f;
 
-    Shader voxelShader("src/shaders/vertexshader.vs", "src/shaders/fragmentshader.fs");
+    Shader skyboxShader("src/shaders/skyboxShader.vs", "src/shaders/skyboxShader.fs");
+    Shader voxelShader("src/shaders/voxelShader.vs", "src/shaders/voxelShader.fs");
     voxelShader.use();
     glUniform1i(glGetUniformLocation(voxelShader.ID, "ourTexture"), 0);
 
+    Mesh skybox = Mesh();
+    skybox.bindskyboxMesh();
+    skyboxShader.use();
+    glUniform1i(glGetUniformLocation(skyboxShader.ID, "skybox"), 0);
+
     glm::mat4 projection = glm::mat4(1.0f);
     projection = glm::perspective(glm::radians(gameCamera.fov), (float)windowWidth / (float)windowHeight, CLOSE_FRUSTUM, FAR_FRUSTUM);
+    skyboxShader.setMat4("projectionSkybox", projection);
+    voxelShader.use();
     voxelShader.setMat4("projection", projection);
 
     glEnable(GL_MULTISAMPLE);  
@@ -69,11 +77,10 @@ int main(){
 
     for (int dz = -12; dz <= 12; dz++){
         for (int dx = -12; dx <= 12; dx++){
-            Chunk* chunk = chunkManager->getChunk(dx, 0, dz);
-
-            if (!chunk){
-                chunkManager->updateChunkMesh(chunk, gameCamera);
-                continue;
+            for (int dy = 0;;dy++){
+                Chunk* chunk = chunkManager->getChunk(dx, dy, dz);
+                if (!chunk) break;
+                chunkManager->updateChunkMesh(chunk, gameCamera);   
             }
         }
     }
@@ -97,11 +104,35 @@ int main(){
         gameCamera.processInput(deltaTime);
         //gameCamera.position.x += 0.2;
 
+        if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS){
+                    skyboxShader = Shader("src/shaders/skyboxShader.vs", "src/shaders/skyboxShader.fs");
+                    voxelShader = Shader("src/shaders/voxelShader.vs", "src/shaders/voxelShader.fs");
+                    voxelShader.use();
+                    glUniform1i(glGetUniformLocation(voxelShader.ID, "ourTexture"), 0);
+
+                    Mesh skybox = Mesh();
+                    skybox.bindskyboxMesh();
+                    skyboxShader.use();
+                    glUniform1i(glGetUniformLocation(skyboxShader.ID, "skybox"), 0);
+
+                    glm::mat4 projection = glm::mat4(1.0f);
+                    projection = glm::perspective(glm::radians(gameCamera.fov), (float)windowWidth / (float)windowHeight, CLOSE_FRUSTUM, FAR_FRUSTUM);
+                    skyboxShader.setMat4("projectionSkybox", projection);
+                    voxelShader.use();
+                    voxelShader.setMat4("projection", projection);
+        }
+
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         
         glm::mat4 view = glm::mat4(1.0f); // make sure to initialize matrix to identity matrix first
         view = glm::lookAt(gameCamera.position, gameCamera.position + gameCamera.front, gameCamera.up);
+
+        glm::mat3 newView = glm::mat4(glm::mat3(view));
+        skyboxShader.use();
+        skyboxShader.setMat4("viewSkybox", newView);
+        skybox.drawSkybox(skyboxShader);
+
+        voxelShader.use();
         voxelShader.setMat4("view", view);
 
         if (gameCamera.hasChangedChunk()){

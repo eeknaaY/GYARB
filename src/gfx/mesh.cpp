@@ -1,39 +1,7 @@
-#include <vector>
 #include <glm/gtc/matrix_transform.hpp>
-#include "glm/glm.hpp"
 #include <glad/glad.h>
-#include "../shaders/shaders.hpp"
 #include "../textures/textures.hpp"
-
-struct Vertex {
-    int Position;
-    glm::vec2 TexCoords;
-
-    Vertex(int _x, int _y, int _z, float u, float v){
-        Position = (_x << 12) | (_y << 6) | _z;
-
-        TexCoords.x = u;
-        TexCoords.y = v;
-    }
-};
-
-class Mesh {
-    public:
-        std::vector<Vertex> vertices;
-        std::vector<unsigned int> indices;
-        bool bufferExists = false;
-
-        void draw(const Shader &shader, int x, int y, int z);
-        void updateMesh();
-        void bindMesh();
-
-        Mesh();
-        ~Mesh();
-        Mesh(std::vector<Vertex> _vertices, std::vector<unsigned int> _indices);
-
-    private:
-        unsigned int VAO, VBO, EBO, texture = 1;
-};
+#include "mesh.hpp"
 
 Mesh::Mesh(){
 
@@ -102,6 +70,34 @@ void Mesh::draw(const Shader &shader, int x, int y, int z)
     glBindVertexArray(VAO);
     glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
     glBindVertexArray(0);
-} 
+}
 
+void Mesh::bindskyboxMesh(){
+    glGenVertexArrays(1, &VAO);
+    glGenBuffers(1, &VBO);
+    bufferExists = true;
+  
+    glBindVertexArray(VAO);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(skyboxVertices), &skyboxVertices[0], GL_STATIC_DRAW);  
+
+    // vertex positions
+    glEnableVertexAttribArray(0);	
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+
+    glBindVertexArray(0);
+
+    texture = Textures::loadCubemap();
+}
+
+void Mesh::drawSkybox(const Shader &shader){
+    glDepthMask(GL_FALSE);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, texture);
+
+    glBindVertexArray(VAO);
+    glDrawArrays(GL_TRIANGLES, 0, 36);
+    glBindVertexArray(0);
+    glDepthMask(GL_TRUE);
+}
 

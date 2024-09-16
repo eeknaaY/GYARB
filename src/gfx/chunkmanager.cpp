@@ -55,7 +55,7 @@ class ChunkManager{
         std::thread meshingThread1;
         std::thread meshingThread2;
         
-        // These shouldn't really be inside ChunkManager, but in a meshing class, couldnt fix that so now its here for now
+        // These shouldn't really be inside ChunkManager, but in a meshing class, couldnt fix that so now its here
         int getBlockValueFromPosition(Chunk* chunk, int x, int y, int z, int LoD);
         void makeVoxelAccountedFor(bool accountedVoxels[], int x, int y, int z);
         bool isAirBlock(Chunk* chunk, int x, int y, int z, int LoD);
@@ -353,7 +353,6 @@ Mesh ChunkManager::buildMesh(Chunk* _chunk, Camera gameCamera){
         if (chunk_dx < 0 && currentFace == BACK_FACE) continue;
         if (chunk_dz < 0 && currentFace == RIGHT_FACE) continue;
         if (chunk_dz > 0 && currentFace == LEFT_FACE) continue;
-        if (currentFace == BOTTOM_FACE) continue;
         if (chunk_dx != 0 && chunk_dz != 0){
             if (chunk_dx == 0 && (currentFace == FRONT_FACE || currentFace == BACK_FACE)) continue;
             if (chunk_dz == 0 && (currentFace == RIGHT_FACE || currentFace == LEFT_FACE)) continue;
@@ -428,10 +427,10 @@ Mesh ChunkManager::buildMesh(Chunk* _chunk, Camera gameCamera){
                 if (currentFace == TOP_FACE){
                     getTextureCoordinates(face.texture, u, v, TOP_FACE, LoD);
 
-                    vertices.push_back(Vertex(face.x,              face.y + jumpLength, face.z,               u,              v)); 
-                    vertices.push_back(Vertex(face.x + face.width, face.y + jumpLength, face.z + face.height, u + face.width, v + face.height));
-                    vertices.push_back(Vertex(face.x + face.width, face.y + jumpLength, face.z,               u + face.width, v));
-                    vertices.push_back(Vertex(face.x,              face.y + jumpLength, face.z + face.height, u,              v + face.height));
+                    vertices.push_back(Vertex(face.x,              face.y + jumpLength, face.z,               u,              v,               TOP_FACE)); 
+                    vertices.push_back(Vertex(face.x + face.width, face.y + jumpLength, face.z + face.height, u + face.width, v + face.height, TOP_FACE));
+                    vertices.push_back(Vertex(face.x + face.width, face.y + jumpLength, face.z,               u + face.width, v,               TOP_FACE));
+                    vertices.push_back(Vertex(face.x,              face.y + jumpLength, face.z + face.height, u,              v + face.height, TOP_FACE));
 
                     indices.push_back(vertexCount + 3);
                     indices.push_back(vertexCount + 1);
@@ -442,10 +441,10 @@ Mesh ChunkManager::buildMesh(Chunk* _chunk, Camera gameCamera){
                 } else {
                     getTextureCoordinates(face.texture, u, v, BOTTOM_FACE, LoD);
 
-                    vertices.push_back(Vertex(face.x,              face.y, face.z,               u,              v)); 
-                    vertices.push_back(Vertex(face.x + face.width, face.y, face.z,               u + face.width, v));
-                    vertices.push_back(Vertex(face.x + face.width, face.y, face.z + face.height, u + face.width, v + face.height));
-                    vertices.push_back(Vertex(face.x,              face.y, face.z + face.height, u,              v + face.height));
+                    vertices.push_back(Vertex(face.x,              face.y, face.z,               u,              v,               BOTTOM_FACE)); 
+                    vertices.push_back(Vertex(face.x + face.width, face.y, face.z,               u + face.width, v,               BOTTOM_FACE));
+                    vertices.push_back(Vertex(face.x + face.width, face.y, face.z + face.height, u + face.width, v + face.height, BOTTOM_FACE));
+                    vertices.push_back(Vertex(face.x,              face.y, face.z + face.height, u,              v + face.height, BOTTOM_FACE));
 
                     indices.push_back(vertexCount + 2);
                     indices.push_back(vertexCount + 3);
@@ -519,10 +518,10 @@ Mesh ChunkManager::buildMesh(Chunk* _chunk, Camera gameCamera){
                 if (currentFace == BACK_FACE){
                     getTextureCoordinates(face.texture, u, v, FRONT_FACE, LoD);
 
-                    vertices.push_back(Vertex(face.x, face.y + face.height, face.z + face.width, u + face.width, v + face.height));
-                    vertices.push_back(Vertex(face.x, face.y + face.height, face.z,              u,              v + face.height));
-                    vertices.push_back(Vertex(face.x, face.y,               face.z,              u,              v));
-                    vertices.push_back(Vertex(face.x, face.y,               face.z + face.width, u + face.width, v));
+                    vertices.push_back(Vertex(face.x, face.y + face.height, face.z + face.width, u + face.width, v + face.height, FRONT_FACE));
+                    vertices.push_back(Vertex(face.x, face.y + face.height, face.z,              u,              v + face.height, FRONT_FACE));
+                    vertices.push_back(Vertex(face.x, face.y,               face.z,              u,              v,               FRONT_FACE));
+                    vertices.push_back(Vertex(face.x, face.y,               face.z + face.width, u + face.width, v,               FRONT_FACE));
 
                     indices.push_back(vertexCount + 2);
                     indices.push_back(vertexCount + 3);
@@ -533,10 +532,10 @@ Mesh ChunkManager::buildMesh(Chunk* _chunk, Camera gameCamera){
                 } else {
                     getTextureCoordinates(face.texture, u, v, BACK_FACE, LoD);
 
-                    vertices.push_back(Vertex(face.x + jumpLength, face.y + face.height, face.z + face.width, u,              v + face.height));
-                    vertices.push_back(Vertex(face.x + jumpLength, face.y,               face.z,              u + face.width, v));
-                    vertices.push_back(Vertex(face.x + jumpLength, face.y + face.height, face.z,              u + face.width, v + face.height));
-                    vertices.push_back(Vertex(face.x + jumpLength, face.y,               face.z + face.width, u,              v));
+                    vertices.push_back(Vertex(face.x + jumpLength, face.y + face.height, face.z + face.width, u,              v + face.height, BACK_FACE));
+                    vertices.push_back(Vertex(face.x + jumpLength, face.y,               face.z,              u + face.width, v,               BACK_FACE));
+                    vertices.push_back(Vertex(face.x + jumpLength, face.y + face.height, face.z,              u + face.width, v + face.height, BACK_FACE));
+                    vertices.push_back(Vertex(face.x + jumpLength, face.y,               face.z + face.width, u,              v,               BACK_FACE));
 
                     indices.push_back(vertexCount + 3);
                     indices.push_back(vertexCount + 1);
@@ -609,10 +608,10 @@ Mesh ChunkManager::buildMesh(Chunk* _chunk, Camera gameCamera){
             if (currentFace == LEFT_FACE){
                 getTextureCoordinates(face.texture, u, v, LEFT_FACE, LoD);
 
-                vertices.push_back(Vertex(face.x,              face.y,               face.z + jumpLength, u,              v)); 
-                vertices.push_back(Vertex(face.x + face.width, face.y,               face.z + jumpLength, u + face.width, v));
-                vertices.push_back(Vertex(face.x + face.width, face.y + face.height, face.z + jumpLength, u + face.width, v + face.height));
-                vertices.push_back(Vertex(face.x,              face.y + face.height, face.z + jumpLength, u,              v + face.height));
+                vertices.push_back(Vertex(face.x,              face.y,               face.z + jumpLength, u,              v,               LEFT_FACE)); 
+                vertices.push_back(Vertex(face.x + face.width, face.y,               face.z + jumpLength, u + face.width, v,               LEFT_FACE));
+                vertices.push_back(Vertex(face.x + face.width, face.y + face.height, face.z + jumpLength, u + face.width, v + face.height, LEFT_FACE));
+                vertices.push_back(Vertex(face.x,              face.y + face.height, face.z + jumpLength, u,              v + face.height, LEFT_FACE));
 
                 indices.push_back(vertexCount + 0);
                 indices.push_back(vertexCount + 1);
@@ -623,10 +622,10 @@ Mesh ChunkManager::buildMesh(Chunk* _chunk, Camera gameCamera){
             } else {
                 getTextureCoordinates(face.texture, u, v, RIGHT_FACE, LoD);
 
-                vertices.push_back(Vertex(face.x,              face.y,               face.z, u,              v)); 
-                vertices.push_back(Vertex(face.x + face.width, face.y + face.height, face.z, u + face.width, v + face.height));
-                vertices.push_back(Vertex(face.x + face.width, face.y,               face.z, u + face.width, v));
-                vertices.push_back(Vertex(face.x,              face.y + face.height, face.z, u,              v + face.height));
+                vertices.push_back(Vertex(face.x,              face.y,               face.z, u,              v,               RIGHT_FACE)); 
+                vertices.push_back(Vertex(face.x + face.width, face.y + face.height, face.z, u + face.width, v + face.height, RIGHT_FACE));
+                vertices.push_back(Vertex(face.x + face.width, face.y,               face.z, u + face.width, v,               RIGHT_FACE));
+                vertices.push_back(Vertex(face.x,              face.y + face.height, face.z, u,              v + face.height, RIGHT_FACE));
 
                 indices.push_back(vertexCount + 0);
                 indices.push_back(vertexCount + 1);

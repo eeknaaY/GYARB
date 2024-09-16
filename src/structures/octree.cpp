@@ -4,6 +4,7 @@
 #include <math.h>
 #include <memory>
 #include <iostream>
+#include <random>
 
 #include "FastNoiseLite.h"
 
@@ -147,6 +148,7 @@ class Octree{
         void TEMP_setBlockValues(int _chunk_xcoord, int _chunk_ycoord, int _chunk_zcoord, FastNoiseLite noise);
         void TEMP_optimizeTree();
         int TEMP_blockDeterminationFunc(int y, int maxHeight);
+        void buildAMinecraftTree(int x, int y, int z);
     private:
         int LoD;
         int chunk_xcoord, chunk_zcoord;
@@ -194,7 +196,7 @@ Node* Octree::getNodeFromPosition(int _x, int _y, int _z, short &width, int _dep
         int positionReduction = midLine;
         width = midLine;
 
-if (_x < midLine){
+        if (_x < midLine){
             if (_y < midLine){
                 if (_z < midLine){           
                     currentNode = currentNode->children[BottomLeftFront];
@@ -219,7 +221,8 @@ if (_x < midLine){
                     continue;
                 }
             }
-        } else{
+        } 
+        else{
             if (_y < midLine){
                 if (_z < midLine){                   
                     currentNode = currentNode->children[BottomRightFront];
@@ -254,6 +257,30 @@ if (_x < midLine){
     return currentNode;
 }
 
+void Octree::buildAMinecraftTree(int x, int y, int z){
+    // Threw this together in 3 mintues, we dont talk about the code.
+    for (int leavesWidthx = x - 2; leavesWidthx <= x + 2; leavesWidthx++){
+        for (int leavesWidthz = z - 2; leavesWidthz <= z + 2; leavesWidthz++){
+            for (int leavesHeight = y + 3; leavesHeight <= y + 4; leavesHeight++){
+                if (leavesWidthx == 0 && leavesWidthz == 0) continue;
+                getNodeFromPosition(leavesWidthx, leavesHeight, leavesWidthz)->blockValue = 6; // Leaves
+            }
+        }
+    }
+
+    for (int leavesWidthx = x - 1; leavesWidthx <= x + 1; leavesWidthx++){
+        for (int leavesWidthz = z - 1; leavesWidthz <= z + 1; leavesWidthz++){
+            for (int leavesHeight = y + 5; leavesHeight <= y + 6; leavesHeight++){
+                getNodeFromPosition(leavesWidthx, leavesHeight, leavesWidthz)->blockValue = 6; // Leaves
+            }
+        }
+    }
+
+    for (int height = 0; height < 3; height++){
+        getNodeFromPosition(x, y + height, z)->blockValue = 5; // Wood
+    }
+}
+
 void Octree::TEMP_setBlockValues(int _chunk_xcoord, int _chunk_ycoord, int _chunk_zcoord, FastNoiseLite noise){
     
     for (int x = 0; x < 32; x++){
@@ -261,8 +288,17 @@ void Octree::TEMP_setBlockValues(int _chunk_xcoord, int _chunk_ycoord, int _chun
             float noiseVal = noise.GetNoise((float)(x + 32 * _chunk_xcoord), (float)(z + 32 * _chunk_zcoord));
             int localMaxHeight = 16 + (int)(16.f * noiseVal) - 32 * _chunk_ycoord;
             if (localMaxHeight < 0 && _chunk_ycoord == 0) localMaxHeight = 0;
+
             for (int y = 0; y < 32; y++){
-                getNodeFromPosition(x, y, z)->blockValue = TEMP_blockDeterminationFunc(y, localMaxHeight);
+                int blockValue = TEMP_blockDeterminationFunc(y, localMaxHeight);
+                if (blockValue == 0 && getNodeFromPosition(x, y, z)->blockValue > 0) continue;
+                getNodeFromPosition(x, y, z)->blockValue = blockValue;
+
+                if (x > 2 && x < 30 && z > 2 && z < 30 && y < 24){
+                    if (std::rand() % 200 <= 3 && y == localMaxHeight){
+                        buildAMinecraftTree(x, y + 1, z);
+                    }
+                }
             }
         }
     }
