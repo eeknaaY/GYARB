@@ -10,6 +10,7 @@
 #include <thread>
 #include "FastNoiseLite.h"
 
+
 struct voxelFace{
     short x, y, z, width = 0, height = 1, texture;
 
@@ -188,7 +189,7 @@ void ChunkManager::updateTerrain(Camera* gameCamera, int threadMultiplier){
                     continue;
                 }
 
-                if (dx == xPos || dx == xPos + c_dXPos * 11){
+                if (dx == xPos + c_dXPos * 3 || dx == xPos + c_dXPos * 11){
                     for (Chunk* _chunkptr : getChunkVector(dx, dz)){
                         updateChunkMesh_MT(_chunkptr, *gameCamera);
                         finishedMeshes->push_back(_chunkptr);
@@ -214,7 +215,7 @@ void ChunkManager::updateTerrain(Camera* gameCamera, int threadMultiplier){
                     continue;
                 }
 
-                if (dz == zPos || dz == zPos + c_dZPos * 11){
+                if (dz == zPos + c_dZPos * 3 || dz == zPos + c_dZPos * 11){
                     for (Chunk* _chunkptr : getChunkVector(dx, dz)){
                         updateChunkMesh_MT(_chunkptr, *gameCamera);
                         finishedMeshes->push_back(_chunkptr);
@@ -349,14 +350,10 @@ Mesh ChunkManager::buildMesh(Chunk* _chunk, Camera gameCamera){
     int chunk_dz = _chunk->zCoordinate - gameCamera.currentChunk_z;
 
     for (int currentFace = TOP_FACE; currentFace <= RIGHT_FACE; currentFace++){
-        if (chunk_dx > 0 && currentFace == FRONT_FACE) continue;
-        if (chunk_dx < 0 && currentFace == BACK_FACE) continue;
-        if (chunk_dz < 0 && currentFace == RIGHT_FACE) continue;
-        if (chunk_dz > 0 && currentFace == LEFT_FACE) continue;
-        if (chunk_dx != 0 && chunk_dz != 0){
-            if (chunk_dx == 0 && (currentFace == FRONT_FACE || currentFace == BACK_FACE)) continue;
-            if (chunk_dz == 0 && (currentFace == RIGHT_FACE || currentFace == LEFT_FACE)) continue;
-        }
+        if (chunk_dx > 5 && currentFace == FRONT_FACE) continue;
+        if (chunk_dx < -5 && currentFace == BACK_FACE) continue;
+        if (chunk_dz < -5 && currentFace == RIGHT_FACE) continue;
+        if (chunk_dz > 5 && currentFace == LEFT_FACE) continue;
 
         bool accountedVoxels[32 * 32 * 32] = {false};
 
@@ -366,7 +363,6 @@ Mesh ChunkManager::buildMesh(Chunk* _chunk, Camera gameCamera){
         for (int y = 0; y < 32; y += jumpLength){
         for (int z = 0; z < 32; z += jumpLength){
         for (int x = 0; x < 32; x += jumpLength){
-            
             // TOP & BOTTOM FACE
             if (currentFace == TOP_FACE || currentFace == BOTTOM_FACE){
                 if (!isAccountedFor(accountedVoxels, x, y, z) && 

@@ -1,7 +1,6 @@
 #pragma once
 
 #include <vector>
-
 #include "../shaders/shaders.hpp"
 #include "glm/glm.hpp"
 
@@ -24,17 +23,23 @@ class Mesh {
         bool bufferExists = false;
 
         void draw(const Shader &shader, int x, int y, int z);
-        void drawSkybox(const Shader &shader);
         void updateMesh();
-        void bindskyboxMesh();
         void bindMesh();
 
         Mesh();
         ~Mesh();
         Mesh(std::vector<Vertex> _vertices, std::vector<unsigned int> _indices);
 
-    private:
+    protected:
         unsigned int VAO, VBO, EBO, texture = 1;
+};
+
+class SkyboxMesh : public Mesh{
+    public:
+        void draw(const Shader &shader);
+        void bindMesh();
+
+    private:
         float skyboxVertices[108] = {
             // positions          
             -1.0f,  1.0f, -1.0f,
@@ -79,4 +84,10 @@ class Mesh {
             -1.0f, -1.0f,  1.0f,
             1.0f, -1.0f,  1.0f
         };
+};
+
+class ShadowMapping{
+    public:
+        void bindMesh();
+        unsigned int depthMapFBO, depthMap;
 };

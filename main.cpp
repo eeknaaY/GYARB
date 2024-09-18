@@ -6,9 +6,14 @@
 #include "src/gfx/camera.hpp"
 #include "src/gfx/window.hpp"
 #include "src/gfx/mesh.hpp"
+#include "src/gfx/renderer.hpp"
 
 #include "src/shaders/shaders.hpp"
 #include "src/structures/octree.hpp"
+#include "src/textures/textures.hpp"
+
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
 
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 
@@ -34,13 +39,15 @@ int main(){
     float const CLOSE_FRUSTUM = 0.1f;
     float const FAR_FRUSTUM = 600.0f;
 
+    Shader shadowMapShader("src/shaders/shadowMapShader.vs", "src/shaders/shadowMapShader.fs");
     Shader skyboxShader("src/shaders/skyboxShader.vs", "src/shaders/skyboxShader.fs");
     Shader voxelShader("src/shaders/voxelShader.vs", "src/shaders/voxelShader.fs");
     voxelShader.use();
     glUniform1i(glGetUniformLocation(voxelShader.ID, "ourTexture"), 0);
+    glUniform1i(glGetUniformLocation(voxelShader.ID, "shadowMap"), 1);
 
-    Mesh skybox = Mesh();
-    skybox.bindskyboxMesh();
+    SkyboxMesh skybox = SkyboxMesh();
+    skybox.bindMesh();
     skyboxShader.use();
     glUniform1i(glGetUniformLocation(skyboxShader.ID, "skybox"), 0);
 
@@ -50,12 +57,17 @@ int main(){
     voxelShader.use();
     voxelShader.setMat4("projection", projection);
 
+    ShadowMapping shadowMap = ShadowMapping();
+    shadowMap.bindMesh();
+
     glEnable(GL_MULTISAMPLE);  
     glEnable(GL_CULL_FACE);
     glCullFace(GL_BACK);
     glFrontFace(GL_CCW);
 
+    Renderer gameRenderer = Renderer();
     ChunkManager* chunkManager = new ChunkManager();
+    gameRenderer.chunkManager = chunkManager;
     
     chunkManager->noise.SetNoiseType(FastNoiseLite::NoiseType_Perlin);
     chunkManager->noise.SetFractalType(FastNoiseLite::FractalType_FBm);
@@ -102,7 +114,7 @@ int main(){
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;  
         gameCamera.processInput(deltaTime);
-        //gameCamera.position.x += 0.2;
+        gameCamera.position.x -= 0.07;
 
         if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS){
                     skyboxShader = Shader("src/shaders/skyboxShader.vs", "src/shaders/skyboxShader.fs");
@@ -110,8 +122,8 @@ int main(){
                     voxelShader.use();
                     glUniform1i(glGetUniformLocation(voxelShader.ID, "ourTexture"), 0);
 
-                    Mesh skybox = Mesh();
-                    skybox.bindskyboxMesh();
+                    Mesh skybox = SkyboxMesh();
+                    skybox.bindMesh();
                     skyboxShader.use();
                     glUniform1i(glGetUniformLocation(skyboxShader.ID, "skybox"), 0);
 
@@ -122,7 +134,29 @@ int main(){
                     voxelShader.setMat4("projection", projection);
         }
 
+        glm::mat4 lightProjection = glm::ortho(-100.0f, 100.0f, -100.0f, 100.0f, 50.f, 300.f);
+        glm::vec3 sunPos = glm::vec3(gameCamera.position.x + 100, 100, gameCamera.position.z + 100);
+        glm::mat4 lightView = glm::lookAt(sunPos, 
+                                glm::vec3(gameCamera.position.x, 50.0f, gameCamera.position.z), 
+                                glm::vec3(0.0f, 1.0f, 0.0f)); 
+        glm::mat4 lightSpaceMatrix = lightProjection * lightView;
+
+        // Shader & Matrices 
+        shadowMapShader.use();
+        shadowMapShader.setMat4("lightSpaceMatrix", lightSpaceMatrix);
+
+        // Render Scene
+        glViewport(0, 0, 1024, 1024);
+        glBindFramebuffer(GL_FRAMEBUFFER, shadowMap.depthMapFBO);
+        glClear(GL_DEPTH_BUFFER_BIT);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, Textures::getTextureIndex());
+        gameRenderer.renderVisibleChunks(shadowMapShader, gameCamera);
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        
+        glViewport(0, 0, windowWidth, windowHeight);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
         
         glm::mat4 view = glm::mat4(1.0f); // make sure to initialize matrix to identity matrix first
         view = glm::lookAt(gameCamera.position, gameCamera.position + gameCamera.front, gameCamera.up);
@@ -130,7 +164,7 @@ int main(){
         glm::mat3 newView = glm::mat4(glm::mat3(view));
         skyboxShader.use();
         skyboxShader.setMat4("viewSkybox", newView);
-        skybox.drawSkybox(skyboxShader);
+        skybox.draw(skyboxShader);
 
         voxelShader.use();
         voxelShader.setMat4("view", view);
@@ -138,41 +172,16 @@ int main(){
         if (gameCamera.hasChangedChunk()){
             chunkManager->testStartMT(&gameCamera);
         }
-
-        while (chunkManager->chunksToRemoveth1.size() != 0){
-            std::pair<int, int> pair = chunkManager->chunksToRemoveth1[0];
-            chunkManager->removeChunk(pair.first, pair.second);
-            chunkManager->chunksToRemoveth1.erase(chunkManager->chunksToRemoveth1.begin());
-        }
-
-        while (chunkManager->chunksToRemoveth2.size() != 0){
-            std::pair<int, int> pair = chunkManager->chunksToRemoveth2[0];
-            chunkManager->removeChunk(pair.first, pair.second);
-            chunkManager->chunksToRemoveth2.erase(chunkManager->chunksToRemoveth2.begin());
-        }
-
-        while (chunkManager->finishedMeshesth1.size() != 0){
-            Chunk* chunk = chunkManager->finishedMeshesth1[0];
-            if (chunk->mesh.vertices.size() != 0){
-                chunk->updateMesh();
-            }
-            chunkManager->finishedMeshesth1.erase(chunkManager->finishedMeshesth1.begin());
-        }
         
-        while (chunkManager->finishedMeshesth2.size() != 0){
-            Chunk* chunk = chunkManager->finishedMeshesth2[0];
-            if (chunk->mesh.vertices.size() != 0){
-                chunk->updateMesh();
-            }
-            chunkManager->finishedMeshesth2.erase(chunkManager->finishedMeshesth2.begin());
-        }
+        voxelShader.setMat4("lightSpaceMatrix", lightSpaceMatrix);
+        voxelShader.setVec3("sunPosition", sunPos);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, Textures::getTextureIndex());
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, shadowMap.depthMap);
 
-        for (auto const& [key, val] : chunkManager->chunkMap){
-            // FIXME remove chunks that are out of range here
-            for (Chunk* chunk : val){
-                chunk->draw(voxelShader);
-            }
-        }
+        gameRenderer.renderVisibleChunks(voxelShader, gameCamera);
+        gameRenderer.updataChunkData();
 
         glfwSwapBuffers(window);
         glfwPollEvents();
