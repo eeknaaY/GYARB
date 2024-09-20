@@ -1,6 +1,6 @@
 #version 330 core
 
 void main()
-{             
-    // gl_FragDepth = gl_FragCoord.z;
+{           
+    // Empty since we dont draw anything from the depth render  
 }  

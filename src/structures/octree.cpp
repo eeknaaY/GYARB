@@ -1,61 +1,30 @@
-#include <vector>
 #include <map>
-#include <algorithm> 
-#include <math.h>
-#include <memory>
-#include <iostream>
-#include <random>
+#include "octree.hpp"
 
-#include "FastNoiseLite.h"
+Node::Node(){
+    blockValue = -1;
+    isEndNode = true;
+    parent = nullptr;
+}
 
-enum nodePositions{
-    BottomLeftFront,
-    BottomLeftBack,
-    BottomRightFront,
-    BottomRightBack,
-    TopLeftFront,
-    TopLeftBack,
-    TopRightFront,
-    TopRightBack
-};
+Node::Node(int value, int depth, Node* parentPtr, bool _isEndNode, bool initChildren){
+    blockValue = value;
+    isEndNode = _isEndNode;
+    parent = parentPtr;
 
-class Node{
-    public:
-        int blockValue;
-        bool isEndNode;
-        Node* parent;
-        std::vector<Node*> children;
-        
-        void makeNodeEndPoint();
-        int getAverageBlockValueFromChildren();
-        bool allChildrenAreEqual();
-        bool aChildIsNotAnEndpoint();
 
-        ~Node();
-        Node(){
-            blockValue = -1;
-            isEndNode = true;
-            parent = nullptr;
+    if (initChildren && !isEndNode){
+        if (depth < 4) {
+            for (int i = 0; i < 8; i++){
+                children.push_back(new Node(value, depth + 1, this, false, initChildren));
+            }
+        } else {
+            for (int i = 0; i < 8; i++){
+                children.push_back(new Node(value, depth + 1, this, true, false));
+            }
         }
-        Node(int value, int depth, Node* parentPtr, bool _isEndNode, bool initChildren){
-            blockValue = value;
-            isEndNode = _isEndNode;
-            parent = parentPtr;
-
-
-            if (initChildren && !isEndNode){
-                if (depth < 4) {
-                    for (int i = 0; i < 8; i++){
-                        children.push_back(new Node(value, depth + 1, this, false, initChildren));
-                    }
-                } else {
-                    for (int i = 0; i < 8; i++){
-                        children.push_back(new Node(value, depth + 1, this, true, false));
-                    }
-                }
-            } 
-        }
-};
+    } 
+}
 
 Node::~Node(){
     for (Node* child : children){
@@ -133,26 +102,6 @@ bool Node::aChildIsNotAnEndpoint(){
     
     return false;
 }
-
-// Depth 0 = Main Node, 1 = First 8 partions, 2 = 64 partions...
-class Octree{
-    public:
-        Octree();
-        Octree(int _chunk_xcoord, int _chunk_ycoord, int _chunk_zcoord, FastNoiseLite noise);
-        ~Octree();
-        Node* mainNode;
-        Node* getNodeFromPosition(int _x, int _y, int _z, int _depth = 5);
-        Node* getNodeFromPosition(int _x, int _y, int _z, short &width, int _depth = 5);
-        
-        int nodeAmount();
-        void TEMP_setBlockValues(int _chunk_xcoord, int _chunk_ycoord, int _chunk_zcoord, FastNoiseLite noise);
-        void TEMP_optimizeTree();
-        int TEMP_blockDeterminationFunc(int y, int maxHeight);
-        void buildAMinecraftTree(int x, int y, int z);
-    private:
-        int LoD;
-        int chunk_xcoord, chunk_zcoord;
-};
 
 Octree::Octree(){
     mainNode = new Node();

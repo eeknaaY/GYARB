@@ -1,5 +1,5 @@
 #version 440 core
-layout (location = 0) in int aPos;
+layout (location = 0) in int bitPackedData;
 layout (location = 1) in vec2 aTexCoord;
 
 out vec2 TexCoord;
@@ -20,15 +20,18 @@ uniform vec3 sunPosition;
 void main()
 {   
     vec3 position;
-    position.z = aPos & 0x3F;
-    position.y = (aPos >> 6) & 0x3F;
-    position.x = (aPos >> 12) & 0x3F;
+    position.z = bitPackedData & 0x3F;
+    position.y = (bitPackedData >> 6) & 0x3F;
+    position.x = (bitPackedData >> 12) & 0x3F;
     gl_Position = projection * view * model * vec4(position, 1.0);
 
     FragPos = vec3(model * vec4(position, 1.0));
     FragPosLightSpace = lightSpaceMatrix * vec4(FragPos, 1.0);
-    faceIndex = aPos >> 18;
+
     tilePos = fract(aTexCoord);
     TexCoord = floor(aTexCoord);
+    
+    faceIndex = bitPackedData >> 18;
+    
     sunPos = sunPosition;
 }

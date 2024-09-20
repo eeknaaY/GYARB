@@ -1,20 +1,29 @@
-#ifndef CHUNKMANAGER_HPP
-#define CHUNKMANAGER_HPP
+#pragma once
 
 #include <map>
 #include "mesh.hpp"
-#include "../shaders/shaders.hpp"
+//#include "../shaders/shaders.hpp"
 #include "camera.hpp"
 #include <thread>
 #include "FastNoiseLite.h"
 
+struct voxelFace{
+    short x, y, z, width = 0, height = 1, texture;
+
+    voxelFace(short _x, short _y, short _z){
+        x = _x;
+        y = _y;
+        z = _z;
+    }
+};
+
 enum voxelFaces{
     TOP_FACE,
     BOTTOM_FACE,
-    LEFT_FACE,
-    RIGHT_FACE,
     FRONT_FACE,
-    BACK_FACE
+    BACK_FACE,
+    LEFT_FACE,
+    RIGHT_FACE
 };
 
 class ChunkManager{
@@ -51,5 +60,3 @@ class ChunkManager{
         bool isFacingAirblock(Chunk* chunk, int x, int y, int z, int reverseConstant, int constantPos, int LoD);
         void getTextureCoordinates(int textureValue, float &u, float &v, voxelFaces face, int LoD);
 };
-
-#endif

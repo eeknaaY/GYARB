@@ -2,6 +2,17 @@
 #include <vector>
 #include "FastNoiseLite.h"
 
+enum nodePositions{
+    BottomLeftFront,
+    BottomLeftBack,
+    BottomRightFront,
+    BottomRightBack,
+    TopLeftFront,
+    TopLeftBack,
+    TopRightFront,
+    TopRightBack
+};
+
 class Node{
     public:
         int blockValue;
@@ -13,7 +24,7 @@ class Node{
         int getAverageBlockValueFromChildren();
         bool allChildrenAreEqual();
         bool aChildIsNotAnEndpoint();
-        
+
         ~Node();
         Node();
         Node(int value, int depth, Node* parentPtr, bool _isEndNode, bool initChildren);
@@ -32,6 +43,7 @@ class Octree{
         void TEMP_setBlockValues(int _chunk_xcoord, int _chunk_ycoord, int _chunk_zcoord, FastNoiseLite noise);
         void TEMP_optimizeTree();
         int TEMP_blockDeterminationFunc(int y, int maxHeight);
+        void buildAMinecraftTree(int x, int y, int z);
     private:
         int LoD;
         int chunk_xcoord, chunk_zcoord;

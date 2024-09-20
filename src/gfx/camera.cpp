@@ -1,44 +1,7 @@
 #include "glm/glm.hpp"
 #include "glm/vec3.hpp"
 #include <GLFW/glfw3.h>
-
-
-class Camera{
-    public:
-        Camera(GLFWwindow* _window){
-            window = _window;
-        }
-
-        Camera() = default;
-
-        void updateChunkPosition();
-        void processInput(float deltaTime);
-        void updateMovement(float deltaTime);
-        bool hasChangedChunk();
-        int currentChunk_x;
-        int currentChunk_z;
-        int oldChunk_x;
-        int oldChunk_z;
-
-
-        glm::vec3 position;
-        glm::vec3 target;
-        glm::vec3 direction;
-        glm::vec3 up;
-        glm::vec3 right;
-        glm::vec3 front;
-
-        float fov;
-        float yaw;
-        float pitch;
-        float lastX;
-        float lastY;
-        bool firstMouse;
-
-    private:
-        GLFWwindow* window;
-
-};
+#include "camera.hpp"
 
 bool Camera::hasChangedChunk(){
     return (currentChunk_x != oldChunk_x) || (currentChunk_z != oldChunk_z);
