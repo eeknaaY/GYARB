@@ -9,6 +9,8 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
 GLFWwindow* createWindow(int SCR_WIDTH, int SCR_HEIGHT){
     // Init
     glfwInit();
+    // Disable double buffer to enable 144+ fps on windows, remember to use glFlush() instead of glfwSwapBuffers() in main loop.
+    //glfwWindowHint(GLFW_DOUBLEBUFFER, GLFW_FALSE);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);

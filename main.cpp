@@ -34,10 +34,14 @@ int main(){
     glfwSetCursorPosCallback(window, mouse_callback); 
 
     unsigned int frameCounter = 0;
-    glEnable(GL_DEPTH_TEST);
-
     float const CLOSE_FRUSTUM = 0.1f;
     float const FAR_FRUSTUM = 600.0f;
+
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_MULTISAMPLE);  
+    glEnable(GL_CULL_FACE);
+    glCullFace(GL_BACK);
+    glFrontFace(GL_CCW);
 
     Shader shadowMapShader("src/shaders/shadowMapShader.vs", "src/shaders/shadowMapShader.fs");
     Shader skyboxShader("src/shaders/skyboxShader.vs", "src/shaders/skyboxShader.fs");
@@ -60,11 +64,6 @@ int main(){
     ShadowMapping shadowMap = ShadowMapping();
     shadowMap.bindMesh();
 
-    glEnable(GL_MULTISAMPLE);  
-    glEnable(GL_CULL_FACE);
-    glCullFace(GL_BACK);
-    glFrontFace(GL_CCW);
-
     Renderer gameRenderer = Renderer();
     ChunkManager* chunkManager = new ChunkManager();
     gameRenderer.chunkManager = chunkManager;
@@ -82,7 +81,6 @@ int main(){
             if (!chunk){
                 Chunk* _chunk = new Chunk(dx, 0, dz, 5, chunkManager->noise);
                 chunkManager->appendChunk(_chunk);
-                continue;
             }
         }
     }
@@ -96,7 +94,6 @@ int main(){
             }
         }
     }
-
 
     double startTime = glfwGetTime();
 
@@ -114,7 +111,7 @@ int main(){
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;  
         gameCamera.processInput(deltaTime);
-        gameCamera.position.x -= 0.07;
+        //gameCamera.position.x -= 0.2;
 
         if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS){
                     skyboxShader = Shader("src/shaders/skyboxShader.vs", "src/shaders/skyboxShader.fs");
@@ -174,7 +171,7 @@ int main(){
         }
         
         voxelShader.setMat4("lightSpaceMatrix", lightSpaceMatrix);
-        voxelShader.setVec3("sunPosition", sunPos);
+        voxelShader.setVec3("playerPosition", gameCamera.position);
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, Textures::getTextureIndex());
         glActiveTexture(GL_TEXTURE1);
@@ -184,6 +181,7 @@ int main(){
         gameRenderer.updataChunkData();
 
         glfwSwapBuffers(window);
+        //glFlush();
         glfwPollEvents();
     }
 

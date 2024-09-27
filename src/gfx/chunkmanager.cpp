@@ -17,7 +17,7 @@ void ChunkManager::appendChunk(int x, int z, int LoD){
             float noiseVal = noise.GetNoise((float)(_x + 32 * x), (float)(_z + 32 * z));
             // Change height here and in octree
             int maxHeight = 48 + (int)(16.f * noiseVal);
-            if (maxHeight - (getChunkVector(x, z).size()) * 32 > 32){
+            if (maxHeight - getChunkVector(x, z).size() * 32 > 32){
                 appendChunk(new Chunk(x, getChunkVector(x, z).size(), z, LoD, noise));
                 return;
             }
@@ -88,13 +88,26 @@ void ChunkManager::updateChunkMesh_MT(Chunk* _chunk, Camera gameCamera){
 
 void ChunkManager::testStartMT(Camera* gameCamera){
     if (meshingThread1.joinable()) meshingThread1.join();
-   if (meshingThread2.joinable()) meshingThread2.join();
-    meshingThread1 = std::thread(updateTerrain, this, gameCamera, 0);
-   meshingThread2 = std::thread(updateTerrain, this, gameCamera, 1);
+    if (meshingThread2.joinable()) meshingThread2.join();
 
+    while (chunksToRemoveth1.size() != 0){
+        std::pair<int, int> pair = chunksToRemoveth1[0];
+        removeChunk(pair.first, pair.second);
+        chunksToRemoveth1.erase(chunksToRemoveth1.begin());
+    }
+
+    while (chunksToRemoveth2.size() != 0){
+        std::pair<int, int> pair = chunksToRemoveth2[0];
+        removeChunk(pair.first, pair.second);
+        chunksToRemoveth2.erase(chunksToRemoveth2.begin());
+    }
+
+    meshingThread1 = std::thread(updateTerrain, this, gameCamera, 0);
+    meshingThread2 = std::thread(updateTerrain, this, gameCamera, 1);
 }
 
 void ChunkManager::updateTerrain(Camera* gameCamera, int threadMultiplier){
+    std::printf("Thread %i started\n", threadMultiplier);
     int c_dXPos = gameCamera->currentChunk_x - gameCamera->oldChunk_x;
     int c_dZPos = gameCamera->currentChunk_z - gameCamera->oldChunk_z;
     int xPos = gameCamera->currentChunk_x;
@@ -162,6 +175,8 @@ void ChunkManager::updateTerrain(Camera* gameCamera, int threadMultiplier){
             }
         }
     }
+
+    std::printf("Thread %i finished\n", threadMultiplier);
 }
 
 
@@ -574,7 +589,7 @@ Mesh ChunkManager::buildMesh(Chunk* _chunk, Camera gameCamera){
 
     auto stop = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds> (stop-start);
-    std::cout << "Meshing took: " << duration.count() << "ms \n";
+    //std::cout << "Meshing took: " << duration.count() << "ms \n";
     return Mesh(vertices, indices);
 }
 

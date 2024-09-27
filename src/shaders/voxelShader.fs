@@ -4,7 +4,7 @@ out vec4 FragColor;
 in vec2 TexCoord;
 in vec2 tilePos;
 in vec3 FragPos;
-in vec3 sunPos;
+in vec3 playerPos;
 in vec4 FragPosLightSpace;
 flat in int faceIndex;
 
@@ -34,6 +34,7 @@ float ShadowCalculation(vec4 fragPosLightSpace)
     
     // calculate bias (based on depth map resolution and slope)
     vec3 normal = normalize(faceNormals[faceIndex]);
+    vec3 sunPos = vec3(playerPos.x + 100, 100, playerPos.z + 100);
 	vec3 lightDir = normalize(sunPos - FragPos);
     float bias = max(0.1 * (1.0 - dot(normal, lightDir)), 0.01);
 
@@ -64,12 +65,22 @@ void main()
 
 	float ambientStrength = 0.1;
 	
+    float fog_maxdist = 360.0;
+    float fog_mindist = 200.0;
+    vec4 fog_color = vec4(0.4, 0.4, 0.4, 1.0);
+    float dist = length(FragPos.xyz - playerPos);
+    float fog_factor = (fog_maxdist - dist) /
+                  (fog_maxdist - fog_mindist);
+    fog_factor = clamp(fog_factor, 0.0, 1.0);
+
+    vec3 sunPos = vec3(playerPos.x + 100, 100, playerPos.z + 100);
 	vec3 lightDir = normalize(sunPos - FragPos);
 	float diff = max(dot(faceNormals[faceIndex], lightDir), 0);
 
-	vec3 color = textureGrad(ourTexture, texcoord, dx, dy).rgb;
+	vec4 color = textureGrad(ourTexture, texcoord, dx, dy);
 	float shadow = ShadowCalculation(FragPosLightSpace);
-	vec3 fragColor = (ambientStrength + (1.0 - shadow) * diff) * color;
+	vec4 fragColor = (ambientStrength + (1.0 - shadow) * diff) * color;
+    fragColor = mix(fog_color, fragColor, fog_factor);
 
 	float gamma = 1.7;
     FragColor.rgb = pow(fragColor.rgb, vec3(1.0/gamma));

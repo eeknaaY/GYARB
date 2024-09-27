@@ -12,8 +12,7 @@
 class Chunk{
     public:
         static const int CHUNK_SIZE = 32;
-        int xCoordinate, yCoordinate, zCoordinate;
-        int currentLoD;
+        int xCoordinate, yCoordinate, zCoordinate, currentLoD;
 
         Mesh mesh;
         Octree* octree;

@@ -6,7 +6,7 @@ out vec2 TexCoord;
 out vec2 tilePos;
 out int faceIndex;
 out vec3 FragPos;
-out vec3 sunPos;
+out vec3 playerPos;
 out vec4 FragPosLightSpace;
 
 
@@ -14,7 +14,7 @@ uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
 uniform mat4 lightSpaceMatrix;
-uniform vec3 sunPosition;
+uniform vec3 playerPosition;
 
 
 void main()
@@ -33,5 +33,5 @@ void main()
     
     faceIndex = bitPackedData >> 18;
     
-    sunPos = sunPosition;
+    playerPos = playerPosition;
 }
