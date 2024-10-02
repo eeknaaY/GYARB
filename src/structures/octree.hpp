@@ -44,7 +44,7 @@ class Octree{
         int nodeAmount();
         void TEMP_setBlockValues(int _chunk_xcoord, int _chunk_ycoord, int _chunk_zcoord, FastNoiseLite noise);
         void TEMP_optimizeTree();
-        int TEMP_blockDeterminationFunc(int y, int maxHeight);
+        int TEMP_blockDeterminationFunc(int y, int localMaxHeight, int globalMaxHeight);
         void buildAMinecraftTree(int x, int y, int z);
         void updateNodeValueFromPosition(int x, int y, int z, int blockValue);
     private:

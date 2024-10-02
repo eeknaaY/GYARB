@@ -2,6 +2,7 @@
 layout (location = 0) in int bitPackedData;
 layout (location = 1) in vec2 aTexCoord;
 
+out int textureID;
 out vec2 TexCoord;
 out vec2 tilePos;
 out int faceIndex;
@@ -17,6 +18,18 @@ uniform mat4 lightSpaceMatrix;
 uniform vec3 playerPosition;
 
 
+vec2 getUVTexture(int textureID){
+    const float textureBlockSize = 0.0625f;
+
+    // Since air is the value 0, we need to remove one value so textures begin at 0.
+    textureID -= 1;
+
+
+    float u = textureBlockSize * (textureID % 16);
+    float v = textureBlockSize * (textureID - textureID % 16)/16; 
+    return vec2(u, v);
+}
+
 void main()
 {   
     vec3 position;
@@ -28,10 +41,11 @@ void main()
     FragPos = vec3(model * vec4(position, 1.0));
     FragPosLightSpace = lightSpaceMatrix * vec4(FragPos, 1.0);
 
+    textureID = (bitPackedData >> 21) & 0xFF;
     tilePos = fract(aTexCoord);
     TexCoord = floor(aTexCoord);
     
-    faceIndex = bitPackedData >> 18;
+    faceIndex = (bitPackedData >> 18) & 0x07;
     
     playerPos = playerPosition;
 }

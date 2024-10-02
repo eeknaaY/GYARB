@@ -248,16 +248,19 @@ void Octree::TEMP_setBlockValues(int _chunk_xcoord, int _chunk_ycoord, int _chun
     for (int x = 0; x < 32; x++){
         for (int z = 0; z < 32; z++){
             float noiseVal = noise.GetNoise((float)(x + 32 * _chunk_xcoord), (float)(z + 32 * _chunk_zcoord));
-            int localMaxHeight = 16 + (int)(16.f * noiseVal) - 32 * _chunk_ycoord;
+            int globalMaxHeight = 16 + (int)(16.f * noiseVal);
+            int localMaxHeight = globalMaxHeight - 32 * _chunk_ycoord;
             if (localMaxHeight < 0 && _chunk_ycoord == 0) localMaxHeight = 0;
 
             for (int y = 0; y < 32; y++){
-                int blockValue = TEMP_blockDeterminationFunc(y, localMaxHeight);
+                int blockValue = TEMP_blockDeterminationFunc(y, localMaxHeight, y + 32 * _chunk_ycoord);
+                // This stops the function overriding any non-air blocks when it wants them to be air, fucks trees over.
                 if (blockValue == 0 && getNodeFromPosition(x, y, z)->blockValue > 0) continue;
+                
                 getNodeFromPosition(x, y, z)->blockValue = blockValue;
 
                 if (x > 2 && x < 30 && z > 2 && z < 30 && y < 24){
-                    if (std::rand() % 200 <= 3 && y == localMaxHeight){
+                    if (std::rand() % 200 <= 3 && y == localMaxHeight && blockValue != 17){
                         buildAMinecraftTree(x, y + 1, z);
                     }
                 }
@@ -266,10 +269,12 @@ void Octree::TEMP_setBlockValues(int _chunk_xcoord, int _chunk_ycoord, int _chun
     }
 }
 
-int Octree::TEMP_blockDeterminationFunc(int y, int maxHeight){
-    if (y > maxHeight) return 0; // Air
-    if (y > (maxHeight - 1)) return 1; // Grass
-    if (y > (maxHeight - 2)) return 3; // Dirt
+int Octree::TEMP_blockDeterminationFunc(int localY, int localMaxHeight, int globalYPos){
+    int waterLevel = 5;
+    if (localY > localMaxHeight && globalYPos < waterLevel) return 17; // Water
+    if (localY > localMaxHeight) return 0; // Air
+    if (localY > (localMaxHeight - 1)) return 1; // Grass
+    if (localY > (localMaxHeight - 2)) return 3; // Dirt
     return 2; // Stone
 }
 

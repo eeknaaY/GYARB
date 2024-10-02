@@ -16,11 +16,13 @@ class Chunk{
 
         Mesh mesh;
         Octree* octree;
+        
 
         void draw(const Shader &shader);
         void updateMesh();
         void updateBlockValue(int x, int y, int z, int blockValue);
         int getBlockValue(int x, int y, int z);
+        
 
         Chunk(int _xCoordinate, int _yCoordinate, int _zCoordinate, int LoD, FastNoiseLite noise){
             this->xCoordinate = _xCoordinate;

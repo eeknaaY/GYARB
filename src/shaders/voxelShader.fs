@@ -1,12 +1,14 @@
 #version 440 core
 out vec4 FragColor;
 
+flat in int textureID;
+flat in int faceIndex;
 in vec2 TexCoord;
 in vec2 tilePos;
 in vec3 FragPos;
 in vec3 playerPos;
 in vec4 FragPosLightSpace;
-flat in int faceIndex;
+
 
 // texture samplers
 uniform sampler2D ourTexture;
@@ -58,6 +60,7 @@ float ShadowCalculation(vec4 fragPosLightSpace)
     return shadow;
 }  
 
+
 void main()
 {
     vec4 cursorColor = vec4(0.65, 0.65, 0.65, 1.0);
@@ -77,8 +80,8 @@ void main()
 
 	float ambientStrength = 0.1;
 	
-    float fog_maxdist = 360.0;
-    float fog_mindist = 200.0;
+    float fog_maxdist = 550.0;
+    float fog_mindist = 400.0;
     vec4 fog_color = vec4(0.4, 0.4, 0.4, 1.0);
     float dist = length(FragPos.xyz - playerPos);
     float fog_factor = (fog_maxdist - dist) /
@@ -96,5 +99,12 @@ void main()
 
 	float gamma = 1.7;
     FragColor.rgb = pow(fragColor.rgb, vec3(1.0/gamma));
+    
+    FragColor.a = 1;
+
+    if (textureID == 17){
+        FragColor.a = 0.85;
+    }
+
 }
 

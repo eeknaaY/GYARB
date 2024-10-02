@@ -76,15 +76,19 @@ std::vector<Chunk*> ChunkManager::getChunkVector(int x, int z){
 void ChunkManager::updateChunkMesh(Chunk* _chunk, Camera gameCamera){
     if (!_chunk) return;
     Mesh updatedMesh = buildMesh(_chunk, gameCamera);
-    _chunk->mesh.vertices = updatedMesh.vertices;
-    _chunk->mesh.indices = updatedMesh.indices;
+    _chunk->mesh.solid_vertices = updatedMesh.solid_vertices;
+    _chunk->mesh.solid_indices = updatedMesh.solid_indices;
+    _chunk->mesh.transparent_vertices = updatedMesh.transparent_vertices;
+    _chunk->mesh.transparent_indices = updatedMesh.transparent_indices;
     _chunk->updateMesh();
 }
 
 void ChunkManager::updateChunkMesh_MT(Chunk* _chunk, Camera gameCamera){
     Mesh updatedMesh = buildMesh(_chunk, gameCamera);
-    _chunk->mesh.vertices = updatedMesh.vertices;
-    _chunk->mesh.indices = updatedMesh.indices;
+    _chunk->mesh.solid_vertices = updatedMesh.solid_vertices;
+    _chunk->mesh.solid_indices = updatedMesh.solid_indices;
+    _chunk->mesh.transparent_vertices = updatedMesh.transparent_vertices;
+    _chunk->mesh.transparent_indices = updatedMesh.transparent_indices;
 }
 
 void ChunkManager::testStartMT(Camera* gameCamera){
@@ -108,7 +112,6 @@ void ChunkManager::testStartMT(Camera* gameCamera){
 }
 
 void ChunkManager::updateTerrain(Camera* gameCamera, int threadMultiplier){
-    std::printf("Thread %i started\n", threadMultiplier);
     int c_dXPos = gameCamera->currentChunk_x - gameCamera->oldChunk_x;
     int c_dZPos = gameCamera->currentChunk_z - gameCamera->oldChunk_z;
     int xPos = gameCamera->currentChunk_x;
@@ -176,8 +179,6 @@ void ChunkManager::updateTerrain(Camera* gameCamera, int threadMultiplier){
             }
         }
     }
-
-    std::printf("Thread %i finished\n", threadMultiplier);
 }
 
 
@@ -248,6 +249,8 @@ bool ChunkManager::isAirBlock(Chunk* chunk, int x, int y, int z, int LoD){
 }
 
 bool ChunkManager::isFacingAirblock(Chunk* chunk, int x, int y, int z, int reverseConstant, int constantPos, int LoD){
+    int currentBlockValue = getBlockValueFromPosition(chunk, x, y, z, LoD);
+    
     switch (constantPos)
     {
     case 1:
@@ -264,7 +267,14 @@ bool ChunkManager::isFacingAirblock(Chunk* chunk, int x, int y, int z, int rever
         break;
     }
 
-    return getBlockValueFromPosition(chunk, x, y, z, LoD) == 0;
+    int blockValue = getBlockValueFromPosition(chunk, x, y, z, LoD);
+
+    if (currentBlockValue == 17){
+        return blockValue == 0;
+    }
+
+    // Facing water or air
+    return (blockValue == 0 || blockValue == 17);
 }
 
 void ChunkManager::getTextureCoordinates(int textureValue, float &u, float &v, voxelFaces face, int LoD){ // Replace sides of a grass block to semi dirt + semi grass
@@ -278,7 +288,7 @@ void ChunkManager::getTextureCoordinates(int textureValue, float &u, float &v, v
         break;
     }
 
-    constexpr float textureBlockSize = 0.0625f;
+    const float textureBlockSize = 0.0625f;
 
     // Since air is the value 0, we need to remove one value so textures begin at 0.
     textureValue -= 1;
@@ -293,8 +303,10 @@ void ChunkManager::getTextureCoordinates(int textureValue, float &u, float &v, v
 Mesh ChunkManager::buildMesh(Chunk* _chunk, Camera gameCamera){
     auto start = std::chrono::high_resolution_clock::now();
 
-    std::vector<Vertex> vertices;
-    std::vector<unsigned int> indices;
+    std::vector<Vertex> solid_vertices;
+    std::vector<unsigned int> solid_indices;
+    std::vector<Vertex> transparent_vertices;
+    std::vector<unsigned int> transparent_indices;
     short voxelWidth;
 
     int LoD = _chunk->currentLoD;
@@ -371,37 +383,45 @@ Mesh ChunkManager::buildMesh(Chunk* _chunk, Camera gameCamera){
                     }
                 }
 
-                int vertexCount = vertices.size();
+                std::vector<Vertex>* vertices = &solid_vertices;
+                std::vector<unsigned int>* indices = &solid_indices;
+
+                if (face.texture == 17){ // If texture is water.
+                    vertices = &transparent_vertices;
+                    indices = &transparent_indices;
+                }
+
+                int vertexCount = vertices->size();
                 float u, v;
 
                 if (currentFace == TOP_FACE){
                     getTextureCoordinates(face.texture, u, v, TOP_FACE, LoD);
 
-                    vertices.push_back(Vertex(face.x,              face.y + jumpLength, face.z,               u,              v,               TOP_FACE)); 
-                    vertices.push_back(Vertex(face.x + face.width, face.y + jumpLength, face.z + face.height, u + face.width, v + face.height, TOP_FACE));
-                    vertices.push_back(Vertex(face.x + face.width, face.y + jumpLength, face.z,               u + face.width, v,               TOP_FACE));
-                    vertices.push_back(Vertex(face.x,              face.y + jumpLength, face.z + face.height, u,              v + face.height, TOP_FACE));
+                    vertices->push_back(Vertex(face.x,              face.y + jumpLength, face.z,               u,              v,               TOP_FACE, face.texture)); 
+                    vertices->push_back(Vertex(face.x + face.width, face.y + jumpLength, face.z + face.height, u + face.width, v + face.height, TOP_FACE, face.texture));
+                    vertices->push_back(Vertex(face.x + face.width, face.y + jumpLength, face.z,               u + face.width, v,               TOP_FACE, face.texture));
+                    vertices->push_back(Vertex(face.x,              face.y + jumpLength, face.z + face.height, u,              v + face.height, TOP_FACE, face.texture));
 
-                    indices.push_back(vertexCount + 3);
-                    indices.push_back(vertexCount + 1);
-                    indices.push_back(vertexCount + 2);
-                    indices.push_back(vertexCount + 3);
-                    indices.push_back(vertexCount + 2);
-                    indices.push_back(vertexCount + 0);
+                    indices->push_back(vertexCount + 3);
+                    indices->push_back(vertexCount + 1);
+                    indices->push_back(vertexCount + 2);
+                    indices->push_back(vertexCount + 3);
+                    indices->push_back(vertexCount + 2);
+                    indices->push_back(vertexCount + 0);
                 } else {
                     getTextureCoordinates(face.texture, u, v, BOTTOM_FACE, LoD);
 
-                    vertices.push_back(Vertex(face.x,              face.y, face.z,               u,              v,               BOTTOM_FACE)); 
-                    vertices.push_back(Vertex(face.x + face.width, face.y, face.z,               u + face.width, v,               BOTTOM_FACE));
-                    vertices.push_back(Vertex(face.x + face.width, face.y, face.z + face.height, u + face.width, v + face.height, BOTTOM_FACE));
-                    vertices.push_back(Vertex(face.x,              face.y, face.z + face.height, u,              v + face.height, BOTTOM_FACE));
+                    vertices->push_back(Vertex(face.x,              face.y, face.z,               u,              v,               BOTTOM_FACE, face.texture)); 
+                    vertices->push_back(Vertex(face.x + face.width, face.y, face.z,               u + face.width, v,               BOTTOM_FACE, face.texture));
+                    vertices->push_back(Vertex(face.x + face.width, face.y, face.z + face.height, u + face.width, v + face.height, BOTTOM_FACE, face.texture));
+                    vertices->push_back(Vertex(face.x,              face.y, face.z + face.height, u,              v + face.height, BOTTOM_FACE, face.texture));
 
-                    indices.push_back(vertexCount + 2);
-                    indices.push_back(vertexCount + 3);
-                    indices.push_back(vertexCount + 0);
-                    indices.push_back(vertexCount + 2);
-                    indices.push_back(vertexCount + 0);
-                    indices.push_back(vertexCount + 1);
+                    indices->push_back(vertexCount + 2);
+                    indices->push_back(vertexCount + 3);
+                    indices->push_back(vertexCount + 0);
+                    indices->push_back(vertexCount + 2);
+                    indices->push_back(vertexCount + 0);
+                    indices->push_back(vertexCount + 1);
                 }
             }
         }
@@ -463,37 +483,45 @@ Mesh ChunkManager::buildMesh(Chunk* _chunk, Camera gameCamera){
                     }
                 }
 
-                int vertexCount = vertices.size();
+                std::vector<Vertex>* vertices = &solid_vertices;
+                std::vector<unsigned int>* indices = &solid_indices;
+
+                if (face.texture == 17){ // If texture is water.
+                    vertices = &transparent_vertices;
+                    indices = &transparent_indices;
+                }
+
+                int vertexCount = vertices->size();
                 float u, v;
 
                 if (currentFace == BACK_FACE){
                     getTextureCoordinates(face.texture, u, v, FRONT_FACE, LoD);
 
-                    vertices.push_back(Vertex(face.x, face.y + face.height, face.z + face.width, u + face.width, v + face.height, FRONT_FACE));
-                    vertices.push_back(Vertex(face.x, face.y + face.height, face.z,              u,              v + face.height, FRONT_FACE));
-                    vertices.push_back(Vertex(face.x, face.y,               face.z,              u,              v,               FRONT_FACE));
-                    vertices.push_back(Vertex(face.x, face.y,               face.z + face.width, u + face.width, v,               FRONT_FACE));
+                    vertices->push_back(Vertex(face.x, face.y + face.height, face.z + face.width, u + face.width, v + face.height, FRONT_FACE, face.texture));
+                    vertices->push_back(Vertex(face.x, face.y + face.height, face.z,              u,              v + face.height, FRONT_FACE, face.texture));
+                    vertices->push_back(Vertex(face.x, face.y,               face.z,              u,              v,               FRONT_FACE, face.texture));
+                    vertices->push_back(Vertex(face.x, face.y,               face.z + face.width, u + face.width, v,               FRONT_FACE, face.texture));
 
-                    indices.push_back(vertexCount + 2);
-                    indices.push_back(vertexCount + 3);
-                    indices.push_back(vertexCount + 0);
-                    indices.push_back(vertexCount + 2);
-                    indices.push_back(vertexCount + 0);
-                    indices.push_back(vertexCount + 1);
+                    indices->push_back(vertexCount + 2);
+                    indices->push_back(vertexCount + 3);
+                    indices->push_back(vertexCount + 0);
+                    indices->push_back(vertexCount + 2);
+                    indices->push_back(vertexCount + 0);
+                    indices->push_back(vertexCount + 1);
                 } else {
                     getTextureCoordinates(face.texture, u, v, BACK_FACE, LoD);
 
-                    vertices.push_back(Vertex(face.x + jumpLength, face.y + face.height, face.z + face.width, u,              v + face.height, BACK_FACE));
-                    vertices.push_back(Vertex(face.x + jumpLength, face.y,               face.z,              u + face.width, v,               BACK_FACE));
-                    vertices.push_back(Vertex(face.x + jumpLength, face.y + face.height, face.z,              u + face.width, v + face.height, BACK_FACE));
-                    vertices.push_back(Vertex(face.x + jumpLength, face.y,               face.z + face.width, u,              v,               BACK_FACE));
+                    vertices->push_back(Vertex(face.x + jumpLength, face.y + face.height, face.z + face.width, u,              v + face.height, BACK_FACE, face.texture));
+                    vertices->push_back(Vertex(face.x + jumpLength, face.y,               face.z,              u + face.width, v,               BACK_FACE, face.texture));
+                    vertices->push_back(Vertex(face.x + jumpLength, face.y + face.height, face.z,              u + face.width, v + face.height, BACK_FACE, face.texture));
+                    vertices->push_back(Vertex(face.x + jumpLength, face.y,               face.z + face.width, u,              v,               BACK_FACE, face.texture));
 
-                    indices.push_back(vertexCount + 3);
-                    indices.push_back(vertexCount + 1);
-                    indices.push_back(vertexCount + 2);
-                    indices.push_back(vertexCount + 3);
-                    indices.push_back(vertexCount + 2);
-                    indices.push_back(vertexCount + 0);
+                    indices->push_back(vertexCount + 3);
+                    indices->push_back(vertexCount + 1);
+                    indices->push_back(vertexCount + 2);
+                    indices->push_back(vertexCount + 3);
+                    indices->push_back(vertexCount + 2);
+                    indices->push_back(vertexCount + 0);
                 }
             }
         }
@@ -546,37 +574,45 @@ Mesh ChunkManager::buildMesh(Chunk* _chunk, Camera gameCamera){
                 }
             }
 
-            int vertexCount = vertices.size();
+            std::vector<Vertex>* vertices = &solid_vertices;
+            std::vector<unsigned int>* indices = &solid_indices;
+
+            if (face.texture == 17){ // If texture is water.
+                vertices = &transparent_vertices;
+                indices = &transparent_indices;
+            }
+
+            int vertexCount = vertices->size();
             float u, v;
             
             if (currentFace == LEFT_FACE){
                 getTextureCoordinates(face.texture, u, v, LEFT_FACE, LoD);
 
-                vertices.push_back(Vertex(face.x,              face.y,               face.z + jumpLength, u,              v,               LEFT_FACE)); 
-                vertices.push_back(Vertex(face.x + face.width, face.y,               face.z + jumpLength, u + face.width, v,               LEFT_FACE));
-                vertices.push_back(Vertex(face.x + face.width, face.y + face.height, face.z + jumpLength, u + face.width, v + face.height, LEFT_FACE));
-                vertices.push_back(Vertex(face.x,              face.y + face.height, face.z + jumpLength, u,              v + face.height, LEFT_FACE));
+                vertices->push_back(Vertex(face.x,              face.y,               face.z + jumpLength, u,              v,               LEFT_FACE, face.texture)); 
+                vertices->push_back(Vertex(face.x + face.width, face.y,               face.z + jumpLength, u + face.width, v,               LEFT_FACE, face.texture));
+                vertices->push_back(Vertex(face.x + face.width, face.y + face.height, face.z + jumpLength, u + face.width, v + face.height, LEFT_FACE, face.texture));
+                vertices->push_back(Vertex(face.x,              face.y + face.height, face.z + jumpLength, u,              v + face.height, LEFT_FACE, face.texture));
 
-                indices.push_back(vertexCount + 0);
-                indices.push_back(vertexCount + 1);
-                indices.push_back(vertexCount + 2);
-                indices.push_back(vertexCount + 0);
-                indices.push_back(vertexCount + 2);
-                indices.push_back(vertexCount + 3);
+                indices->push_back(vertexCount + 0);
+                indices->push_back(vertexCount + 1);
+                indices->push_back(vertexCount + 2);
+                indices->push_back(vertexCount + 0);
+                indices->push_back(vertexCount + 2);
+                indices->push_back(vertexCount + 3);
             } else {
                 getTextureCoordinates(face.texture, u, v, RIGHT_FACE, LoD);
 
-                vertices.push_back(Vertex(face.x,              face.y,               face.z, u,              v,               RIGHT_FACE)); 
-                vertices.push_back(Vertex(face.x + face.width, face.y + face.height, face.z, u + face.width, v + face.height, RIGHT_FACE));
-                vertices.push_back(Vertex(face.x + face.width, face.y,               face.z, u + face.width, v,               RIGHT_FACE));
-                vertices.push_back(Vertex(face.x,              face.y + face.height, face.z, u,              v + face.height, RIGHT_FACE));
+                vertices->push_back(Vertex(face.x,              face.y,               face.z, u,              v,               RIGHT_FACE, face.texture)); 
+                vertices->push_back(Vertex(face.x + face.width, face.y + face.height, face.z, u + face.width, v + face.height, RIGHT_FACE, face.texture));
+                vertices->push_back(Vertex(face.x + face.width, face.y,               face.z, u + face.width, v,               RIGHT_FACE, face.texture));
+                vertices->push_back(Vertex(face.x,              face.y + face.height, face.z, u,              v + face.height, RIGHT_FACE, face.texture));
 
-                indices.push_back(vertexCount + 0);
-                indices.push_back(vertexCount + 1);
-                indices.push_back(vertexCount + 2);
-                indices.push_back(vertexCount + 0);
-                indices.push_back(vertexCount + 3);
-                indices.push_back(vertexCount + 1);
+                indices->push_back(vertexCount + 0);
+                indices->push_back(vertexCount + 1);
+                indices->push_back(vertexCount + 2);
+                indices->push_back(vertexCount + 0);
+                indices->push_back(vertexCount + 3);
+                indices->push_back(vertexCount + 1);
                 }
             }
         }
@@ -584,8 +620,8 @@ Mesh ChunkManager::buildMesh(Chunk* _chunk, Camera gameCamera){
 
     auto stop = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds> (stop-start);
-    //std::cout << "Meshing took: " << duration.count() << "ms \n";
-    return Mesh(vertices, indices);
+    std::cout << "Meshing took: " << duration.count() << "ms \n";
+    return Mesh(solid_vertices, solid_indices, transparent_vertices, transparent_indices);
 }
 
 ////////////////////////////////////////////////////////////////////////////// Octree stuff ////////////////////////////////////////////////////

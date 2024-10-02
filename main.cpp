@@ -41,6 +41,9 @@ int main(){
     float const CLOSE_FRUSTUM = 0.1f;
     float const FAR_FRUSTUM = 600.0f;
 
+    glEnable(GL_BLEND); 
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);  
+
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_MULTISAMPLE);  
     glEnable(GL_CULL_FACE);
@@ -78,12 +81,14 @@ int main(){
     chunkManager->noise.SetFractalOctaves(3);
     chunkManager->noise.SetFractalWeightedStrength(8);
 
-    for (int dz = -12; dz <= 12; dz++){
-        for (int dx = -12; dx <= 12; dx++){
+    for (int dz = -1; dz <= 1; dz++){
+        for (int dx = -1; dx <= 1; dx++){
             Chunk* chunk = chunkManager->getChunk(dx, 0, dz);
 
             if (!chunk){
-                Chunk* _chunk = new Chunk(dx, 0, dz, 4, chunkManager->noise);
+                int LoD = 5;
+                if (abs(dz) > 4 || abs(dx) > 4) LoD = 4;
+                Chunk* _chunk = new Chunk(dx, 0, dz, LoD, chunkManager->noise);
                 chunkManager->appendChunk(_chunk);
             }
         }
@@ -95,8 +100,8 @@ int main(){
     chunkManager->updateBlockValue(-1, 31, -1, 8);
 
 
-    for (int dz = -12; dz <= 12; dz++){
-        for (int dx = -12; dx <= 12; dx++){
+    for (int dz = -1; dz <= 1; dz++){
+        for (int dx = -1; dx <= 1; dx++){
             for (int dy = 0;;dy++){
                 Chunk* chunk = chunkManager->getChunk(dx, dy, dz);
                 if (!chunk) break;
@@ -105,12 +110,7 @@ int main(){
         }
     }
 
-
-
     double startTime = glfwGetTime();
-
-    int oldBlockVal = 0;
-    glm::vec3 rayPos;
 
     while (!glfwWindowShouldClose(window))
     {   
