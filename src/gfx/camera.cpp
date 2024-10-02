@@ -18,15 +18,15 @@ void Camera::updateChunkPosition(){
     this->oldChunk_x = this->currentChunk_x;
     this->oldChunk_z = this->currentChunk_z;
 
-    currentChunk_x = (int)(((int)round(position.x) - (int)round(position.x) % 32) / 32.f);
-    currentChunk_z = (int)(((int)round(position.z) - (int)round(position.z) % 32) / 32.f);
+    currentChunk_x = (int)((round(position.x) - (int)round(position.x) % 32) / 32.f);
+    currentChunk_z = (int)((round(position.z) - (int)round(position.z) % 32) / 32.f);
 
     if (position.x < 0) currentChunk_x--;
     if (position.z < 0) currentChunk_z--;
 }
 
 void Camera::updateMovement(float deltaTime){
-    float cameraSpeed = 40.0f * deltaTime;
+    float cameraSpeed = 10.0f * deltaTime;
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
         position += cameraSpeed * glm::normalize(glm::vec3(front.x * cos(pitch * 3.14 / 180), 0, front.z * cos(pitch * 3.14/180)));
     if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)

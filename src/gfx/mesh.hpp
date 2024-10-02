@@ -23,6 +23,7 @@ class Mesh {
         bool bufferExists = false;
 
         void draw(const Shader &shader, int x, int y, int z);
+        void drawChunk(const Shader &shader, int x, int y, int z);
         void updateMesh();
         void bindMesh();
 
@@ -38,9 +39,9 @@ class SkyboxMesh : public Mesh{
     public:
         void draw(const Shader &shader);
         void bindMesh();
-
+        
     private:
-        float skyboxVertices[108] = {
+        float boxVertices[108] = {
             // positions          
             -1.0f,  1.0f, -1.0f,
             -1.0f, -1.0f, -1.0f,

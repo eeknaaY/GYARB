@@ -74,6 +74,7 @@ std::vector<Chunk*> ChunkManager::getChunkVector(int x, int z){
 }
 
 void ChunkManager::updateChunkMesh(Chunk* _chunk, Camera gameCamera){
+    if (!_chunk) return;
     Mesh updatedMesh = buildMesh(_chunk, gameCamera);
     _chunk->mesh.vertices = updatedMesh.vertices;
     _chunk->mesh.indices = updatedMesh.indices;
@@ -182,7 +183,7 @@ void ChunkManager::updateTerrain(Camera* gameCamera, int threadMultiplier){
 
 ////////////////////////////////////////////////////  MESHING  ///////////////////////////////////////////////////////////////////////////////
 
-inline void ChunkManager::makeVoxelAccountedFor(bool accountedVoxels[], int x, int y, int z){
+void ChunkManager::makeVoxelAccountedFor(bool accountedVoxels[], int x, int y, int z){
     accountedVoxels[x + 32 * z + 32 * 32 * y] = true;
 }
 
@@ -352,9 +353,9 @@ Mesh ChunkManager::buildMesh(Chunk* _chunk, Camera gameCamera){
                                  isFacingAirblock(_chunk, dx, y, dz, reverseConstant, 2, LoD) && 
                                 !isAirBlock(_chunk, dx, y, dz, LoD) && 
                                  _chunk->octree->getNodeFromPosition(dx, y, dz, voxelWidth, LoD)->blockValue == face.texture){
-                                    dx += voxelWidth - 1;
-                                }
-                            else{
+                                    //dx += voxelWidth - 1;
+                                    //dx += 1;
+                            } else {
                                 shouldBreak = true;
                                 break;
                             }
@@ -442,7 +443,8 @@ Mesh ChunkManager::buildMesh(Chunk* _chunk, Camera gameCamera){
                              isFacingAirblock(_chunk, x, dy, dz, reverseConstant, 1, LoD) && 
                             !isAirBlock(_chunk, x, dy, dz, LoD) && 
                              _chunk->octree->getNodeFromPosition(x, dy, dz, voxelWidth, LoD)->blockValue == face.texture){
-                                    dz += voxelWidth - 1;
+                                    //dz += voxelWidth - 1;
+                                    //dz += 1;
                              }
 
                         else{
@@ -504,14 +506,6 @@ Mesh ChunkManager::buildMesh(Chunk* _chunk, Camera gameCamera){
 
             voxelFace face(x, y, z);
             face.texture = _chunk->octree->getNodeFromPosition(x, y, z, voxelWidth, LoD)->blockValue;
-            //face.width = voxelWidth - (x % voxelWidth);
-
-            // for (int dx = x; dx < x + face.width; dx++){
-            //     if (isAccountedFor(accountedVoxels, dx, y, z) || !isFacingAirblock(_chunk, dx, y, z, reverseConstant, 3, LoD)){
-            //         face.width = dx - x;
-            //         break;
-            //     }
-            // }
 
             for (int dx = x; dx < 32; dx++){
                 if (!isAccountedFor(accountedVoxels, dx, y, z) &&
@@ -532,7 +526,8 @@ Mesh ChunkManager::buildMesh(Chunk* _chunk, Camera gameCamera){
                          isFacingAirblock(_chunk, dx, dy, z, reverseConstant, 3, LoD) && 
                         !isAirBlock(_chunk, dx, dy, z, LoD) && 
                          _chunk->octree->getNodeFromPosition(dx, dy, z, voxelWidth, LoD)->blockValue == face.texture){
-                            dx += voxelWidth - 1;
+                            //dx += voxelWidth - 1;
+                            //dx += 1;
                         }
 
                     else{
@@ -591,5 +586,107 @@ Mesh ChunkManager::buildMesh(Chunk* _chunk, Camera gameCamera){
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds> (stop-start);
     //std::cout << "Meshing took: " << duration.count() << "ms \n";
     return Mesh(vertices, indices);
+}
+
+////////////////////////////////////////////////////////////////////////////// Octree stuff ////////////////////////////////////////////////////
+
+int ChunkManager::getBlockValue(float x, float y, float z){
+    return getBlockValue((int)x, (int)y, (int)z);
+}
+
+int ChunkManager::getBlockValue(int x, int y, int z){
+    int chunkPosX = (int)((round(x) - (int)round(x) % Chunk::CHUNK_SIZE) / Chunk::CHUNK_SIZE);
+    int chunkPosY = (int)((round(y) - (int)round(y) % Chunk::CHUNK_SIZE) / Chunk::CHUNK_SIZE);
+    int chunkPosZ = (int)((round(z) - (int)round(z) % Chunk::CHUNK_SIZE) / Chunk::CHUNK_SIZE);
+
+    // We got the chunk, now make coords local.
+    x = x % Chunk::CHUNK_SIZE;
+    y = y % Chunk::CHUNK_SIZE;
+    z = z % Chunk::CHUNK_SIZE;
+
+    if (x < 0) {
+        chunkPosX--;
+        x += Chunk::CHUNK_SIZE;
+    }
+
+    if (z < 0) {
+        chunkPosZ--;
+        z += Chunk::CHUNK_SIZE;
+    }
+
+    return getChunk(chunkPosX, chunkPosY, chunkPosZ)->getBlockValue(x, y, z);
+}
+
+
+void ChunkManager::updateBlockValue(int x, int y, int z, int blockValue){
+    // Coords are in global scope, find the chunk and make them local.
+    int chunkPosX = (int)((round(x) - (int)round(x) % Chunk::CHUNK_SIZE) / Chunk::CHUNK_SIZE);
+    int chunkPosY = (int)((round(y) - (int)round(y) % Chunk::CHUNK_SIZE) / Chunk::CHUNK_SIZE);
+    int chunkPosZ = (int)((round(z) - (int)round(z) % Chunk::CHUNK_SIZE) / Chunk::CHUNK_SIZE);
+
+    // We got the chunk, now make coords local.
+    x = x % Chunk::CHUNK_SIZE;
+    y = y % Chunk::CHUNK_SIZE;
+    z = z % Chunk::CHUNK_SIZE;
+
+    if (x < 0) {
+        chunkPosX--;
+        x += Chunk::CHUNK_SIZE;
+    }
+
+    if (z < 0) {
+        chunkPosZ--;
+        z += Chunk::CHUNK_SIZE;
+    }
+
+    getChunk(chunkPosX, chunkPosY, chunkPosZ)->updateBlockValue(x, y, z, blockValue);
+}
+
+void ChunkManager::updateBlockValueAndMesh(int x, int y, int z, int blockValue, Camera camera){
+    updateBlockValue(x, y, z, blockValue);
+
+    int chunkPosX = (int)((round(x) - (int)round(x) % Chunk::CHUNK_SIZE) / Chunk::CHUNK_SIZE);
+    int chunkPosY = (int)((round(y) - (int)round(y) % Chunk::CHUNK_SIZE) / Chunk::CHUNK_SIZE);
+    int chunkPosZ = (int)((round(z) - (int)round(z) % Chunk::CHUNK_SIZE) / Chunk::CHUNK_SIZE);
+    
+    x = x % Chunk::CHUNK_SIZE;
+    y = y % Chunk::CHUNK_SIZE;
+    z = z % Chunk::CHUNK_SIZE;
+
+    if (x < 0) {
+        chunkPosX--;
+        x += Chunk::CHUNK_SIZE;
+    }
+
+    if (z < 0) {
+        chunkPosZ--;
+        z += Chunk::CHUNK_SIZE;
+    }
+
+    updateChunkMesh(getChunk(chunkPosX, chunkPosY, chunkPosZ), camera);
+
+    if (x == 0){
+        updateChunkMesh(getChunk(chunkPosX - 1, chunkPosY, chunkPosZ), camera);
+    }
+
+    if (x == 31){
+        updateChunkMesh(getChunk(chunkPosX + 1, chunkPosY, chunkPosZ), camera);
+    }
+
+    if (y == 0){
+        updateChunkMesh(getChunk(chunkPosX, chunkPosY - 1, chunkPosZ), camera);
+    }
+
+    if (y == 31){
+        updateChunkMesh(getChunk(chunkPosX, chunkPosY + 1, chunkPosZ), camera);
+    }
+
+    if (z == 0){
+        updateChunkMesh(getChunk(chunkPosX, chunkPosY, chunkPosZ - 1), camera);
+    }
+
+    if (z == 31){
+        updateChunkMesh(getChunk(chunkPosX, chunkPosY, chunkPosZ + 1), camera);
+    }
 }
 

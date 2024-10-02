@@ -11,6 +11,7 @@
 #include "src/shaders/shaders.hpp"
 #include "src/structures/octree.hpp"
 #include "src/textures/textures.hpp"
+#include "src/gfx/raycast.hpp"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
@@ -19,6 +20,9 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 
 float lastFrame = 0.0f;
 float deltaTime = 0.0f;
+
+bool rightMouseButtonDown = false;
+bool leftMouseButtonDown = false;
 
 Camera gameCamera;
 
@@ -79,11 +83,17 @@ int main(){
             Chunk* chunk = chunkManager->getChunk(dx, 0, dz);
 
             if (!chunk){
-                Chunk* _chunk = new Chunk(dx, 0, dz, 5, chunkManager->noise);
+                Chunk* _chunk = new Chunk(dx, 0, dz, 4, chunkManager->noise);
                 chunkManager->appendChunk(_chunk);
             }
         }
     }
+
+    chunkManager->updateBlockValue(0, 31, 0, 8);
+    chunkManager->updateBlockValue(-1, 31, 0, 8);
+    chunkManager->updateBlockValue(0, 31, -1, 8);
+    chunkManager->updateBlockValue(-1, 31, -1, 8);
+
 
     for (int dz = -12; dz <= 12; dz++){
         for (int dx = -12; dx <= 12; dx++){
@@ -95,7 +105,12 @@ int main(){
         }
     }
 
+
+
     double startTime = glfwGetTime();
+
+    int oldBlockVal = 0;
+    glm::vec3 rayPos;
 
     while (!glfwWindowShouldClose(window))
     {   
@@ -131,6 +146,32 @@ int main(){
                     voxelShader.setMat4("projection", projection);
         }
 
+        if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS && !rightMouseButtonDown){
+            rightMouseButtonDown = true;
+            Raycast::raycastInfo ray = Raycast::sendRaycast(gameCamera, chunkManager);
+            if (ray.hit){
+                chunkManager->updateBlockValueAndMesh(ray.position.x + ray.normal.x, ray.position.y + ray.normal.y, ray.position.z + ray.normal.z, 8, gameCamera);
+            } else {
+
+            }
+        }
+
+        if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_RELEASE){
+            rightMouseButtonDown = false;
+        }
+
+        if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS && !leftMouseButtonDown){
+            leftMouseButtonDown = true;
+            Raycast::raycastInfo ray = Raycast::sendRaycast(gameCamera, chunkManager);
+            if (ray.hit){
+                chunkManager->updateBlockValueAndMesh(ray.position.x, ray.position.y, ray.position.z, 0, gameCamera);
+            }
+        }
+
+        if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_RELEASE){
+            leftMouseButtonDown = false;
+        }
+
         glm::mat4 lightProjection = glm::ortho(-100.0f, 100.0f, -100.0f, 100.0f, 50.f, 300.f);
         glm::vec3 sunPos = glm::vec3(gameCamera.position.x + 100, 100, gameCamera.position.z + 100);
         glm::mat4 lightView = glm::lookAt(sunPos, 
@@ -144,11 +185,13 @@ int main(){
 
         // Render Scene
         glViewport(0, 0, 1024, 1024);
+        glCullFace(FRONT_FACE);
         glBindFramebuffer(GL_FRAMEBUFFER, shadowMap.depthMapFBO);
         glClear(GL_DEPTH_BUFFER_BIT);
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, Textures::getTextureIndex());
         gameRenderer.renderVisibleChunks(shadowMapShader, gameCamera);
+        glCullFace(BACK_FACE);
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
         
         glViewport(0, 0, windowWidth, windowHeight);
@@ -167,7 +210,7 @@ int main(){
         voxelShader.setMat4("view", view);
 
         if (gameCamera.hasChangedChunk()){
-            chunkManager->testStartMT(&gameCamera);
+            //chunkManager->testStartMT(&gameCamera);
         }
         
         voxelShader.setMat4("lightSpaceMatrix", lightSpaceMatrix);

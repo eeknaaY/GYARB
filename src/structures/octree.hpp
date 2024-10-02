@@ -24,9 +24,11 @@ class Node{
         int getAverageBlockValueFromChildren();
         bool allChildrenAreEqual();
         bool aChildIsNotAnEndpoint();
+        void createIdenticalChildren();
 
         ~Node();
         Node();
+        Node(Node* parentPtr);
         Node(int value, int depth, Node* parentPtr, bool _isEndNode, bool initChildren);
 };
 
@@ -44,6 +46,7 @@ class Octree{
         void TEMP_optimizeTree();
         int TEMP_blockDeterminationFunc(int y, int maxHeight);
         void buildAMinecraftTree(int x, int y, int z);
+        void updateNodeValueFromPosition(int x, int y, int z, int blockValue);
     private:
         int LoD;
         int chunk_xcoord, chunk_zcoord;

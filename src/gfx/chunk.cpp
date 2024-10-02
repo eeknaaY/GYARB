@@ -4,7 +4,7 @@
 #include "chunk.hpp"
 
 void Chunk::draw(const Shader &shader){
-    mesh.draw(shader, xCoordinate, yCoordinate, zCoordinate);
+    mesh.drawChunk(shader, xCoordinate, yCoordinate, zCoordinate);
 }
 
 void Chunk::updateMesh(){
@@ -13,4 +13,14 @@ void Chunk::updateMesh(){
     } else {
         mesh.bindMesh();
     }
+}
+
+void Chunk::updateBlockValue(int x, int y, int z, int blockValue){
+    if (!this) return;
+    octree->updateNodeValueFromPosition(x, y, z, blockValue);
+}
+
+int Chunk::getBlockValue(int x, int y, int z){
+    if (!this) return 0;
+    return octree->getNodeFromPosition(x, y, z)->blockValue;
 }

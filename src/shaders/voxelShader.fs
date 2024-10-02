@@ -36,19 +36,20 @@ float ShadowCalculation(vec4 fragPosLightSpace)
     vec3 normal = normalize(faceNormals[faceIndex]);
     vec3 sunPos = vec3(playerPos.x + 100, 100, playerPos.z + 100);
 	vec3 lightDir = normalize(sunPos - FragPos);
-    float bias = max(0.1 * (1.0 - dot(normal, lightDir)), 0.01);
+    float bias = max(0.005 * (1.0 - dot(normal, lightDir)), 0.004);
 
     // PCF
     float shadow = 0.0;
-    vec2 texelSize = 1.0 / textureSize(shadowMap, 0);
+    float texelSize = 1.0 / 1024;
     for(int x = -1; x <= 1; ++x)
     {
         for(int y = -1; y <= 1; ++y)
         {
-            float pcfDepth = texture(shadowMap, projCoords.xy + vec2(x, y) * texelSize).r; 
+            float pcfDepth = texture(shadowMap, projCoords.xy + vec2(x, y) * texelSize).x; 
             shadow += currentDepth - bias > pcfDepth  ? 1.0 : 0.0;        
         }    
     }
+
     shadow /= 9.0;
     
     if(projCoords.z > 1.0)
@@ -59,6 +60,17 @@ float ShadowCalculation(vec4 fragPosLightSpace)
 
 void main()
 {
+    vec4 cursorColor = vec4(0.65, 0.65, 0.65, 1.0);
+    if (gl_FragCoord.x < 807 && gl_FragCoord.x > 793 && gl_FragCoord.y < 452 && gl_FragCoord.y > 448){
+        FragColor = cursorColor;
+        return;
+    }
+
+    if (gl_FragCoord.x < 802 && gl_FragCoord.x > 798 && gl_FragCoord.y < 457 && gl_FragCoord.y > 443){
+        FragColor = cursorColor;
+        return;
+    }
+
 	vec2 dx = dFdx(TexCoord);
 	vec2 dy = dFdy(TexCoord);
 	vec2 texcoord = tilePos + vec2(1.0/16, 1.0/16) * fract(TexCoord);

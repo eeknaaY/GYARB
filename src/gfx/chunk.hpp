@@ -19,6 +19,8 @@ class Chunk{
 
         void draw(const Shader &shader);
         void updateMesh();
+        void updateBlockValue(int x, int y, int z, int blockValue);
+        int getBlockValue(int x, int y, int z);
 
         Chunk(int _xCoordinate, int _yCoordinate, int _zCoordinate, int LoD, FastNoiseLite noise){
             this->xCoordinate = _xCoordinate;
@@ -26,6 +28,7 @@ class Chunk{
             this->yCoordinate = _yCoordinate;
             currentLoD = LoD;
             octree = new Octree(_xCoordinate, _yCoordinate, _zCoordinate, noise);
+            octreeExists = true;
         }
 
         ~Chunk(){
@@ -34,6 +37,9 @@ class Chunk{
         }
         
         Chunk() = default;
+
+    private:
+        bool octreeExists = false;
 };
 
 #endif

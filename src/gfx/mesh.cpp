@@ -63,6 +63,15 @@ void Mesh::updateMesh(){
 
 void Mesh::draw(const Shader &shader, int x, int y, int z) 
 {
+    shader.setMat4("model", glm::translate(glm::mat4(1.0f), glm::vec3(x, y, z)));
+
+    glBindVertexArray(VAO);
+    glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
+    glBindVertexArray(0);
+}
+
+void Mesh::drawChunk(const Shader &shader, int x, int y, int z) 
+{
     shader.setMat4("model", glm::translate(glm::mat4(1.0f), glm::vec3(32 * x, 32 * y, 32 * z)));
 
     glBindVertexArray(VAO);
@@ -77,7 +86,7 @@ void SkyboxMesh::bindMesh(){
   
     glBindVertexArray(VAO);
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(skyboxVertices), &skyboxVertices[0], GL_STATIC_DRAW);  
+    glBufferData(GL_ARRAY_BUFFER, sizeof(boxVertices), &boxVertices[0], GL_STATIC_DRAW);  
 
     // vertex positions
     glEnableVertexAttribArray(0);	

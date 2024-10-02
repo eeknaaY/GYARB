@@ -2,10 +2,10 @@
 
 #include <map>
 #include "mesh.hpp"
-//#include "../shaders/shaders.hpp"
 #include "camera.hpp"
 #include <thread>
 #include "FastNoiseLite.h"
+#include "chunk.hpp"
 
 struct voxelFace{
     short x, y, z, width = 0, height = 1, texture;
@@ -46,6 +46,10 @@ class ChunkManager{
         void updateChunkMesh_MT(Chunk* _chunk, Camera gameCamera);
         void testStartMT(Camera* gameCamera);
         void updateTerrain(Camera* gameCamera, int threadMultiplier);
+        void updateBlockValue(int x, int y, int z, int blockValue);
+        int getBlockValue(float x, float y, float z);
+        int getBlockValue(int x, int y, int z);
+        void updateBlockValueAndMesh(int x, int y, int z, int blockValue, Camera camera);
 
         ChunkManager(){}
     private:

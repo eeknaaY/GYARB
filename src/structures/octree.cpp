@@ -26,6 +26,13 @@ Node::Node(int value, int depth, Node* parentPtr, bool _isEndNode, bool initChil
     } 
 }
 
+Node::Node(Node* parentPtr){
+    this->blockValue = parentPtr->blockValue;
+    isEndNode = true;
+    parent = parentPtr;
+    this->children.clear();
+}
+
 Node::~Node(){
     for (Node* child : children){
         delete child;
@@ -34,6 +41,13 @@ Node::~Node(){
 
     if (parent != nullptr){
         isEndNode = true;
+    }
+}
+
+void Node::createIdenticalChildren(){
+    this->isEndNode = false;
+    for (int i = 0; i < 8; i++){
+        this->children.push_back(new Node(this));
     }
 }
 
@@ -309,5 +323,20 @@ int Octree::nodeAmount(){
         }
     }
     return n;
+}
+
+void Octree::updateNodeValueFromPosition(int x, int y, int z, int blockValue){
+    // When the width is 1, we have reached the end.
+    short voxelWidth;
+    Node* curNode = getNodeFromPosition(x, y, z, voxelWidth);
+
+    // Loop through until we've reached end of tree
+    if (voxelWidth != 1){
+        curNode->createIdenticalChildren();
+        updateNodeValueFromPosition(x, y, z, blockValue);
+        return;
+    } else {
+        curNode->blockValue = blockValue;
+    }
 }
 
