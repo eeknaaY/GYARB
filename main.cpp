@@ -81,13 +81,13 @@ int main(){
     chunkManager->noise.SetFractalOctaves(3);
     chunkManager->noise.SetFractalWeightedStrength(8);
 
-    for (int dz = -1; dz <= 1; dz++){
-        for (int dx = -1; dx <= 1; dx++){
+    for (int dz = -12; dz <= 12; dz++){
+        for (int dx = -12; dx <= 12; dx++){
             Chunk* chunk = chunkManager->getChunk(dx, 0, dz);
 
             if (!chunk){
                 int LoD = 5;
-                if (abs(dz) > 4 || abs(dx) > 4) LoD = 4;
+                //if (abs(dz) > 4 || abs(dx) > 4) LoD = 4;
                 Chunk* _chunk = new Chunk(dx, 0, dz, LoD, chunkManager->noise);
                 chunkManager->appendChunk(_chunk);
             }
@@ -100,8 +100,8 @@ int main(){
     chunkManager->updateBlockValue(-1, 31, -1, 8);
 
 
-    for (int dz = -1; dz <= 1; dz++){
-        for (int dx = -1; dx <= 1; dx++){
+    for (int dz = -12; dz <= 12; dz++){
+        for (int dx = -12; dx <= 12; dx++){
             for (int dy = 0;;dy++){
                 Chunk* chunk = chunkManager->getChunk(dx, dy, dz);
                 if (!chunk) break;
@@ -116,7 +116,8 @@ int main(){
     {   
         frameCounter += 1;
         if (glfwGetTime() - startTime >= 1.0f){
-            std::cout << "ms/frame: " << 1000.0 / double(frameCounter) << "\n";
+            //std::cout << "ms/frame: " << 1000.0 / double(frameCounter) << "\n";
+            printf("X: %i, Z: %i\nX: %.1f, Y: %.1f, Z: %.1f\n ", gameCamera.currentChunk_x, gameCamera.currentChunk_z, gameCamera.position.x, gameCamera.position.y,gameCamera.position.z);
             frameCounter = 0;
             startTime += 1;
         }
@@ -127,24 +128,6 @@ int main(){
         lastFrame = currentFrame;  
         gameCamera.processInput(deltaTime);
         //gameCamera.position.x -= 0.2;
-
-        if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS){
-                    skyboxShader = Shader("src/shaders/skyboxShader.vs", "src/shaders/skyboxShader.fs");
-                    voxelShader = Shader("src/shaders/voxelShader.vs", "src/shaders/voxelShader.fs");
-                    voxelShader.use();
-                    glUniform1i(glGetUniformLocation(voxelShader.ID, "ourTexture"), 0);
-
-                    Mesh skybox = SkyboxMesh();
-                    skybox.bindMesh();
-                    skyboxShader.use();
-                    glUniform1i(glGetUniformLocation(skyboxShader.ID, "skybox"), 0);
-
-                    glm::mat4 projection = glm::mat4(1.0f);
-                    projection = glm::perspective(glm::radians(gameCamera.fov), (float)windowWidth / (float)windowHeight, CLOSE_FRUSTUM, FAR_FRUSTUM);
-                    skyboxShader.setMat4("projectionSkybox", projection);
-                    voxelShader.use();
-                    voxelShader.setMat4("projection", projection);
-        }
 
         if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS && !rightMouseButtonDown){
             rightMouseButtonDown = true;
@@ -184,7 +167,7 @@ int main(){
         shadowMapShader.setMat4("lightSpaceMatrix", lightSpaceMatrix);
 
         // Render Scene
-        glViewport(0, 0, 1024, 1024);
+        glViewport(0, 0, 2048, 2048);
         glCullFace(FRONT_FACE);
         glBindFramebuffer(GL_FRAMEBUFFER, shadowMap.depthMapFBO);
         glClear(GL_DEPTH_BUFFER_BIT);
@@ -210,7 +193,7 @@ int main(){
         voxelShader.setMat4("view", view);
 
         if (gameCamera.hasChangedChunk()){
-            //chunkManager->testStartMT(&gameCamera);
+            chunkManager->testStartMT(&gameCamera);
         }
         
         voxelShader.setMat4("lightSpaceMatrix", lightSpaceMatrix);

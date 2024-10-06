@@ -3,10 +3,32 @@
 
 
 void Renderer::renderVisibleChunks(const Shader &shader, const Camera& camera){
-    for (auto const& [key, val] : this->chunkManager->chunkMap){
-        for (Chunk* chunk : val){
-            chunk->draw(shader);
+    // Draw them far -> near
+    int chunkPositionX = camera.currentChunk_x;
+    int chunkPositionZ = camera.currentChunk_z;
+    int renderDistance = 12;
+    for (int renderSize = 12; renderSize > 0; renderSize--){
+        for (int offSet = 0; offSet < renderSize; offSet += 1){
+            drawChunkVector(chunkPositionX - renderSize,          chunkPositionZ - renderSize + offSet, shader);
+            drawChunkVector(chunkPositionX - renderSize + offSet, chunkPositionZ + renderSize,          shader);
+            drawChunkVector(chunkPositionX + renderSize - offSet, chunkPositionZ - renderSize,          shader);
+            drawChunkVector(chunkPositionX + renderSize,          chunkPositionZ + renderSize - offSet, shader);
         }
+
+        for (int offSet = 0; offSet <= renderSize; offSet += 1){
+            drawChunkVector(chunkPositionX - renderSize + offSet, chunkPositionZ - renderSize,          shader);
+            drawChunkVector(chunkPositionX - renderSize,          chunkPositionZ + renderSize - offSet, shader);
+            drawChunkVector(chunkPositionX + renderSize,          chunkPositionZ - renderSize + offSet, shader);
+            drawChunkVector(chunkPositionX + renderSize - offSet, chunkPositionZ + renderSize         , shader);
+        }
+    }
+
+    drawChunkVector(chunkPositionX, chunkPositionZ, shader);
+}
+
+void Renderer::drawChunkVector(int x, int z, Shader shader){
+    for (Chunk* chunk : chunkManager->getChunkVector(x, z)){
+            chunk->draw(shader);
     }
 }
 

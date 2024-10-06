@@ -270,6 +270,7 @@ bool ChunkManager::isFacingAirblock(Chunk* chunk, int x, int y, int z, int rever
     int blockValue = getBlockValueFromPosition(chunk, x, y, z, LoD);
 
     if (currentBlockValue == 17){
+        if (reverseConstant == 1 && constantPos == 2) return 1;
         return blockValue == 0;
     }
 
@@ -281,7 +282,8 @@ void ChunkManager::getTextureCoordinates(int textureValue, float &u, float &v, v
     switch (textureValue)
     {
     case 1:
-        if (face != TOP_FACE && LoD == 5) textureValue = 4;
+        if (face == BOTTOM_FACE) textureValue = 3; // Dirt
+        if (face != TOP_FACE && LoD == 5) textureValue = 4; // Dirt with grass on sides
         break;
     
     default:
@@ -337,14 +339,6 @@ Mesh ChunkManager::buildMesh(Chunk* _chunk, Camera gameCamera){
 
                     voxelFace face(x, y, z);
                     face.texture = _chunk->octree->getNodeFromPosition(x, y, z, voxelWidth, LoD)->blockValue;
-                    // face.width = voxelWidth - (x % voxelWidth);
-
-                    // for (int dx = x; dx < x + face.width; dx++){
-                    //     if (isAccountedFor(accountedVoxels, dx, y, z) || !isFacingAirblock(_chunk, dx, y, z, reverseConstant, 2, LoD)){
-                    //         face.width = dx - x;
-                    //         break;
-                    //     }
-                    // }
 
                     for (int dx = x; dx < 32; dx++){
                         if (!isAccountedFor(accountedVoxels, dx, y, z) &&
@@ -434,14 +428,6 @@ Mesh ChunkManager::buildMesh(Chunk* _chunk, Camera gameCamera){
 
                 voxelFace face(x, y, z);
                 face.texture = _chunk->octree->getNodeFromPosition(x, y, z, voxelWidth, LoD)->blockValue;
-                //face.width = voxelWidth - (z % voxelWidth);
-
-                // for (int dz = z; dz < z + face.width; dz++){
-                //     if (isAccountedFor(accountedVoxels, x, y, dz) || !isFacingAirblock(_chunk, x, y, dz, reverseConstant, 1, LoD)){
-                //         face.width = dz - z;
-                //         break;
-                //     }
-                // }
 
                 for (int dz = z; dz < 32; dz++){
                     if (!isAccountedFor(accountedVoxels, x, y, dz) &&

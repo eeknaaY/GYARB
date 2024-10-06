@@ -18,8 +18,8 @@ void Camera::updateChunkPosition(){
     this->oldChunk_x = this->currentChunk_x;
     this->oldChunk_z = this->currentChunk_z;
 
-    currentChunk_x = (int)((round(position.x) - (int)round(position.x) % 32) / 32.f);
-    currentChunk_z = (int)((round(position.z) - (int)round(position.z) % 32) / 32.f);
+    currentChunk_x = (int)((position.x - (int)position.x % 32) / 32.f);
+    currentChunk_z = (int)((position.z - (int)position.z % 32) / 32.f);
 
     if (position.x < 0) currentChunk_x--;
     if (position.z < 0) currentChunk_z--;

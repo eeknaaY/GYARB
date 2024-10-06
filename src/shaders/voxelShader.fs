@@ -102,8 +102,9 @@ void main()
     
     FragColor.a = 1;
 
+    // Water alpha
     if (textureID == 17){
-        FragColor.a = 0.85;
+        FragColor.a = 0.3;
     }
 
 }

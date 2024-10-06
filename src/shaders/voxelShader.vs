@@ -17,19 +17,6 @@ uniform mat4 projection;
 uniform mat4 lightSpaceMatrix;
 uniform vec3 playerPosition;
 
-
-vec2 getUVTexture(int textureID){
-    const float textureBlockSize = 0.0625f;
-
-    // Since air is the value 0, we need to remove one value so textures begin at 0.
-    textureID -= 1;
-
-
-    float u = textureBlockSize * (textureID % 16);
-    float v = textureBlockSize * (textureID - textureID % 16)/16; 
-    return vec2(u, v);
-}
-
 void main()
 {   
     vec3 position;
