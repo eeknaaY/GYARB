@@ -28,7 +28,7 @@ void Renderer::renderVisibleChunks(const Shader &shader, const Camera& camera){
 
 void Renderer::drawChunkVector(int x, int z, Shader shader){
     for (Chunk* chunk : chunkManager->getChunkVector(x, z)){
-            chunk->draw(shader);
+        chunk->draw(shader);
     }
 }
 

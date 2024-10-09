@@ -99,12 +99,13 @@ void main()
 
 	float gamma = 1.7;
     FragColor.rgb = pow(fragColor.rgb, vec3(1.0/gamma));
-    
-    FragColor.a = 1;
+    FragColor.a = color.a;
 
-    // Water alpha
+
+
+    //Water alpha
     if (textureID == 17){
-        FragColor.a = 0.3;
+        FragColor.a = 0.5;
     }
 
 }

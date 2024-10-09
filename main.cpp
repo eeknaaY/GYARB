@@ -81,8 +81,8 @@ int main(){
     chunkManager->noise.SetFractalOctaves(3);
     chunkManager->noise.SetFractalWeightedStrength(8);
 
-    for (int dz = -12; dz <= 12; dz++){
-        for (int dx = -12; dx <= 12; dx++){
+    for (int dz = -1; dz <= 1; dz++){
+        for (int dx = -1; dx <= 1; dx++){
             Chunk* chunk = chunkManager->getChunk(dx, 0, dz);
 
             if (!chunk){
@@ -133,7 +133,7 @@ int main(){
             rightMouseButtonDown = true;
             Raycast::raycastInfo ray = Raycast::sendRaycast(gameCamera, chunkManager);
             if (ray.hit){
-                chunkManager->updateBlockValueAndMesh(ray.position.x + ray.normal.x, ray.position.y + ray.normal.y, ray.position.z + ray.normal.z, 8, gameCamera);
+                chunkManager->updateBlockValueAndMesh(ray.position.x + ray.normal.x, ray.position.y + ray.normal.y, ray.position.z + ray.normal.z, 7, gameCamera);
             } else {
 
             }
@@ -193,7 +193,7 @@ int main(){
         voxelShader.setMat4("view", view);
 
         if (gameCamera.hasChangedChunk()){
-            chunkManager->testStartMT(&gameCamera);
+            //chunkManager->testStartMT(&gameCamera);
         }
         
         voxelShader.setMat4("lightSpaceMatrix", lightSpaceMatrix);

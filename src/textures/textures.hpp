@@ -6,6 +6,7 @@
 #include "stb_image.h"
 
 class Textures{
+    // Yes I know these are static, I didn't ask.
     inline static const std::string faces[] = {
         "C:/Users/Johannes/Desktop/GYARB/src/textures/right.png",
         "C:/Users/Johannes/Desktop/GYARB/src/textures/left.png",
@@ -74,7 +75,7 @@ class Textures{
 
             if (data)
             {
-                glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, textureWidth, textureHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+                glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, textureWidth, textureHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
             }
             else
             {

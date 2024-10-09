@@ -275,7 +275,7 @@ bool ChunkManager::isFacingAirblock(Chunk* chunk, int x, int y, int z, int rever
     }
 
     // Facing water or air
-    return (blockValue == 0 || blockValue == 17);
+    return (blockValue == 0 || blockValue == 17 || blockValue == 7);
 }
 
 void ChunkManager::getTextureCoordinates(int textureValue, float &u, float &v, voxelFaces face, int LoD){ // Replace sides of a grass block to semi dirt + semi grass
@@ -334,16 +334,16 @@ Mesh ChunkManager::buildMesh(Chunk* _chunk, Camera gameCamera){
             // TOP & BOTTOM FACE
             if (currentFace == TOP_FACE || currentFace == BOTTOM_FACE){
                 if (!isAccountedFor(accountedVoxels, x, y, z) && 
-                     isFacingAirblock(_chunk, x, y, z, reverseConstant, 2, LoD) && 
-                    !isAirBlock(_chunk, x, y, z, LoD)){
+                    !isAirBlock(_chunk, x, y, z, LoD) &&
+                     isFacingAirblock(_chunk, x, y, z, reverseConstant, 2, LoD)){
 
                     voxelFace face(x, y, z);
                     face.texture = _chunk->octree->getNodeFromPosition(x, y, z, voxelWidth, LoD)->blockValue;
 
                     for (int dx = x; dx < 32; dx++){
                         if (!isAccountedFor(accountedVoxels, dx, y, z) &&
-                             isFacingAirblock(_chunk, dx, y, z, reverseConstant, 2, LoD) && 
                             !isAirBlock(_chunk, dx, y, z, LoD) && 
+                             isFacingAirblock(_chunk, dx, y, z, reverseConstant, 2, LoD) && 
                              _chunk->octree->getNodeFromPosition(dx, y, z, voxelWidth, LoD)->blockValue == face.texture){
                                 
                             face.width += 1;
@@ -356,8 +356,8 @@ Mesh ChunkManager::buildMesh(Chunk* _chunk, Camera gameCamera){
                     for (int dz = z + 1; dz < 32; dz++){
                         for (int dx = x; dx < x + face.width; dx++){
                             if (!isAccountedFor(accountedVoxels, dx, y, dz) &&
-                                 isFacingAirblock(_chunk, dx, y, dz, reverseConstant, 2, LoD) && 
                                 !isAirBlock(_chunk, dx, y, dz, LoD) && 
+                                 isFacingAirblock(_chunk, dx, y, dz, reverseConstant, 2, LoD) && 
                                  _chunk->octree->getNodeFromPosition(dx, y, dz, voxelWidth, LoD)->blockValue == face.texture){
                                     //dx += voxelWidth - 1;
                                     //dx += 1;
@@ -380,7 +380,7 @@ Mesh ChunkManager::buildMesh(Chunk* _chunk, Camera gameCamera){
                 std::vector<Vertex>* vertices = &solid_vertices;
                 std::vector<unsigned int>* indices = &solid_indices;
 
-                if (face.texture == 17){ // If texture is water.
+                if (face.texture == 17 || face.texture == 7){ // If texture is water.
                     vertices = &transparent_vertices;
                     indices = &transparent_indices;
                 }
@@ -423,16 +423,16 @@ Mesh ChunkManager::buildMesh(Chunk* _chunk, Camera gameCamera){
         // FRONT & BACK FACE
         if (currentFace == FRONT_FACE || currentFace == BACK_FACE){
             if (!isAccountedFor(accountedVoxels, x, y, z) &&
-                 isFacingAirblock(_chunk, x, y, z, reverseConstant, 1, LoD) && 
-                !isAirBlock(_chunk, x, y, z, LoD)){
+                !isAirBlock(_chunk, x, y, z, LoD) &&
+                 isFacingAirblock(_chunk, x, y, z, reverseConstant, 1, LoD)){
 
                 voxelFace face(x, y, z);
                 face.texture = _chunk->octree->getNodeFromPosition(x, y, z, voxelWidth, LoD)->blockValue;
 
                 for (int dz = z; dz < 32; dz++){
                     if (!isAccountedFor(accountedVoxels, x, y, dz) &&
-                         isFacingAirblock(_chunk, x, y, dz, reverseConstant, 1, LoD) && 
                         !isAirBlock(_chunk, x, y, dz, LoD) && 
+                         isFacingAirblock(_chunk, x, y, dz, reverseConstant, 1, LoD) && 
                          _chunk->octree->getNodeFromPosition(x, y, dz, voxelWidth, LoD)->blockValue == face.texture){
 
                         face.width += 1;
@@ -446,8 +446,8 @@ Mesh ChunkManager::buildMesh(Chunk* _chunk, Camera gameCamera){
                 for (int dy = y + 1; dy < 32; dy++){
                     for (int dz = z; dz < z + face.width; dz++){
                         if (!isAccountedFor(accountedVoxels, x, dy, dz) &&
-                             isFacingAirblock(_chunk, x, dy, dz, reverseConstant, 1, LoD) && 
                             !isAirBlock(_chunk, x, dy, dz, LoD) && 
+                             isFacingAirblock(_chunk, x, dy, dz, reverseConstant, 1, LoD) && 
                              _chunk->octree->getNodeFromPosition(x, dy, dz, voxelWidth, LoD)->blockValue == face.texture){
                                     //dz += voxelWidth - 1;
                                     //dz += 1;
@@ -472,7 +472,7 @@ Mesh ChunkManager::buildMesh(Chunk* _chunk, Camera gameCamera){
                 std::vector<Vertex>* vertices = &solid_vertices;
                 std::vector<unsigned int>* indices = &solid_indices;
 
-                if (face.texture == 17){ // If texture is water.
+                if (face.texture == 17 || face.texture == 7){ // If texture is water.
                     vertices = &transparent_vertices;
                     indices = &transparent_indices;
                 }
@@ -515,16 +515,16 @@ Mesh ChunkManager::buildMesh(Chunk* _chunk, Camera gameCamera){
         // RIGHT & LEFT FACE
         if (currentFace == LEFT_FACE || currentFace == RIGHT_FACE){
             if (!isAccountedFor(accountedVoxels, x, y, z) &&
-                 isFacingAirblock(_chunk, x, y, z, reverseConstant, 3, LoD) && 
-                !isAirBlock(_chunk, x, y, z, LoD)){
+                !isAirBlock(_chunk, x, y, z, LoD) &&
+                 isFacingAirblock(_chunk, x, y, z, reverseConstant, 3, LoD)){
 
             voxelFace face(x, y, z);
             face.texture = _chunk->octree->getNodeFromPosition(x, y, z, voxelWidth, LoD)->blockValue;
 
             for (int dx = x; dx < 32; dx++){
                 if (!isAccountedFor(accountedVoxels, dx, y, z) &&
-                     isFacingAirblock(_chunk, dx, y, z, reverseConstant, 3, LoD) && 
                     !isAirBlock(_chunk, dx, y, z, LoD) && 
+                     isFacingAirblock(_chunk, dx, y, z, reverseConstant, 3, LoD) && 
                      _chunk->octree->getNodeFromPosition(dx, y, z, voxelWidth, LoD)->blockValue == face.texture){
 
                     face.width += 1;
@@ -537,8 +537,8 @@ Mesh ChunkManager::buildMesh(Chunk* _chunk, Camera gameCamera){
             for (int dy = y + 1; dy < 32; dy++){
                 for (int dx = x; dx < x + face.width; dx++){
                     if (!isAccountedFor(accountedVoxels, dx, dy, z) &&
-                         isFacingAirblock(_chunk, dx, dy, z, reverseConstant, 3, LoD) && 
                         !isAirBlock(_chunk, dx, dy, z, LoD) && 
+                         isFacingAirblock(_chunk, dx, dy, z, reverseConstant, 3, LoD) && 
                          _chunk->octree->getNodeFromPosition(dx, dy, z, voxelWidth, LoD)->blockValue == face.texture){
                             //dx += voxelWidth - 1;
                             //dx += 1;
@@ -563,7 +563,7 @@ Mesh ChunkManager::buildMesh(Chunk* _chunk, Camera gameCamera){
             std::vector<Vertex>* vertices = &solid_vertices;
             std::vector<unsigned int>* indices = &solid_indices;
 
-            if (face.texture == 17){ // If texture is water.
+            if (face.texture == 17 || face.texture == 7){ // If texture is water.
                 vertices = &transparent_vertices;
                 indices = &transparent_indices;
             }
