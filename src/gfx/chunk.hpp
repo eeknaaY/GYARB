@@ -33,6 +33,16 @@ class Chunk{
             octreeExists = true;
         }
 
+        Chunk(int _xCoordinate, int _yCoordinate, int _zCoordinate, int LoD = 5){
+            this->xCoordinate = _xCoordinate;
+            this->zCoordinate = _zCoordinate;
+            this->yCoordinate = _yCoordinate;
+            currentLoD = LoD;
+            // Initialize empty octree
+            octree = new Octree(0);
+            octreeExists = true;
+        }
+
         ~Chunk(){
             delete octree;
             octree = 0;

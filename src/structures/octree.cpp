@@ -121,12 +121,17 @@ Octree::Octree(){
     mainNode = new Node();
 }
 
-Octree::Octree(int _chunk_xcoord, int _chunk_ycoord, int _chunk_zcoord, FastNoiseLite noise){
+Octree::Octree(int _chunkXcoord, int _chunkYcoord, int _chunkZcoord, FastNoiseLite noise){
     mainNode = new Node(-1, 0, nullptr, false, true);
-    chunk_xcoord = _chunk_xcoord;
-    chunk_zcoord = _chunk_zcoord;
-    TEMP_setBlockValues(_chunk_xcoord, _chunk_ycoord, _chunk_zcoord, noise);
-    TEMP_optimizeTree();
+    chunk_xcoord = _chunkXcoord;
+    chunk_zcoord = _chunkZcoord;
+    // chunks only needed to get noise values
+    setInitialBlockValues(_chunkXcoord, _chunkYcoord, _chunkZcoord, noise);
+    optimizeTree();
+}
+
+Octree::Octree(int initValue){
+    mainNode = new Node(0, 0, nullptr, true, false);
 }
 
 Octree::~Octree(){
@@ -243,7 +248,7 @@ void Octree::buildAMinecraftTree(int x, int y, int z){
     }
 }
 
-void Octree::TEMP_setBlockValues(int _chunk_xcoord, int _chunk_ycoord, int _chunk_zcoord, FastNoiseLite noise){
+void Octree::setInitialBlockValues(int _chunk_xcoord, int _chunk_ycoord, int _chunk_zcoord, FastNoiseLite noise){
     
     for (int x = 0; x < 32; x++){
         for (int z = 0; z < 32; z++){
@@ -253,7 +258,7 @@ void Octree::TEMP_setBlockValues(int _chunk_xcoord, int _chunk_ycoord, int _chun
             if (localMaxHeight < 0 && _chunk_ycoord == 0) localMaxHeight = 0;
             int waterLevel = 8;
             for (int y = 31; y >= 0; y--){
-                int blockValue = TEMP_blockDeterminationFunc(y, localMaxHeight, y + 32 * _chunk_ycoord, waterLevel);
+                int blockValue = determineBlockValue(y, localMaxHeight, y + 32 * _chunk_ycoord, waterLevel);
                 // This stops the function overriding any non-air blocks when it wants them to be air, fucks trees over.
                 if (blockValue == 0 && getNodeFromPosition(x, y, z)->blockValue > 0) continue;
                 
@@ -269,7 +274,7 @@ void Octree::TEMP_setBlockValues(int _chunk_xcoord, int _chunk_ycoord, int _chun
     }
 }
 
-int Octree::TEMP_blockDeterminationFunc(int localY, int localMaxHeight, int globalYPos, int waterLevel){
+int Octree::determineBlockValue(int localY, int localMaxHeight, int globalYPos, int waterLevel){
     if (localY > localMaxHeight && globalYPos < waterLevel) return 17; // Water
     if (localY > localMaxHeight) return 0; // Air
 
@@ -282,7 +287,7 @@ int Octree::TEMP_blockDeterminationFunc(int localY, int localMaxHeight, int glob
     return 2; // Stone
 }
 
-void Octree::TEMP_optimizeTree(){
+void Octree::optimizeTree(){
     for (Node* node_1 : mainNode->children){
         for (Node* node_2 : node_1->children){
             for (Node* node_3 : node_2->children){

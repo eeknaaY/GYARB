@@ -91,7 +91,7 @@ void ChunkManager::updateChunkMesh_MT(Chunk* _chunk, Camera gameCamera){
     _chunk->mesh.transparent_indices = updatedMesh.transparent_indices;
 }
 
-void ChunkManager::testStartMT(Camera* gameCamera){
+void ChunkManager::startMeshingThreads(Camera* gameCamera){
     if (meshingThread1.joinable()) meshingThread1.join();
     if (meshingThread2.joinable()) meshingThread2.join();
 
@@ -120,6 +120,8 @@ void ChunkManager::updateTerrain(Camera* gameCamera, int threadMultiplier){
     std::vector<Chunk*>* finishedMeshes;
     std::vector<std::pair<int, int>>* chunksToRemove;
 
+    int renderDistance = gameCamera->renderDistance;
+
     if (threadMultiplier == 0){
         finishedMeshes = &this->finishedMeshesth1;
         chunksToRemove = &this->chunksToRemoveth1;
@@ -128,57 +130,68 @@ void ChunkManager::updateTerrain(Camera* gameCamera, int threadMultiplier){
         chunksToRemove = &this->chunksToRemoveth2;
     }
 
-    if (c_dXPos != 0){
-        for (int dz = zPos - 12 * (1 - threadMultiplier); dz <= zPos + 12 * threadMultiplier + (threadMultiplier - 1); dz++){
-            for (int dx = xPos - 12; dx <= xPos + 12; dx++){
+    //if (c_dXPos != 0){
+        for (int dz = zPos - renderDistance * (1 - threadMultiplier); dz <= zPos + renderDistance * threadMultiplier + (threadMultiplier - 1); dz++){
+            for (int dx = xPos - renderDistance; dx <= xPos + renderDistance; dx++){
                 Chunk* chunk = getChunk(dx, 0, dz);
 
                 if (!chunk){
-                    Chunk* _chunk = new Chunk(dx, 0, dz, 5, noise);
+                    int LoD = 5;
+                    if (abs(dx - xPos) > 10 || abs(dz - zPos) > 10) LoD = 4;
+                    Chunk* _chunk = new Chunk(dx, 0, dz, LoD, noise);
                     appendChunk(_chunk);
                     continue;
                 }
 
-                if (dx == xPos - c_dXPos * 12){
-                    chunksToRemove->push_back(std::make_pair(dx, dz));
-                    continue;
-                }
+                // if (dx == xPos - c_dXPos * renderDistance){
+                //     chunksToRemove->push_back(std::make_pair(dx, dz));
+                //     continue;
+                // }
 
-                if (dx == xPos + c_dXPos * 3 || dx == xPos + c_dXPos * 11){
+                if (dx == xPos + c_dXPos * 4 || dx == xPos + c_dXPos * (renderDistance - 1)){
                     for (Chunk* _chunkptr : getChunkVector(dx, dz)){
                         updateChunkMesh_MT(_chunkptr, *gameCamera);
                         finishedMeshes->push_back(_chunkptr);
                     }
                 }
-            }
-        }
-    }
 
-    if (c_dZPos != 0){
-        for (int dz = zPos - 12 * (1 - threadMultiplier); dz <= zPos + 12 * threadMultiplier + (threadMultiplier - 1); dz++){
-            for (int dx = xPos - 12; dx <= xPos + 12; dx++){
-                Chunk* chunk = getChunk(dx, 0, dz);
-
-                if (!chunk){
-                    Chunk* _chunk = new Chunk(dx, 0, dz, 5, noise);
-                    appendChunk(_chunk);
-                    continue;
-                }
-
-                if (dz == zPos - c_dZPos * 12){
-                    chunksToRemove->push_back(std::make_pair(dx, dz));
-                    continue;
-                }
-
-                if (dz == zPos + c_dZPos * 3 || dz == zPos + c_dZPos * 11){
-                    for (Chunk* _chunkptr : getChunkVector(dx, dz)){
-                        updateChunkMesh_MT(_chunkptr, *gameCamera);
-                        finishedMeshes->push_back(_chunkptr);
+                for (Chunk* _chunkptr : getChunkVector(dx, dz)){
+                        if (_chunkptr->mesh.solid_vertices.size() == 0){
+                            updateChunkMesh_MT(_chunkptr, *gameCamera);
+                            finishedMeshes->push_back(_chunkptr);
+                        }
                     }
-                }
             }
         }
-    }
+    //}
+
+    //if (c_dZPos != 0){
+        // for (int dz = zPos - renderDistance * (1 - threadMultiplier); dz <= zPos + renderDistance * threadMultiplier + (threadMultiplier - 1); dz++){
+        //     for (int dx = xPos - renderDistance; dx <= xPos + renderDistance; dx++){
+        //         Chunk* chunk = getChunk(dx, 0, dz);
+
+        //         if (!chunk){
+        //             int LoD = 5;
+        //             if (abs(dx) > 10 || abs(dz) > 10) LoD = 4;
+        //             Chunk* _chunk = new Chunk(dx, 0, dz, LoD, noise);
+        //             appendChunk(_chunk);
+        //             continue;
+        //         }
+
+        //         if (dz == zPos - c_dZPos * renderDistance){
+        //             chunksToRemove->push_back(std::make_pair(dx, dz));
+        //             continue;
+        //         }
+
+        //         if (dz == zPos + c_dZPos * 4 || dz == zPos + c_dZPos * (renderDistance - 1)){
+        //             for (Chunk* _chunkptr : getChunkVector(dx, dz)){
+        //                 updateChunkMesh_MT(_chunkptr, *gameCamera);
+        //                 finishedMeshes->push_back(_chunkptr);
+        //             }
+        //         }
+        //     }
+        // }
+    //}
 }
 
 
@@ -244,12 +257,12 @@ bool ChunkManager::isAccountedFor(bool accountedVoxels[], int x, int y, int z){
     return accountedVoxels[x + 32 * z + 32 * 32 * y];
 }
 
-bool ChunkManager::isAirBlock(Chunk* chunk, int x, int y, int z, int LoD){
-    return getBlockValueFromPosition(chunk, x, y, z, LoD) == 0;
+bool ChunkManager::isAirBlock(int voxelVal[], int x, int y, int z, int LoD){
+    return getVoxelValue(voxelVal, x, y, z) == 0;
 }
 
-bool ChunkManager::isFacingAirblock(Chunk* chunk, int x, int y, int z, int reverseConstant, int constantPos, int LoD){
-    int currentBlockValue = getBlockValueFromPosition(chunk, x, y, z, LoD);
+bool ChunkManager::isFacingAirblock(int voxelVal[], int x, int y, int z, int reverseConstant, int constantPos, int LoD){
+    int currentBlockValue = getVoxelValue(voxelVal, x, y, z);
     
     switch (constantPos)
     {
@@ -267,7 +280,7 @@ bool ChunkManager::isFacingAirblock(Chunk* chunk, int x, int y, int z, int rever
         break;
     }
 
-    int blockValue = getBlockValueFromPosition(chunk, x, y, z, LoD);
+    int blockValue = getVoxelValue(voxelVal, x, y, z);
 
     if (currentBlockValue == 17){
         if (reverseConstant == 1 && constantPos == 2) return 1;
@@ -276,6 +289,21 @@ bool ChunkManager::isFacingAirblock(Chunk* chunk, int x, int y, int z, int rever
 
     // Facing water or air
     return (blockValue == 0 || blockValue == 17 || blockValue == 7);
+}
+
+int ChunkManager::getVoxelValue(int voxelValues[], int x, int y, int z){
+    return voxelValues[(x + 1) + (z + 1) * 34 + (y + 1) * 34 * 34];
+}
+
+void ChunkManager::buildVoxelValueArray(int voxelValues[], Chunk* chunk, int LoD){
+    int jumpLength = 1 << (5 - LoD);
+    for (int x = -1; x < 33; x++){
+        for (int y = -1; y < 33; y++){
+            for (int z = -1; z < 33; z++){
+                voxelValues[(x + 1) + (z + 1) * 34 + (y + 1) * 34 * 34] = getBlockValueFromPosition(chunk, x, y, z, LoD);
+            }
+        }
+    }
 }
 
 void ChunkManager::getTextureCoordinates(int textureValue, float &u, float &v, voxelFaces face, int LoD){ // Replace sides of a grass block to semi dirt + semi grass
@@ -316,35 +344,42 @@ Mesh ChunkManager::buildMesh(Chunk* _chunk, Camera gameCamera){
 
     int chunk_dx = _chunk->xCoordinate - gameCamera.currentChunk_x;
     int chunk_dz = _chunk->zCoordinate - gameCamera.currentChunk_z;
+    int chunk_dy = _chunk->yCoordinate - gameCamera.currentChunk_y;
+
+    int voxelValues[34 * 34 * 34];
+    buildVoxelValueArray(voxelValues, _chunk, LoD);
 
     for (int currentFace = TOP_FACE; currentFace <= RIGHT_FACE; currentFace++){
         if (chunk_dx > 5 && currentFace == FRONT_FACE) continue;
         if (chunk_dx < -5 && currentFace == BACK_FACE) continue;
         if (chunk_dz < -5 && currentFace == RIGHT_FACE) continue;
         if (chunk_dz > 5 && currentFace == LEFT_FACE) continue;
+        if (chunk_dy > 5 && currentFace == TOP_FACE) continue;
+        //if (chunk_dy < 5 && currentFace == BOTTOM_FACE) continue;
 
         bool accountedVoxels[32 * 32 * 32] = {false};
 
         int reverseConstant = jumpLength;
-        if (currentFace == BOTTOM_FACE || currentFace == BACK_FACE || currentFace == RIGHT_FACE) reverseConstant = -jumpLength;
+        if (currentFace == BOTTOM_FACE || currentFace == BACK_FACE || currentFace == RIGHT_FACE) reverseConstant = -1;
 
         for (int y = 0; y < 32; y += jumpLength){
         for (int z = 0; z < 32; z += jumpLength){
         for (int x = 0; x < 32; x += jumpLength){
+            if (isAccountedFor(accountedVoxels, x, y, z)) continue;
+            if (isAirBlock(voxelValues, x, y, z, LoD)) continue;
+
             // TOP & BOTTOM FACE
             if (currentFace == TOP_FACE || currentFace == BOTTOM_FACE){
-                if (!isAccountedFor(accountedVoxels, x, y, z) && 
-                    !isAirBlock(_chunk, x, y, z, LoD) &&
-                     isFacingAirblock(_chunk, x, y, z, reverseConstant, 2, LoD)){
+                if (isFacingAirblock(voxelValues, x, y, z, reverseConstant, 2, LoD)){
 
                     voxelFace face(x, y, z);
-                    face.texture = _chunk->octree->getNodeFromPosition(x, y, z, voxelWidth, LoD)->blockValue;
+                    face.texture = getVoxelValue(voxelValues, x, y, z);
 
                     for (int dx = x; dx < 32; dx++){
                         if (!isAccountedFor(accountedVoxels, dx, y, z) &&
-                            !isAirBlock(_chunk, dx, y, z, LoD) && 
-                             isFacingAirblock(_chunk, dx, y, z, reverseConstant, 2, LoD) && 
-                             _chunk->octree->getNodeFromPosition(dx, y, z, voxelWidth, LoD)->blockValue == face.texture){
+                            !isAirBlock(voxelValues, dx, y, z, LoD) && 
+                             isFacingAirblock(voxelValues, dx, y, z, reverseConstant, 2, LoD) && 
+                             getVoxelValue(voxelValues, dx, y, z) == face.texture){
                                 
                             face.width += 1;
                         } else {
@@ -356,11 +391,10 @@ Mesh ChunkManager::buildMesh(Chunk* _chunk, Camera gameCamera){
                     for (int dz = z + 1; dz < 32; dz++){
                         for (int dx = x; dx < x + face.width; dx++){
                             if (!isAccountedFor(accountedVoxels, dx, y, dz) &&
-                                !isAirBlock(_chunk, dx, y, dz, LoD) && 
-                                 isFacingAirblock(_chunk, dx, y, dz, reverseConstant, 2, LoD) && 
-                                 _chunk->octree->getNodeFromPosition(dx, y, dz, voxelWidth, LoD)->blockValue == face.texture){
+                                !isAirBlock(voxelValues, dx, y, dz, LoD) && 
+                                 isFacingAirblock(voxelValues, dx, y, dz, reverseConstant, 2, LoD) && 
+                                 getVoxelValue(voxelValues, dx, y, dz) == face.texture){
                                     //dx += voxelWidth - 1;
-                                    //dx += 1;
                             } else {
                                 shouldBreak = true;
                                 break;
@@ -422,18 +456,16 @@ Mesh ChunkManager::buildMesh(Chunk* _chunk, Camera gameCamera){
 
         // FRONT & BACK FACE
         if (currentFace == FRONT_FACE || currentFace == BACK_FACE){
-            if (!isAccountedFor(accountedVoxels, x, y, z) &&
-                !isAirBlock(_chunk, x, y, z, LoD) &&
-                 isFacingAirblock(_chunk, x, y, z, reverseConstant, 1, LoD)){
+            if (isFacingAirblock(voxelValues, x, y, z, reverseConstant, 1, LoD)){
 
                 voxelFace face(x, y, z);
-                face.texture = _chunk->octree->getNodeFromPosition(x, y, z, voxelWidth, LoD)->blockValue;
+                face.texture = getVoxelValue(voxelValues, x, y, z);
 
                 for (int dz = z; dz < 32; dz++){
                     if (!isAccountedFor(accountedVoxels, x, y, dz) &&
-                        !isAirBlock(_chunk, x, y, dz, LoD) && 
-                         isFacingAirblock(_chunk, x, y, dz, reverseConstant, 1, LoD) && 
-                         _chunk->octree->getNodeFromPosition(x, y, dz, voxelWidth, LoD)->blockValue == face.texture){
+                        !isAirBlock(voxelValues, x, y, dz, LoD) && 
+                         isFacingAirblock(voxelValues, x, y, dz, reverseConstant, 1, LoD) && 
+                         getVoxelValue(voxelValues, x, y, dz) == face.texture){
 
                         face.width += 1;
                         //dz += voxelWidth - 1;
@@ -446,9 +478,9 @@ Mesh ChunkManager::buildMesh(Chunk* _chunk, Camera gameCamera){
                 for (int dy = y + 1; dy < 32; dy++){
                     for (int dz = z; dz < z + face.width; dz++){
                         if (!isAccountedFor(accountedVoxels, x, dy, dz) &&
-                            !isAirBlock(_chunk, x, dy, dz, LoD) && 
-                             isFacingAirblock(_chunk, x, dy, dz, reverseConstant, 1, LoD) && 
-                             _chunk->octree->getNodeFromPosition(x, dy, dz, voxelWidth, LoD)->blockValue == face.texture){
+                            !isAirBlock(voxelValues, x, dy, dz, LoD) && 
+                             isFacingAirblock(voxelValues, x, dy, dz, reverseConstant, 1, LoD) && 
+                             getVoxelValue(voxelValues, x, dy, dz) == face.texture){
                                     //dz += voxelWidth - 1;
                                     //dz += 1;
                              }
@@ -514,18 +546,16 @@ Mesh ChunkManager::buildMesh(Chunk* _chunk, Camera gameCamera){
 
         // RIGHT & LEFT FACE
         if (currentFace == LEFT_FACE || currentFace == RIGHT_FACE){
-            if (!isAccountedFor(accountedVoxels, x, y, z) &&
-                !isAirBlock(_chunk, x, y, z, LoD) &&
-                 isFacingAirblock(_chunk, x, y, z, reverseConstant, 3, LoD)){
+            if (isFacingAirblock(voxelValues, x, y, z, reverseConstant, 3, LoD)){
 
             voxelFace face(x, y, z);
-            face.texture = _chunk->octree->getNodeFromPosition(x, y, z, voxelWidth, LoD)->blockValue;
+            face.texture = getVoxelValue(voxelValues, x, y, z);
 
             for (int dx = x; dx < 32; dx++){
                 if (!isAccountedFor(accountedVoxels, dx, y, z) &&
-                    !isAirBlock(_chunk, dx, y, z, LoD) && 
-                     isFacingAirblock(_chunk, dx, y, z, reverseConstant, 3, LoD) && 
-                     _chunk->octree->getNodeFromPosition(dx, y, z, voxelWidth, LoD)->blockValue == face.texture){
+                    !isAirBlock(voxelValues, dx, y, z, LoD) && 
+                     isFacingAirblock(voxelValues, dx, y, z, reverseConstant, 3, LoD) && 
+                     getVoxelValue(voxelValues, dx, y, z) == face.texture){
 
                     face.width += 1;
                 } else{
@@ -537,9 +567,9 @@ Mesh ChunkManager::buildMesh(Chunk* _chunk, Camera gameCamera){
             for (int dy = y + 1; dy < 32; dy++){
                 for (int dx = x; dx < x + face.width; dx++){
                     if (!isAccountedFor(accountedVoxels, dx, dy, z) &&
-                        !isAirBlock(_chunk, dx, dy, z, LoD) && 
-                         isFacingAirblock(_chunk, dx, dy, z, reverseConstant, 3, LoD) && 
-                         _chunk->octree->getNodeFromPosition(dx, dy, z, voxelWidth, LoD)->blockValue == face.texture){
+                        !isAirBlock(voxelValues, dx, dy, z, LoD) && 
+                         isFacingAirblock(voxelValues, dx, dy, z, reverseConstant, 3, LoD) && 
+                         getVoxelValue(voxelValues, dx, dy, z) == face.texture){
                             //dx += voxelWidth - 1;
                             //dx += 1;
                         }
@@ -700,7 +730,15 @@ void ChunkManager::updateBlockValueAndMesh(int x, int y, int z, int blockValue, 
     }
 
     if (y == 31){
-        updateChunkMesh(getChunk(chunkPosX, chunkPosY + 1, chunkPosZ), camera);
+        Chunk* _chunk = getChunk(chunkPosX, chunkPosY + 1, chunkPosZ);
+        if (_chunk){
+            updateChunkMesh(getChunk(chunkPosX, chunkPosY + 1, chunkPosZ), camera);
+        } else {
+            // Initialize new chunk
+            Chunk* newChunk = new Chunk(chunkPosX, chunkPosY + 1, chunkPosZ);
+            appendChunk(newChunk);
+            updateBlockValue(x, y, z, blockValue);
+        }
     }
 
     if (z == 0){

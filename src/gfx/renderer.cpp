@@ -6,8 +6,8 @@ void Renderer::renderVisibleChunks(const Shader &shader, const Camera& camera){
     // Draw them far -> near
     int chunkPositionX = camera.currentChunk_x;
     int chunkPositionZ = camera.currentChunk_z;
-    int renderDistance = 12;
-    for (int renderSize = 12; renderSize > 0; renderSize--){
+    int renderDistance = camera.renderDistance;
+    for (int renderSize = renderDistance; renderSize > 0; renderSize--){
         for (int offSet = 0; offSet < renderSize; offSet += 1){
             drawChunkVector(chunkPositionX - renderSize,          chunkPositionZ - renderSize + offSet, shader);
             drawChunkVector(chunkPositionX - renderSize + offSet, chunkPositionZ + renderSize,          shader);

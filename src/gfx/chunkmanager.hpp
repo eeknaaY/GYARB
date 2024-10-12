@@ -44,7 +44,7 @@ class ChunkManager{
         Mesh buildMesh(Chunk* _chunk, Camera gameCamera);
         void updateChunkMesh(Chunk* _chunk, Camera gameCamera);
         void updateChunkMesh_MT(Chunk* _chunk, Camera gameCamera);
-        void testStartMT(Camera* gameCamera);
+        void startMeshingThreads(Camera* gameCamera);
         void updateTerrain(Camera* gameCamera, int threadMultiplier);
         void updateBlockValue(int x, int y, int z, int blockValue);
         int getBlockValue(float x, float y, float z);
@@ -59,8 +59,10 @@ class ChunkManager{
         // These shouldn't really be inside ChunkManager, but in a meshing class, couldnt fix that so now its here for now
         int getBlockValueFromPosition(Chunk* chunk, int x, int y, int z, int LoD);
         void makeVoxelAccountedFor(bool accountedVoxels[], int x, int y, int z);
-        bool isAirBlock(Chunk* chunk, int x, int y, int z, int LoD);
+        bool isAirBlock(int voxelValues[], int x, int y, int z, int LoD);
         bool isAccountedFor(bool accountedVoxels[], int x, int y, int z);
-        bool isFacingAirblock(Chunk* chunk, int x, int y, int z, int reverseConstant, int constantPos, int LoD);
+        bool isFacingAirblock(int voxelValues[], int x, int y, int z, int reverseConstant, int constantPos, int LoD);
         void getTextureCoordinates(int textureValue, float &u, float &v, voxelFaces face, int LoD);
+        void buildVoxelValueArray(int voxelValues[], Chunk* chunk, int LoD);
+        int getVoxelValue(int voxelValues[], int x, int y, int z);
 };

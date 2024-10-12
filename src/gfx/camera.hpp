@@ -22,18 +22,25 @@ class Camera{
             lastX =  1600.0f / 2.0;
             lastY =  900.0 / 2.0;
             firstMouse = true;
+
+            
+            renderDistance = 4;
         }
         Camera() = default;
 
         void updateChunkPosition();
         void processInput(float deltaTime);
-        void updateMovement(float deltaTime);
+        void processKeyInput(float deltaTime);
         bool hasChangedChunk();
+
+        int renderDistance;
 
         int currentChunk_x = 0;
         int currentChunk_z = 0;
+        int currentChunk_y = 0;
         int oldChunk_x = 0;
         int oldChunk_z = 0;
+        int oldChunk_y = 0;
 
         glm::vec3 position;
         glm::vec3 target;

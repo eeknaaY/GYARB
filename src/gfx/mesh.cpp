@@ -114,11 +114,15 @@ void Mesh::drawChunk(const Shader &shader, int x, int y, int z)
 {
     shader.setMat4("model", glm::translate(glm::mat4(1.0f), glm::vec3(32 * x, 32 * y, 32 * z)));
 
-    glBindVertexArray(solidVAO);
-    glDrawElements(GL_TRIANGLES, solid_indices.size(), GL_UNSIGNED_INT, 0);
-
-    glBindVertexArray(transparentVAO);
-    glDrawElements(GL_TRIANGLES, transparent_indices.size(), GL_UNSIGNED_INT, 0);
+    if (solid_vertices.size() != 0){
+        glBindVertexArray(solidVAO);
+        glDrawElements(GL_TRIANGLES, solid_indices.size(), GL_UNSIGNED_INT, 0);
+    }
+    
+    if (transparent_vertices.size() != 0){
+        glBindVertexArray(transparentVAO);
+        glDrawElements(GL_TRIANGLES, transparent_indices.size(), GL_UNSIGNED_INT, 0);
+    }
 
     glBindVertexArray(0);
 }
