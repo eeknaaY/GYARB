@@ -41,4 +41,44 @@ void Camera::processKeyInput(float deltaTime){
         position += cameraSpeed * up;
     if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
         position -= cameraSpeed * up;
+
+    if (glfwGetKey(window, GLFW_KEY_1) == GLFW_PRESS){
+        blockTypeSelected = 1;
+    }
+
+    if (glfwGetKey(window, GLFW_KEY_2) == GLFW_PRESS){
+        blockTypeSelected = 2;
+    }
+
+    if (glfwGetKey(window, GLFW_KEY_3) == GLFW_PRESS){
+        blockTypeSelected = 3;
+    }
+
+    if (glfwGetKey(window, GLFW_KEY_4) == GLFW_PRESS){
+        blockTypeSelected = 4;
+    }
+
+    if (glfwGetKey(window, GLFW_KEY_5) == GLFW_PRESS){
+        blockTypeSelected = 5;
+    }
+
+    if (glfwGetKey(window, GLFW_KEY_6) == GLFW_PRESS){
+        blockTypeSelected = 6;
+    }
+
+    if (glfwGetKey(window, GLFW_KEY_7) == GLFW_PRESS){
+        blockTypeSelected = 7;
+    }
+
+    if (glfwGetKey(window, GLFW_KEY_8) == GLFW_PRESS){
+        blockTypeSelected = 8;
+    }
+
+    if (glfwGetKey(window, GLFW_KEY_9) == GLFW_PRESS){
+        blockTypeSelected = 9;
+    }
+
+    if (glfwGetKey(window, GLFW_KEY_0) == GLFW_PRESS){
+        blockTypeSelected = 10;
+    }
 }

@@ -24,7 +24,7 @@ class Camera{
             firstMouse = true;
 
             
-            renderDistance = 4;
+            renderDistance = 3;
         }
         Camera() = default;
 
@@ -34,6 +34,8 @@ class Camera{
         bool hasChangedChunk();
 
         int renderDistance;
+        float automatedMovementSpeed = 0;
+        int blockTypeSelected = 0;
 
         int currentChunk_x = 0;
         int currentChunk_z = 0;

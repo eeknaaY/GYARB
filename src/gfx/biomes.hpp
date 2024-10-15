@@ -4,11 +4,18 @@
 #include <vector>
 #include "FastNoiseLite.h"
 
-struct biome{
+struct Biome{
     FastNoiseLite noise;
-    int waterLevel;
-    int averageHeightValue;
-    int heightOffsetValue;
+    int waterLevel = 0;
+    int averageHeightValue = 0;
+    int heightOffsetValue = 0;
+
+    Biome(FastNoiseLite noise, int waterLevel, int averageHeightValue, int heightOffsetValue){
+        this->noise = noise;
+        this->waterLevel = waterLevel;
+        this->averageHeightValue = averageHeightValue;
+        this->heightOffsetValue = heightOffsetValue;
+    }
 };
 
 class Biomes{
@@ -17,18 +24,31 @@ class Biomes{
             Forest
         };
 
-        static std::vector<biome> _biomes;
-
-        static biome getBiome(biomes biomeVal){
-            if (_biomes.size() == 0){
+        static Biome getBiome(biomes biomeVal){
+            if (biomesVector.size() == 0){
                 buildBiomeVector();
-                return _biomes[biomeVal];
+                return biomesVector[biomeVal];
             } else {
-                return _biomes[biomeVal];
+                return biomesVector[biomeVal];
             }
         }
 
         static void buildBiomeVector(){
-            _biomes.push_back(biome());
+            FastNoiseLite plainNoise;
+            plainNoise.SetNoiseType(FastNoiseLite::NoiseType_Perlin);
+            plainNoise.SetFractalType(FastNoiseLite::FractalType_FBm);
+            plainNoise.SetFrequency(0.002);
+            plainNoise.SetFractalOctaves(3);
+            plainNoise.SetFractalWeightedStrength(8);
+
+            { // Forest
+                biomesVector.push_back(Biome(plainNoise, 8, 16, 16));
+            }
+
+            { // ?
+
+            }
         }
+    private:
+        inline static std::vector<Biome> biomesVector = std::vector<Biome>{};
 };

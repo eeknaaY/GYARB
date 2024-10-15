@@ -2,6 +2,7 @@
 #include <vector>
 #include <stdexcept>      // std::out_of_range
 #include "chunkmanager.hpp"
+#include "biomes.hpp"
 
 ////////////////////////////////////////////////////  CHUNK HANDLING  ///////////////////////////////////////////////////////////////////////////////
 
@@ -12,12 +13,13 @@ void ChunkManager::appendChunk(int x, int z, int LoD){
         chunkMap[std::make_pair(x, z)].push_back(new Chunk(x, 0, z, LoD, noise));
     }
 
+    Biome currentBiome = Biomes::getBiome(Biomes::Forest);
     for (int _x = 0; _x < 32; _x++){
         for (int _z = 0; _z < 32; _z++){
-            float noiseVal = noise.GetNoise((float)(_x + 32 * x), (float)(_z + 32 * z));
+            float noiseVal = currentBiome.noise.GetNoise((float)(_x + 32 * x), (float)(_z + 32 * z));
             // Change height here and in octree
-            int maxHeight = 48 + (int)(16.f * noiseVal);
-            if (maxHeight - getChunkVector(x, z).size() * 32 > 32){
+            int maxHeight = currentBiome.averageHeightValue + Chunk::CHUNK_SIZE + (int)((currentBiome.heightOffsetValue) * noiseVal);
+            if (maxHeight - getChunkVector(x, z).size() * Chunk::CHUNK_SIZE > Chunk::CHUNK_SIZE){
                 appendChunk(new Chunk(x, getChunkVector(x, z).size(), z, LoD, noise));
                 return;
             }
@@ -32,12 +34,14 @@ void ChunkManager::appendChunk(Chunk* ptr){
         chunkMap[std::make_pair(ptr->xCoordinate, ptr->zCoordinate)].push_back(ptr);
     }
 
+    Biome currentBiome = Biomes::getBiome(Biomes::Forest);
     for (int x = 0; x < 32; x++){
         for (int z = 0; z < 32; z++){
-            float noiseVal = noise.GetNoise((float)(x + 32 * ptr->xCoordinate), (float)(z + 32 * ptr->zCoordinate));
+            float noiseVal = currentBiome.noise.GetNoise((float)(ptr->xCoordinate + 32 * x), (float)(ptr->zCoordinate + 32 * z));
             // Change height here and in octree
-            int maxHeight = 48 + (int)(16.f * noiseVal);
-            if (maxHeight - (ptr->yCoordinate + 1) * 32 > 32){
+            int maxHeight = currentBiome.averageHeightValue + Chunk::CHUNK_SIZE + (int)((currentBiome.heightOffsetValue) * noiseVal);
+
+            if (maxHeight - (ptr->yCoordinate + 1) * Chunk::CHUNK_SIZE > Chunk::CHUNK_SIZE){
                 appendChunk(new Chunk(ptr->xCoordinate, ptr->yCoordinate + 1, ptr->zCoordinate, ptr->currentLoD, noise));
                 return;
             }
@@ -130,9 +134,49 @@ void ChunkManager::updateTerrain(Camera* gameCamera, int threadMultiplier){
         chunksToRemove = &this->chunksToRemoveth2;
     }
 
-    //if (c_dXPos != 0){
+    if (c_dXPos != 0){
         for (int dz = zPos - renderDistance * (1 - threadMultiplier); dz <= zPos + renderDistance * threadMultiplier + (threadMultiplier - 1); dz++){
             for (int dx = xPos - renderDistance; dx <= xPos + renderDistance; dx++){
+                Chunk* chunk = getChunk(dx, 0, dz);
+
+                if (!chunk){
+                    int LoD = 5;
+                    if (abs(dx - xPos) > 8 || abs(dz - zPos) > 8) LoD = 4;
+                    Chunk* _chunk = new Chunk(dx, 0, dz, LoD, noise);
+                    appendChunk(_chunk);
+                    continue;
+                }
+
+                if (dx == xPos - c_dXPos * renderDistance){
+                    chunksToRemove->push_back(std::make_pair(dx, dz));
+                    continue;
+                }
+
+                if (dx == xPos + c_dXPos * 4 || dx == xPos + c_dXPos * (renderDistance - 1)){
+                    for (Chunk* _chunkptr : getChunkVector(dx, dz)){
+                        updateChunkMesh_MT(_chunkptr, *gameCamera);
+                        finishedMeshes->push_back(_chunkptr);
+                    }
+                }
+                
+                if (dx == xPos + c_dXPos * 4 || dx == xPos + c_dXPos * (renderDistance - 1)){
+                    for (Chunk* _chunkptr : getChunkVector(dx, dz)){
+                        if (_chunkptr->mesh.solid_vertices.size() == 0){
+                            int LoD = 5;
+                            if (abs(dx - xPos) > 8 || abs(dz - zPos) > 8) LoD = 4;
+                            _chunkptr->currentLoD = LoD;
+                            updateChunkMesh_MT(_chunkptr, *gameCamera);
+                            finishedMeshes->push_back(_chunkptr);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    if (c_dZPos != 0){
+        for (int dx = xPos - renderDistance * (1 - threadMultiplier); dx <= xPos + renderDistance * threadMultiplier + (threadMultiplier - 1); dx++){
+            for (int dz = zPos - renderDistance; dz <= zPos + renderDistance; dz++){
                 Chunk* chunk = getChunk(dx, 0, dz);
 
                 if (!chunk){
@@ -143,55 +187,23 @@ void ChunkManager::updateTerrain(Camera* gameCamera, int threadMultiplier){
                     continue;
                 }
 
-                // if (dx == xPos - c_dXPos * renderDistance){
-                //     chunksToRemove->push_back(std::make_pair(dx, dz));
-                //     continue;
-                // }
+                if (dz == zPos - c_dZPos * renderDistance){
+                    chunksToRemove->push_back(std::make_pair(dx, dz));
+                    continue;
+                }
 
-                if (dx == xPos + c_dXPos * 4 || dx == xPos + c_dXPos * (renderDistance - 1)){
+                if (dz == zPos + c_dZPos * 4 || dz == zPos + c_dZPos * (renderDistance - 1)){
                     for (Chunk* _chunkptr : getChunkVector(dx, dz)){
+                        int LoD = 5;
+                        if (abs(dx - xPos) > 8 || abs(dz - zPos) > 8) LoD = 4;
+                        _chunkptr->currentLoD = LoD;
                         updateChunkMesh_MT(_chunkptr, *gameCamera);
                         finishedMeshes->push_back(_chunkptr);
                     }
                 }
-
-                for (Chunk* _chunkptr : getChunkVector(dx, dz)){
-                        if (_chunkptr->mesh.solid_vertices.size() == 0){
-                            updateChunkMesh_MT(_chunkptr, *gameCamera);
-                            finishedMeshes->push_back(_chunkptr);
-                        }
-                    }
             }
         }
-    //}
-
-    //if (c_dZPos != 0){
-        // for (int dz = zPos - renderDistance * (1 - threadMultiplier); dz <= zPos + renderDistance * threadMultiplier + (threadMultiplier - 1); dz++){
-        //     for (int dx = xPos - renderDistance; dx <= xPos + renderDistance; dx++){
-        //         Chunk* chunk = getChunk(dx, 0, dz);
-
-        //         if (!chunk){
-        //             int LoD = 5;
-        //             if (abs(dx) > 10 || abs(dz) > 10) LoD = 4;
-        //             Chunk* _chunk = new Chunk(dx, 0, dz, LoD, noise);
-        //             appendChunk(_chunk);
-        //             continue;
-        //         }
-
-        //         if (dz == zPos - c_dZPos * renderDistance){
-        //             chunksToRemove->push_back(std::make_pair(dx, dz));
-        //             continue;
-        //         }
-
-        //         if (dz == zPos + c_dZPos * 4 || dz == zPos + c_dZPos * (renderDistance - 1)){
-        //             for (Chunk* _chunkptr : getChunkVector(dx, dz)){
-        //                 updateChunkMesh_MT(_chunkptr, *gameCamera);
-        //                 finishedMeshes->push_back(_chunkptr);
-        //             }
-        //         }
-        //     }
-        // }
-    //}
+    }
 }
 
 
@@ -288,7 +300,7 @@ bool ChunkManager::isFacingAirblock(int voxelVal[], int x, int y, int z, int rev
     }
 
     // Facing water or air
-    return (blockValue == 0 || blockValue == 17 || blockValue == 7);
+    return (blockValue == 0 || blockValue == (int)Block::Water || blockValue == (int)Block::Glass);
 }
 
 int ChunkManager::getVoxelValue(int voxelValues[], int x, int y, int z){
@@ -307,13 +319,18 @@ void ChunkManager::buildVoxelValueArray(int voxelValues[], Chunk* chunk, int LoD
 }
 
 void ChunkManager::getTextureCoordinates(int textureValue, float &u, float &v, voxelFaces face, int LoD){ // Replace sides of a grass block to semi dirt + semi grass
-    switch (textureValue)
+    Block blockType = (Block)textureValue;
+    switch (blockType)
     {
-    case 1:
-        if (face == BOTTOM_FACE) textureValue = 3; // Dirt
-        if (face != TOP_FACE && LoD == 5) textureValue = 4; // Dirt with grass on sides
+    case Block::Grass:
+        if (face == BOTTOM_FACE) blockType = Block::Dirt;
+        if (face != TOP_FACE && LoD == 5) blockType = Block::Grassy_Dirt;
         break;
     
+    case Block::Grassy_Dirt:
+        if (face == TOP_FACE) blockType = Block::Grass;
+        if (face == BOTTOM_FACE) blockType = Block::Dirt;
+        
     default:
         break;
     }
@@ -321,11 +338,11 @@ void ChunkManager::getTextureCoordinates(int textureValue, float &u, float &v, v
     const float textureBlockSize = 0.0625f;
 
     // Since air is the value 0, we need to remove one value so textures begin at 0.
-    textureValue -= 1;
+    int _textureValue = (int)blockType - 1;
 
 
-    u = textureBlockSize * (textureValue % 16);
-    v = textureBlockSize * (textureValue - textureValue % 16)/16; 
+    u = textureBlockSize * (_textureValue % 16);
+    v = textureBlockSize * (_textureValue - _textureValue % 16)/16; 
 }
 
 #include <chrono>
@@ -414,7 +431,7 @@ Mesh ChunkManager::buildMesh(Chunk* _chunk, Camera gameCamera){
                 std::vector<Vertex>* vertices = &solid_vertices;
                 std::vector<unsigned int>* indices = &solid_indices;
 
-                if (face.texture == 17 || face.texture == 7){ // If texture is water.
+                if (face.texture == (int)Block::Water || face.texture == (int)Block::Glass){ // If texture is water.
                     vertices = &transparent_vertices;
                     indices = &transparent_indices;
                 }
@@ -504,7 +521,7 @@ Mesh ChunkManager::buildMesh(Chunk* _chunk, Camera gameCamera){
                 std::vector<Vertex>* vertices = &solid_vertices;
                 std::vector<unsigned int>* indices = &solid_indices;
 
-                if (face.texture == 17 || face.texture == 7){ // If texture is water.
+                if (face.texture == (int)Block::Water || face.texture == (int)Block::Glass){ // If texture is water.
                     vertices = &transparent_vertices;
                     indices = &transparent_indices;
                 }
@@ -593,7 +610,7 @@ Mesh ChunkManager::buildMesh(Chunk* _chunk, Camera gameCamera){
             std::vector<Vertex>* vertices = &solid_vertices;
             std::vector<unsigned int>* indices = &solid_indices;
 
-            if (face.texture == 17 || face.texture == 7){ // If texture is water.
+            if (face.texture == (int)Block::Water || face.texture == (int)Block::Glass){ // If texture is water.
                 vertices = &transparent_vertices;
                 indices = &transparent_indices;
             }

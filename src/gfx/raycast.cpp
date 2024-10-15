@@ -19,9 +19,9 @@ double intbound(double s, double ds){
 }
 
 raycastInfo sendRaycast(const Camera &camera, ChunkManager* chunkManager){
-    double x = (int)floor(camera.position.x);
-    double y = (int)floor(camera.position.y);
-    double z = (int)floor(camera.position.z);
+    int x = (int)floor(camera.position.x);
+    int y = (int)floor(camera.position.y);
+    int z = (int)floor(camera.position.z);
 
     double dx = camera.front.x;
     double dy = camera.front.y;
@@ -41,11 +41,12 @@ raycastInfo sendRaycast(const Camera &camera, ChunkManager* chunkManager){
 
     raycastInfo ray;
 
-    const int MAX_STEPS = 40;
+    const int MAX_STEPS = 30;
     for (int i = 0; i < MAX_STEPS; i++){
+        int blockValue = chunkManager->getBlockValue(x, y, z);
 
-        if (chunkManager->getBlockValue((int)x, (int)y, (int)z) != 0){
-            ray.position = glm::vec3((int)x, (int)y, (int)z);
+        if (blockValue != 0 && blockValue != 17){
+            ray.position = glm::vec3(x, y, z);
             ray.hit = true;
             return ray;
         } else {

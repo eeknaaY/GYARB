@@ -27,7 +27,7 @@ class Mesh {
         bool bufferExists = false;
 
         void draw(const Shader &shader, int x, int y, int z);
-        void drawChunk(const Shader &shader, int x, int y, int z);
+        void drawChunk(const Shader &shader, int x, int y, int z, bool cameraInChunk);
         void updateMesh();
         void bindMesh();
 
@@ -93,6 +93,10 @@ class SkyboxMesh : public Mesh{
 
 class ShadowMapping{
     public:
+        std::vector<glm::vec4> getFrustumCornersWorldSpace(const glm::mat4& proj, const glm::mat4& view);
+        glm::mat4 getViewMatrix(const glm::mat4& proj, const glm::mat4& view);
         void bindMesh();
         unsigned int depthMapFBO, depthMap;
+    private:
+        std::vector<glm::vec4> corners;
 };

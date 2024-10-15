@@ -9,6 +9,18 @@
 #include <memory>
 #include <iostream>
 
+enum class Block{
+    Grass = 1,
+    Stone,
+    Dirt,
+    Grassy_Dirt,
+    Wood_Log,
+    Leaf,
+    Glass,
+    Wooden_Plank,
+    Water = 17
+};
+
 class Chunk{
     public:
         static const int CHUNK_SIZE = 32;
@@ -18,7 +30,7 @@ class Chunk{
         Octree* octree;
         
 
-        void draw(const Shader &shader);
+        void draw(const Shader &shader, bool cameraInChunk);
         void updateMesh();
         void updateBlockValue(int x, int y, int z, int blockValue);
         int getBlockValue(int x, int y, int z);

@@ -11,7 +11,6 @@ out vec3 playerPos;
 
 out mat4 lightPositionMatrix;
 
-
 uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;

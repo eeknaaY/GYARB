@@ -67,12 +67,6 @@ int main(){
     Renderer gameRenderer = Renderer();
     ChunkManager* chunkManager = new ChunkManager();
     gameRenderer.chunkManager = chunkManager;
-    
-    chunkManager->noise.SetNoiseType(FastNoiseLite::NoiseType_Perlin);
-    chunkManager->noise.SetFractalType(FastNoiseLite::FractalType_FBm);
-    chunkManager->noise.SetFrequency(0.01);
-    chunkManager->noise.SetFractalOctaves(3);
-    chunkManager->noise.SetFractalWeightedStrength(8);
 
     for (int dz = -gameCamera.renderDistance; dz <= gameCamera.renderDistance; dz++){
         for (int dx = -gameCamera.renderDistance; dx <= gameCamera.renderDistance; dx++){
@@ -118,6 +112,7 @@ int main(){
         frameCounter += 1;
         if (glfwGetTime() - startTime >= 1.0f){
             std::cout << "ms/frame: " << 1000.0 / double(frameCounter) << "\n";
+            //printf("Speed: %.2f\n", gameCamera.automatedMovementSpeed);
             //printf("X: %.1f, Z: %.1f\nX: %.1f, Y: %.1f, Z: %.1f\n ", gameCamera.yaw, gameCamera.pitch, gameCamera.position.x, gameCamera.position.y,gameCamera.position.z);
             frameCounter = 0;
             startTime += 1;
@@ -128,15 +123,19 @@ int main(){
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;  
         gameCamera.processInput(deltaTime);
-        //gameCamera.position.x -= 0.2;
+
+        gameCamera.position.z -= gameCamera.automatedMovementSpeed;
+        
 
 
         if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS && !rightMouseButtonDown){
+            //gameCamera.automatedMovementSpeed -= 0.05;
+
             rightMouseButtonDown = true;
             Raycast::raycastInfo ray = Raycast::sendRaycast(gameCamera, chunkManager);
             if (ray.hit){
                 glm::vec3 hitBlock = ray.position + ray.normal;
-                chunkManager->updateBlockValueAndMesh(hitBlock.x, hitBlock.y, hitBlock.z, 2, gameCamera);
+                chunkManager->updateBlockValueAndMesh(hitBlock.x, hitBlock.y, hitBlock.z, gameCamera.blockTypeSelected, gameCamera);
             } else {
 
             }
@@ -147,6 +146,8 @@ int main(){
         }
 
         if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS && !leftMouseButtonDown){
+            //gameCamera.automatedMovementSpeed += 0.05;
+            
             leftMouseButtonDown = true;
             Raycast::raycastInfo ray = Raycast::sendRaycast(gameCamera, chunkManager);
             if (ray.hit){
@@ -185,9 +186,8 @@ int main(){
         glm::mat4 view = glm::mat4(1.0f); // make sure to initialize matrix to identity matrix first
         view = glm::lookAt(gameCamera.position, gameCamera.position + gameCamera.front, gameCamera.up);
 
-        glm::mat3 newView = glm::mat4(glm::mat3(view));
         skyboxShader.use();
-        skyboxShader.setMat4("viewSkybox", newView);
+        skyboxShader.setMat4("viewSkybox", glm::mat4(glm::mat3(view)));
         skybox.draw(skyboxShader);
 
         voxelShader.use();

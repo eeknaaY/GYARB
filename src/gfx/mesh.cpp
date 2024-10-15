@@ -110,7 +110,7 @@ void Mesh::draw(const Shader &shader, int x, int y, int z)
     glBindVertexArray(0);
 }
 
-void Mesh::drawChunk(const Shader &shader, int x, int y, int z) 
+void Mesh::drawChunk(const Shader &shader, int x, int y, int z, bool cameraInChunk) 
 {
     shader.setMat4("model", glm::translate(glm::mat4(1.0f), glm::vec3(32 * x, 32 * y, 32 * z)));
 
@@ -118,11 +118,12 @@ void Mesh::drawChunk(const Shader &shader, int x, int y, int z)
         glBindVertexArray(solidVAO);
         glDrawElements(GL_TRIANGLES, solid_indices.size(), GL_UNSIGNED_INT, 0);
     }
-    
+
     if (transparent_vertices.size() != 0){
         glBindVertexArray(transparentVAO);
         glDrawElements(GL_TRIANGLES, transparent_indices.size(), GL_UNSIGNED_INT, 0);
     }
+    
 
     glBindVertexArray(0);
 }
@@ -154,6 +155,71 @@ void SkyboxMesh::draw(const Shader &shader){
     glDrawArrays(GL_TRIANGLES, 0, 36);
     glBindVertexArray(0);
     glDepthMask(GL_TRUE);
+}
+
+std::vector<glm::vec4> ShadowMapping::getFrustumCornersWorldSpace(const glm::mat4& proj, const glm::mat4& view){
+    if (this->corners.size() != 0){
+        return this->corners;
+    }
+
+    const auto inv = glm::inverse(proj * view);
+    
+    std::vector<glm::vec4> frustumCorners;
+    for (unsigned int x = 0; x < 2; ++x)
+    {
+        for (unsigned int y = 0; y < 2; ++y)
+        {
+            for (unsigned int z = 0; z < 2; ++z)
+            {
+                const glm::vec4 pt = 
+                    inv * glm::vec4(
+                        2.0f * x - 1.0f,
+                        2.0f * y - 1.0f,
+                        2.0f * z - 1.0f,
+                        1.0f);
+                frustumCorners.push_back(pt / pt.w);
+            }
+        }
+    }
+    
+    this->corners = frustumCorners;
+    return frustumCorners;
+}
+
+glm::mat4 ShadowMapping::getViewMatrix(const glm::mat4& proj, const glm::mat4& view){
+    if (this->corners.size() == 0){
+        getFrustumCornersWorldSpace(proj, view);
+    }
+
+    glm::vec3 center = glm::vec3(0, 0, 0);
+    for (const auto& v : corners)
+    {
+        center += glm::vec3(v);
+    }
+    center /= corners.size();
+    
+    glm::vec3 lightDir = glm::vec3(-1);
+    glm::mat4 lightViewMatrix = glm::lookAt(center + lightDir, center, glm::vec3(0.0f, 1.0f, 0.0f));
+
+    float minX = std::numeric_limits<float>::max();
+    float maxX = std::numeric_limits<float>::lowest();
+    float minY = std::numeric_limits<float>::max();
+    float maxY = std::numeric_limits<float>::lowest();
+    float minZ = std::numeric_limits<float>::max();
+    float maxZ = std::numeric_limits<float>::lowest();
+    for (const auto& v : corners)
+    {
+        const auto trf = lightViewMatrix * v;
+        minX = std::min(minX, trf.x);
+        maxX = std::max(maxX, trf.x);
+        minY = std::min(minY, trf.y);
+        maxY = std::max(maxY, trf.y);
+        minZ = std::min(minZ, trf.z);
+        maxZ = std::max(maxZ, trf.z);
+    }
+
+    glm::mat4 lightProjection = glm::ortho(minX, maxX, minY, maxY, minZ, maxZ);
+    return lightProjection * lightViewMatrix;
 }
 
 void ShadowMapping::bindMesh(){
