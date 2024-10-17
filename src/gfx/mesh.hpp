@@ -3,6 +3,7 @@
 #include <vector>
 #include "../shaders/shaders.hpp"
 #include "glm/glm.hpp"
+#include "camera.hpp"
 
 struct Vertex {
     int Position;
@@ -27,7 +28,7 @@ class Mesh {
         bool bufferExists = false;
 
         void draw(const Shader &shader, int x, int y, int z);
-        void drawChunk(const Shader &shader, int x, int y, int z, bool cameraInChunk);
+        void drawChunk(const Shader &shader, int x, int y, int z);
         void updateMesh();
         void bindMesh();
 
@@ -91,12 +92,18 @@ class SkyboxMesh : public Mesh{
         };
 };
 
-class ShadowMapping{
+class ShadowMap{
     public:
-        std::vector<glm::vec4> getFrustumCornersWorldSpace(const glm::mat4& proj, const glm::mat4& view);
-        glm::mat4 getViewMatrix(const glm::mat4& proj, const glm::mat4& view);
+        inline static std::vector<float> shadowCascadeLevels;
+        unsigned int depthMapFBO, depthMaps, matricesUBO;
+
+        glm::mat4 getViewMatrix(const Camera& camera, float nearPlane, float farPlane);
+        std::vector<glm::mat4> getViewMatrices(const Camera& camera);
         void bindMesh();
-        unsigned int depthMapFBO, depthMap;
+
+        ShadowMap(const Camera& camera){
+            shadowCascadeLevels = std::vector<float>{camera.FAR_FRUSTUM / 16.f, camera.FAR_FRUSTUM / 4.f, camera.FAR_FRUSTUM / 2.f};
+        }
     private:
-        std::vector<glm::vec4> corners;
+        inline static bool hasBindedTextures = false;
 };

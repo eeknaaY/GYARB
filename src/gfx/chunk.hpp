@@ -30,7 +30,7 @@ class Chunk{
         Octree* octree;
         
 
-        void draw(const Shader &shader, bool cameraInChunk);
+        void draw(const Shader &shader);
         void updateMesh();
         void updateBlockValue(int x, int y, int z, int blockValue);
         int getBlockValue(int x, int y, int z);

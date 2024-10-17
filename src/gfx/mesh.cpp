@@ -110,7 +110,7 @@ void Mesh::draw(const Shader &shader, int x, int y, int z)
     glBindVertexArray(0);
 }
 
-void Mesh::drawChunk(const Shader &shader, int x, int y, int z, bool cameraInChunk) 
+void Mesh::drawChunk(const Shader &shader, int x, int y, int z) 
 {
     shader.setMat4("model", glm::translate(glm::mat4(1.0f), glm::vec3(32 * x, 32 * y, 32 * z)));
 
@@ -157,39 +157,19 @@ void SkyboxMesh::draw(const Shader &shader){
     glDepthMask(GL_TRUE);
 }
 
-std::vector<glm::vec4> ShadowMapping::getFrustumCornersWorldSpace(const glm::mat4& proj, const glm::mat4& view){
-    if (this->corners.size() != 0){
-        return this->corners;
-    }
-
-    const auto inv = glm::inverse(proj * view);
-    
-    std::vector<glm::vec4> frustumCorners;
-    for (unsigned int x = 0; x < 2; ++x)
-    {
-        for (unsigned int y = 0; y < 2; ++y)
-        {
-            for (unsigned int z = 0; z < 2; ++z)
-            {
-                const glm::vec4 pt = 
-                    inv * glm::vec4(
-                        2.0f * x - 1.0f,
-                        2.0f * y - 1.0f,
-                        2.0f * z - 1.0f,
-                        1.0f);
-                frustumCorners.push_back(pt / pt.w);
-            }
-        }
-    }
-    
-    this->corners = frustumCorners;
-    return frustumCorners;
+std::vector<glm::mat4> ShadowMap::getViewMatrices(const Camera& camera){
+    std::vector<glm::mat4> viewMatrices;
+    viewMatrices.push_back(getViewMatrix(camera, camera.NEAR_FRUSTUM, shadowCascadeLevels[0]));
+    viewMatrices.push_back(getViewMatrix(camera, shadowCascadeLevels[0], shadowCascadeLevels[1]));
+    viewMatrices.push_back(getViewMatrix(camera, shadowCascadeLevels[1], shadowCascadeLevels[2]));
+    viewMatrices.push_back(getViewMatrix(camera, shadowCascadeLevels[2], camera.FAR_FRUSTUM));
+    return viewMatrices;
 }
 
-glm::mat4 ShadowMapping::getViewMatrix(const glm::mat4& proj, const glm::mat4& view){
-    if (this->corners.size() == 0){
-        getFrustumCornersWorldSpace(proj, view);
-    }
+glm::mat4 ShadowMap::getViewMatrix(const Camera& camera, float nearPlane, float farPlane){
+    glm::mat4 projection = glm::mat4(1.0f);
+    projection = glm::perspective(glm::radians(90.f), (float)1600 / (float)900, nearPlane, farPlane);
+    const auto corners = camera.getFrustumCornersWorldSpace(&projection);
 
     glm::vec3 center = glm::vec3(0, 0, 0);
     for (const auto& v : corners)
@@ -197,9 +177,9 @@ glm::mat4 ShadowMapping::getViewMatrix(const glm::mat4& proj, const glm::mat4& v
         center += glm::vec3(v);
     }
     center /= corners.size();
-    
-    glm::vec3 lightDir = glm::vec3(-1);
-    glm::mat4 lightViewMatrix = glm::lookAt(center + lightDir, center, glm::vec3(0.0f, 1.0f, 0.0f));
+
+    glm::vec3 lightDir = glm::normalize(glm::vec3(-100, -50, -100));
+    const auto lightView = glm::lookAt(center - lightDir, center, glm::vec3(0.0f, 1.0f, 0.0f));
 
     float minX = std::numeric_limits<float>::max();
     float maxX = std::numeric_limits<float>::lowest();
@@ -209,7 +189,7 @@ glm::mat4 ShadowMapping::getViewMatrix(const glm::mat4& proj, const glm::mat4& v
     float maxZ = std::numeric_limits<float>::lowest();
     for (const auto& v : corners)
     {
-        const auto trf = lightViewMatrix * v;
+        const auto trf = lightView * v;
         minX = std::min(minX, trf.x);
         maxX = std::max(maxX, trf.x);
         minY = std::min(minY, trf.y);
@@ -218,29 +198,75 @@ glm::mat4 ShadowMapping::getViewMatrix(const glm::mat4& proj, const glm::mat4& v
         maxZ = std::max(maxZ, trf.z);
     }
 
-    glm::mat4 lightProjection = glm::ortho(minX, maxX, minY, maxY, minZ, maxZ);
-    return lightProjection * lightViewMatrix;
+    constexpr float zMult = 10.0f;
+    if (minZ < 0){
+        minZ *= zMult;
+    }
+    else{
+        minZ /= zMult;
+    }
+
+    if (maxZ < 0){
+        maxZ /= zMult;
+    }
+    else{
+        maxZ *= zMult;
+    }
+
+    const glm::mat4 lightProjection = glm::ortho(minX, maxX, minY, maxY, minZ, maxZ);
+    return lightProjection * lightView;
 }
 
-void ShadowMapping::bindMesh(){
+void ShadowMap::bindMesh(){
+    if (hasBindedTextures){
+        return;
+    }
+
     const unsigned int SHADOW_WIDTH = 2048, SHADOW_HEIGHT = 2048;
     glGenFramebuffers(1, &depthMapFBO);
-
-    glGenTextures(1, &depthMap);
-    glBindTexture(GL_TEXTURE_2D, depthMap);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, SHADOW_WIDTH, SHADOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-    float borderColor[] = { 1.0f, 1.0f, 1.0f, 1.0f };
-    glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);  
-    // attach depth texture as FBO's depth buffer
+        
+    glGenTextures(1, &depthMaps);
+    glBindTexture(GL_TEXTURE_2D_ARRAY, depthMaps);
+    glTexImage3D(
+        GL_TEXTURE_2D_ARRAY,
+        0,
+        GL_DEPTH_COMPONENT32F,
+        SHADOW_WIDTH,
+        SHADOW_HEIGHT,
+        int(shadowCascadeLevels.size()) + 1,
+        0,
+        GL_DEPTH_COMPONENT,
+        GL_FLOAT,
+        nullptr);
+        
+    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+        
+    constexpr float bordercolor[] = { 1.0f, 1.0f, 1.0f, 1.0f };
+    glTexParameterfv(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_BORDER_COLOR, bordercolor);
+        
     glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthMap, 0);
+    glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, depthMaps, 0);
     glDrawBuffer(GL_NONE);
     glReadBuffer(GL_NONE);
+        
+    int status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+    if (status != GL_FRAMEBUFFER_COMPLETE)
+    {
+        std::cout << "ERROR::FRAMEBUFFER:: Framebuffer is not complete!";
+        throw 0;
+    }
+        
+
+    glGenBuffers(1, &matricesUBO);
+    glBindBuffer(GL_UNIFORM_BUFFER, matricesUBO);
+    glBufferData(GL_UNIFORM_BUFFER, sizeof(glm::mat4x4) * 16, nullptr, GL_STATIC_DRAW);
+    glBindBufferBase(GL_UNIFORM_BUFFER, 0, matricesUBO);
+    glBindBuffer(GL_UNIFORM_BUFFER, 0);
+
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    
+    hasBindedTextures = true;
 }
 

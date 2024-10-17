@@ -9,12 +9,9 @@ out int faceIndex;
 out vec3 FragPos;
 out vec3 playerPos;
 
-out mat4 lightPositionMatrix;
-
 uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
-uniform mat4 lightSpaceMatrix;
 uniform vec3 playerPosition;
 
 void main()
@@ -26,7 +23,6 @@ void main()
     gl_Position = projection * view * model * vec4(position, 1.0);
 
     FragPos = vec3(model * vec4(position, 1.0));
-    lightPositionMatrix = lightSpaceMatrix;
 
     textureID = (bitPackedData >> 21) & 0xFF;
     tilePos = fract(aTexCoord);

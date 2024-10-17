@@ -53,8 +53,8 @@ class ChunkManager{
 
         ChunkManager(){}
     private:
-        std::thread meshingThread1;
-        std::thread meshingThread2;
+        // std::thread meshingThread1;
+        // std::thread meshingThread2;
         
         // These shouldn't really be inside ChunkManager, but in a meshing class, couldnt fix that so now its here for now
         int getBlockValueFromPosition(Chunk* chunk, int x, int y, int z, int LoD);

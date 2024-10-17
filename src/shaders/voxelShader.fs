@@ -6,14 +6,21 @@ flat in int faceIndex;
 in vec2 TexCoord;
 in vec2 tilePos;
 in vec3 playerPos;
-
 in vec3 FragPos;
-in mat4 lightPositionMatrix;
-
 
 // texture samplers
 uniform sampler2D ourTexture;
-uniform sampler2D shadowMap;
+uniform sampler2DArray shadowMap;
+uniform mat4 viewMatrix;
+
+layout (std140) uniform LightSpaceMatrices
+{
+    mat4 lightSpaceMatrices[16];
+};
+
+float farPlane = 800;
+vec4 cascadePlaneDistances = vec4(farPlane / 16.f, farPlane / 4.f, farPlane / 2.f, farPlane);
+int cascadeCount = 4;
 
 vec3 faceNormals[6] = vec3[6] (
 	vec3(0.0, 1.0, 0.0),
@@ -26,17 +33,37 @@ vec3 faceNormals[6] = vec3[6] (
 
 float ShadowCalculation()
 {   
+    vec4 fragPosViewSpace = viewMatrix * vec4(FragPos, 1.0);
+    float depthValue = abs(fragPosViewSpace.z);
+
+    int shadowLayer = -1;
+    for (int i = 0; i < cascadeCount; ++i)
+    {
+        if (depthValue < cascadePlaneDistances[i])
+        {
+            shadowLayer = i;
+            break;
+        }
+    }
+    if (shadowLayer == -1)
+    {
+        shadowLayer = cascadeCount;
+    }
+        
+
     vec3 fragPosition = FragPos;
 
-    if (faceIndex == 0){
-        fragPosition -= vec3(0.15, 0, 0.15);
+    if (faceIndex <= 1){
+        if (shadowLayer == 1){
+            fragPosition -= vec3(0.1, 0, 0.1);
+        }
+
+        if (shadowLayer == 2){
+            fragPosition -= vec3(0.2, 0, 0.2);
+        }
     }
 
-    if (faceIndex == 1){
-        fragPosition -= vec3(0.15, 0, 0.15);
-    }
-
-    vec4 fragPosLightSpace = lightPositionMatrix * vec4(fragPosition, 1.0);
+    vec4 fragPosLightSpace = lightSpaceMatrices[shadowLayer] * vec4(fragPosition, 1.0);
 
     // perform perspective divide
     vec3 projCoords = fragPosLightSpace.xyz/fragPosLightSpace.w;
@@ -51,24 +78,43 @@ float ShadowCalculation()
     vec3 normal = faceNormals[faceIndex];
     vec3 sunPos = vec3(playerPos.x + 100, 100, playerPos.z + 100);
 	vec3 lightDir = normalize(sunPos - FragPos);
-    float bias = 0.0017;
-    //max(0.005 * (1.0 - dot(normal, lightDir)), 0.004);
+    //0.002;
+    float bias = 0;// max(0.001 * (1.0 - dot(normal, lightDir)), 0.005);
     float texelSize = 1.0 / 2048;
+
+    if (shadowLayer == 0){
+        bias = max(0.003 * (1.0 - dot(normal, lightDir)), 0.004);
+    }
+
+    if (shadowLayer == 1){
+        bias = 0.018;
+    }
+
+    if (shadowLayer == 2){
+        bias = max(0.02 * (1.0 - dot(normal, lightDir)), 0.02);
+    }
+
+    if (shadowLayer == cascadeCount){
+        bias *= 1 / (farPlane * 0.5f);
+    }
+    else{
+        bias *= 1 / (cascadePlaneDistances[shadowLayer] * 0.5f);
+    }
 
 
     // PCF
-    float shadow = 0.0;
-    for(int x = -1; x <= 1; ++x)
-    {
-        for(int y = -1; y <= 1; ++y)
-        {
-            float pcfDepth = texture(shadowMap, projCoords.xy + vec2(x, y) * texelSize).x; 
-            shadow += currentDepth - bias > pcfDepth  ? 1.0 : 0.0;        
-        }    
-    }
-    shadow /= 9.0;
+    // float shadow = 0.0;
+    // for(int x = -1; x <= 1; ++x)
+    // {
+    //     for(int y = -1; y <= 1; ++y)
+    //     {
+    //         float pcfDepth = texture(shadowMap, vec3(projCoords.xy + vec2(x, y) * texelSize, shadowLayer)).x; 
+    //         shadow += currentDepth - bias > pcfDepth  ? 1.0 : 0.0;        
+    //     }    
+    // }
+    // shadow /= 9.0;
 
-    //float shadow = currentDepth - bias > texture(shadowMap, projCoords.xy).x ? 1.0 : 0.0;
+    float shadow = currentDepth - bias > texture(shadowMap, vec3(projCoords.xy, shadowLayer)).x ? 1.0 : 0.0;
     
     if(projCoords.z > 1.0)
         shadow = 0.0;

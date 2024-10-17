@@ -96,8 +96,8 @@ void ChunkManager::updateChunkMesh_MT(Chunk* _chunk, Camera gameCamera){
 }
 
 void ChunkManager::startMeshingThreads(Camera* gameCamera){
-    if (meshingThread1.joinable()) meshingThread1.join();
-    if (meshingThread2.joinable()) meshingThread2.join();
+    // if (meshingThread1.joinable()) meshingThread1.join();
+    // if (meshingThread2.joinable()) meshingThread2.join();
 
     while (chunksToRemoveth1.size() != 0){
         std::pair<int, int> pair = chunksToRemoveth1[0];
@@ -111,8 +111,8 @@ void ChunkManager::startMeshingThreads(Camera* gameCamera){
         chunksToRemoveth2.erase(chunksToRemoveth2.begin());
     }
 
-    meshingThread1 = std::thread(updateTerrain, this, gameCamera, 0);
-    meshingThread2 = std::thread(updateTerrain, this, gameCamera, 1);
+    // meshingThread1 = std::thread(updateTerrain, this, gameCamera, 0);
+    // meshingThread2 = std::thread(updateTerrain, this, gameCamera, 1);
 }
 
 void ChunkManager::updateTerrain(Camera* gameCamera, int threadMultiplier){
@@ -141,7 +141,7 @@ void ChunkManager::updateTerrain(Camera* gameCamera, int threadMultiplier){
 
                 if (!chunk){
                     int LoD = 5;
-                    if (abs(dx - xPos) > 8 || abs(dz - zPos) > 8) LoD = 4;
+                    if (abs(dx - xPos) > 10 || abs(dz - zPos) > 10) LoD = 4;
                     Chunk* _chunk = new Chunk(dx, 0, dz, LoD, noise);
                     appendChunk(_chunk);
                     continue;

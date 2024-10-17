@@ -3,8 +3,8 @@
 #include "../structures/octree.hpp"
 #include "chunk.hpp"
 
-void Chunk::draw(const Shader &shader, bool cameraInChunk){
-    mesh.drawChunk(shader, xCoordinate, yCoordinate, zCoordinate, cameraInChunk);
+void Chunk::draw(const Shader &shader){
+    mesh.drawChunk(shader, xCoordinate, yCoordinate, zCoordinate);
 }
 
 void Chunk::updateMesh(){

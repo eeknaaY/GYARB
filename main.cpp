@@ -40,10 +40,8 @@ int main(){
     glfwSetCursorPosCallback(window, mouse_callback); 
 
     unsigned int frameCounter = 0;
-    float const CLOSE_FRUSTUM = 0.1f;
-    float const FAR_FRUSTUM = 20000.0f;
 
-    Shader shadowMapShader("src/shaders/shadowMapShader.vs", "src/shaders/shadowMapShader.fs");
+    Shader shadowMapShader("src/shaders/shadowMapShader.vs", "src/shaders/shadowMapShader.fs", "src/shaders/shadowMapShader.gs");
     Shader skyboxShader("src/shaders/skyboxShader.vs", "src/shaders/skyboxShader.fs");
     Shader voxelShader("src/shaders/voxelShader.vs", "src/shaders/voxelShader.fs");
     voxelShader.use();
@@ -56,12 +54,13 @@ int main(){
     glUniform1i(glGetUniformLocation(skyboxShader.ID, "skybox"), 0);
 
     glm::mat4 projection = glm::mat4(1.0f);
-    projection = glm::perspective(glm::radians(gameCamera.fov), (float)windowWidth / (float)windowHeight, CLOSE_FRUSTUM, FAR_FRUSTUM);
+    projection = glm::perspective(glm::radians(gameCamera.fov), (float)windowWidth / (float)windowHeight, gameCamera.NEAR_FRUSTUM, gameCamera.FAR_FRUSTUM);
+    gameCamera.projectionMatrix = projection;
     skyboxShader.setMat4("projectionSkybox", projection);
     voxelShader.use();
     voxelShader.setMat4("projection", projection);
 
-    ShadowMapping shadowMap = ShadowMapping();
+    ShadowMap shadowMap = ShadowMap(gameCamera);
     shadowMap.bindMesh();
 
     Renderer gameRenderer = Renderer();
@@ -159,17 +158,22 @@ int main(){
             leftMouseButtonDown = false;
         }
 
-        glm::mat4 lightProjection = glm::ortho(-100.0f, 100.0f, -100.0f, 100.0f, 50.f, 300.f);
+        glm::mat4 view = glm::mat4(1.0f); // make sure to initialize matrix to identity matrix first
+        view = glm::lookAt(gameCamera.position, gameCamera.position + gameCamera.front, gameCamera.up);
+        gameCamera.viewMatrix = view;
+
         glm::vec3 sunPos = glm::vec3(gameCamera.position.x + 100, 100, gameCamera.position.z + 100);
-        glm::mat4 lightView = glm::lookAt(sunPos, 
-                                glm::vec3(gameCamera.position.x, 50.0f, gameCamera.position.z), 
-                                glm::vec3(0.0f, 1.0f, 0.0f)); 
-        glm::mat4 lightSpaceMatrix = lightProjection * lightView;
 
-        // Shader & Matrices 
+        auto lightMatrices = shadowMap.getViewMatrices(gameCamera);
+        glBindBuffer(GL_UNIFORM_BUFFER, shadowMap.matricesUBO);
+        for (size_t i = 0; i < lightMatrices.size(); ++i)
+        {
+            glBufferSubData(GL_UNIFORM_BUFFER, i * sizeof(glm::mat4x4), sizeof(glm::mat4x4), &lightMatrices[i]);
+        }
+        glBindBuffer(GL_UNIFORM_BUFFER, 0);
+
+
         shadowMapShader.use();
-        shadowMapShader.setMat4("lightSpaceMatrix", lightSpaceMatrix);
-
         // Render Scene
         glViewport(0, 0, 2048, 2048);
         glBindFramebuffer(GL_FRAMEBUFFER, shadowMap.depthMapFBO);
@@ -182,27 +186,31 @@ int main(){
         glViewport(0, 0, windowWidth, windowHeight);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-
-        glm::mat4 view = glm::mat4(1.0f); // make sure to initialize matrix to identity matrix first
-        view = glm::lookAt(gameCamera.position, gameCamera.position + gameCamera.front, gameCamera.up);
-
         skyboxShader.use();
         skyboxShader.setMat4("viewSkybox", glm::mat4(glm::mat3(view)));
         skybox.draw(skyboxShader);
 
+        glm::mat4 Newview = glm::mat4(1.0f); // make sure to initialize matrix to identity matrix first
+        Newview = glm::lookAt(glm::vec3(90, 55, 90), glm::vec3(0, 50, 0), gameCamera.up);
+
         voxelShader.use();
-        voxelShader.setMat4("view", view);
+        voxelShader.setMat4("view", Newview);
 
         if (gameCamera.hasChangedChunk()){
             //chunkManager->startMeshingThreads(&gameCamera);
         }
+
+        for (size_t i = 0; i < shadowMap.shadowCascadeLevels.size(); ++i)
+        {
+            voxelShader.setFloat("cascadePlaneDistances[" + std::to_string(i) + "]", shadowMap.shadowCascadeLevels[i]);
+        }
         
-        voxelShader.setMat4("lightSpaceMatrix", lightSpaceMatrix);
         voxelShader.setVec3("playerPosition", gameCamera.position);
+        voxelShader.setMat4("viewMatrix", gameCamera.viewMatrix);
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, Textures::getTextureIndex());
         glActiveTexture(GL_TEXTURE1);
-        glBindTexture(GL_TEXTURE_2D, shadowMap.depthMap);
+        glBindTexture(GL_TEXTURE_2D_ARRAY, shadowMap.depthMaps);
 
         gameRenderer.renderVisibleChunks(voxelShader, gameCamera);
         gameRenderer.updataChunkData();
