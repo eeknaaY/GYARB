@@ -14,7 +14,7 @@ double intbound(double s, double ds){
     if (ds > 0){
         return (ceil(s)-s)/ds;
     } else {
-        return (floor(s)-s)/ds;
+        return intbound(-s, -ds);
     }
 }
 

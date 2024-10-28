@@ -33,18 +33,15 @@ class Textures{
             for (unsigned int i = 0; i < 6; i++)
             {
                 unsigned char *data = stbi_load(faces[i].c_str(), &width, &height, &nrChannels, 0);
-                if (data)
-                {
+                if (data){
                     glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 
                                 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data
                     );
-                    stbi_image_free(data);
-                }
-                else
-                {
+                } else {
                     std::cout << "Cubemap tex failed to load at path: " << faces[i] << std::endl;
-                    stbi_image_free(data);
                 }
+
+                stbi_image_free(data);
             }
 
             return textureID;
@@ -52,14 +49,15 @@ class Textures{
 
 
         static unsigned int getTextureIndex(){
-            static unsigned int textureAtlas;
-            static bool hasInitialized;
+            static unsigned int textureAtlas = 0;
+            static bool hasInitialized = false;
 
-            // Don't know if this is needed, but I'll have it here for safety
+            // Don't create new texture for every chunk.
             if (hasInitialized){
                 return textureAtlas;
             }
-
+            
+            printf("Generating new texture\n");
             hasInitialized = true;
 
             glGenTextures(1, &textureAtlas);
@@ -73,12 +71,9 @@ class Textures{
             int textureWidth, textureHeight, nrChannels;
             unsigned char *data = stbi_load("C:/Users/Johannes/Desktop/GYARB/src/textures/TextureAtlas.png", &textureWidth, &textureHeight, &nrChannels, 0);
 
-            if (data)
-            {
+            if (data){
                 glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, textureWidth, textureHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
-            }
-            else
-            {
+            } else {
                 std::cout << "Failed to load texture" << std::endl;
             }
 

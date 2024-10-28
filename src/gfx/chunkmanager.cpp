@@ -13,12 +13,12 @@ void ChunkManager::appendChunk(int x, int z, int LoD){
         chunkMap[std::make_pair(x, z)].push_back(new Chunk(x, 0, z, LoD, noise));
     }
 
-    Biome currentBiome = Biomes::getBiome(Biomes::Forest);
+    Biome* currentBiome = BiomeHandler::getBiome(Biomes::Forest);
     for (int _x = 0; _x < 32; _x++){
         for (int _z = 0; _z < 32; _z++){
-            float noiseVal = currentBiome.noise.GetNoise((float)(_x + 32 * x), (float)(_z + 32 * z));
+            float noiseVal = currentBiome->noise.GetNoise((float)(_x + 32 * x), (float)(_z + 32 * z));
             // Change height here and in octree
-            int maxHeight = currentBiome.averageHeightValue + Chunk::CHUNK_SIZE + (int)((currentBiome.heightOffsetValue) * noiseVal);
+            int maxHeight = currentBiome->averageHeightValue + Chunk::CHUNK_SIZE + (int)((currentBiome->heightOffsetValue) * noiseVal);
             if (maxHeight - getChunkVector(x, z).size() * Chunk::CHUNK_SIZE > Chunk::CHUNK_SIZE){
                 appendChunk(new Chunk(x, getChunkVector(x, z).size(), z, LoD, noise));
                 return;
@@ -34,12 +34,12 @@ void ChunkManager::appendChunk(Chunk* ptr){
         chunkMap[std::make_pair(ptr->xCoordinate, ptr->zCoordinate)].push_back(ptr);
     }
 
-    Biome currentBiome = Biomes::getBiome(Biomes::Forest);
+    Biome* currentBiome = BiomeHandler::getBiome(Biomes::Mountain);
     for (int x = 0; x < 32; x++){
         for (int z = 0; z < 32; z++){
-            float noiseVal = currentBiome.noise.GetNoise((float)(ptr->xCoordinate + 32 * x), (float)(ptr->zCoordinate + 32 * z));
+            float noiseVal = currentBiome->getNoiseValue(32 * ptr->xCoordinate + x, 32 * ptr->zCoordinate + z);
             // Change height here and in octree
-            int maxHeight = currentBiome.averageHeightValue + Chunk::CHUNK_SIZE + (int)((currentBiome.heightOffsetValue) * noiseVal);
+            int maxHeight = currentBiome->averageHeightValue + Chunk::CHUNK_SIZE + (int)((currentBiome->heightOffsetValue) * noiseVal);
 
             if (maxHeight - (ptr->yCoordinate + 1) * Chunk::CHUNK_SIZE > Chunk::CHUNK_SIZE){
                 appendChunk(new Chunk(ptr->xCoordinate, ptr->yCoordinate + 1, ptr->zCoordinate, ptr->currentLoD, noise));
@@ -59,6 +59,7 @@ void ChunkManager::removeChunk(int x, int z){
 }
 
 Chunk* ChunkManager::getChunk(int x, int y, int z){
+    if (x > 25 || z > 25 || x < -25 || z < -25) return nullptr;
     try{
         if (y > chunkMap.at(std::make_pair(x, z)).size() - 1) return nullptr;
         return chunkMap.at(std::make_pair(x, z))[y];
@@ -279,13 +280,13 @@ bool ChunkManager::isFacingAirblock(int voxelVal[], int x, int y, int z, int rev
     switch (constantPos)
     {
     case 1:
-        x = x + reverseConstant;
+        x += reverseConstant;
         break;
     case 2:
-        y = y + reverseConstant;
+        y += reverseConstant;
         break;
     case 3:
-        z = z + reverseConstant;
+        z += reverseConstant;
         break;
 
     default:
@@ -431,7 +432,7 @@ Mesh ChunkManager::buildMesh(Chunk* _chunk, Camera gameCamera){
                 std::vector<Vertex>* vertices = &solid_vertices;
                 std::vector<unsigned int>* indices = &solid_indices;
 
-                if (face.texture == (int)Block::Water || face.texture == (int)Block::Glass){ // If texture is water.
+                if (face.texture == (int)Block::Water || face.texture == (int)Block::Glass){ 
                     vertices = &transparent_vertices;
                     indices = &transparent_indices;
                 }

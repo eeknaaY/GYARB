@@ -131,7 +131,7 @@ Octree::Octree(int _chunkXcoord, int _chunkYcoord, int _chunkZcoord, FastNoiseLi
 }
 
 Octree::Octree(int initValue){
-    mainNode = new Node(0, 0, nullptr, true, false);
+    mainNode = new Node(initValue, 0, nullptr, true, false);
 }
 
 Octree::~Octree(){
@@ -249,17 +249,18 @@ void Octree::buildAMinecraftTree(int x, int y, int z){
 }
 
 void Octree::setInitialBlockValues(int _chunk_xcoord, int _chunk_ycoord, int _chunk_zcoord){
-    Biome currentBiome = Biomes::getBiome(Biomes::Forest);
+    Biome* currentBiome = BiomeHandler::getBiome(Biomes::Mountain);
 
     for (int x = 0; x < 32; x++){
         for (int z = 0; z < 32; z++){
 
-            float noiseVal = currentBiome.noise.GetNoise((float)(x + 32 * _chunk_xcoord), (float)(z + 32 * _chunk_zcoord));
-            int globalMaxHeight = currentBiome.averageHeightValue + (int)(currentBiome.heightOffsetValue * noiseVal);
+            float noiseVal = currentBiome->getNoiseValue(32 * _chunk_xcoord + x, 32 * _chunk_zcoord + z);
+            int globalMaxHeight = currentBiome->averageHeightValue + (int)(currentBiome->heightOffsetValue * noiseVal);
             int localMaxHeight = globalMaxHeight - 32 * _chunk_ycoord;
 
             if (localMaxHeight < 0 && _chunk_ycoord == 0) localMaxHeight = 0;
-            int waterLevel = currentBiome.waterLevel;
+            int waterLevel = currentBiome->waterLevel;
+
             for (int y = 31; y >= 0; y--){
                 int blockValue = determineBlockValue(y, localMaxHeight, y + 32 * _chunk_ycoord, waterLevel);
                 // This stops the function overriding any non-air blocks when it wants them to be air, fucks trees over.
@@ -300,7 +301,6 @@ void Octree::optimizeTree(){
                     } else {
                         node_4->blockValue = node_4->getAverageBlockValueFromChildren();
                     }
-
                 }
 
                 if (node_3->allChildrenAreEqual() && !node_3->aChildIsNotAnEndpoint()){

@@ -34,7 +34,7 @@ class Camera{
 
         float NEAR_FRUSTUM = 0.1f;
         float FAR_FRUSTUM = 800.0f;
-        int renderDistance = 8;
+        int renderDistance = 12;
 
         float automatedMovementSpeed = 0;
         int blockTypeSelected = 0;

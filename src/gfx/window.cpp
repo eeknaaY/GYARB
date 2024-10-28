@@ -14,13 +14,14 @@ GLFWwindow* createWindow(int SCR_WIDTH, int SCR_HEIGHT){
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-    glfwWindowHint(GLFW_SAMPLES, 4);
 
     #ifdef __APPLE__
         glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
     #endif
 
     GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "GYARB", NULL, NULL);
+    // Full screen
+    //GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "GYARB", glfwGetPrimaryMonitor(), NULL);
     if (window == NULL)
     {
         std::cout << "Failed to create GLFW window" << std::endl;
@@ -37,7 +38,6 @@ GLFWwindow* createWindow(int SCR_WIDTH, int SCR_HEIGHT){
     }
 
     glEnable(GL_DEPTH_TEST);
-    glEnable(GL_MULTISAMPLE);
 
     glEnable(GL_CULL_FACE);
     glFrontFace(GL_CCW);
@@ -45,6 +45,9 @@ GLFWwindow* createWindow(int SCR_WIDTH, int SCR_HEIGHT){
 
     glEnable(GL_BLEND); 
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);  
+
+    glfwWindowHint(GLFW_SAMPLES, 4);
+    glEnable(GL_MULTISAMPLE);
 
     return window;
 }
@@ -70,7 +73,6 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 {
-    // Update screen dimensions, dimensions might be fucked on retina displays?
     glViewport(0, 0, width, height);
 }
 

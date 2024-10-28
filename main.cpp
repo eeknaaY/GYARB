@@ -57,6 +57,7 @@ int main(){
     projection = glm::perspective(glm::radians(gameCamera.fov), (float)windowWidth / (float)windowHeight, gameCamera.NEAR_FRUSTUM, gameCamera.FAR_FRUSTUM);
     gameCamera.projectionMatrix = projection;
     skyboxShader.setMat4("projectionSkybox", projection);
+
     voxelShader.use();
     voxelShader.setMat4("projection", projection);
 
@@ -81,7 +82,7 @@ int main(){
 
                 auto stop = std::chrono::high_resolution_clock::now();
                 auto duration = std::chrono::duration_cast<std::chrono::milliseconds> (stop-start);
-                printf("Creating chunk %i, %i data took: %.1f\n", dz, dx, duration.count());
+                printf("Creating chunk %i, %i data took: %.1d\n", dz, dx, duration.count());
             }
         }
     }
@@ -104,13 +105,11 @@ int main(){
 
     double startTime = glfwGetTime();
 
-    bool buttonClicked = false;
-
     while (!glfwWindowShouldClose(window))
     {   
         frameCounter += 1;
         if (glfwGetTime() - startTime >= 1.0f){
-            std::cout << "ms/frame: " << 1000.0 / double(frameCounter) << "\n";
+            //std::cout << "ms/frame: " << 1000.0 / double(frameCounter) << "\n";
             //printf("Speed: %.2f\n", gameCamera.automatedMovementSpeed);
             //printf("X: %.1f, Z: %.1f\nX: %.1f, Y: %.1f, Z: %.1f\n ", gameCamera.yaw, gameCamera.pitch, gameCamera.position.x, gameCamera.position.y,gameCamera.position.z);
             frameCounter = 0;
@@ -133,10 +132,8 @@ int main(){
             rightMouseButtonDown = true;
             Raycast::raycastInfo ray = Raycast::sendRaycast(gameCamera, chunkManager);
             if (ray.hit){
-                glm::vec3 hitBlock = ray.position + ray.normal;
-                chunkManager->updateBlockValueAndMesh(hitBlock.x, hitBlock.y, hitBlock.z, gameCamera.blockTypeSelected, gameCamera);
-            } else {
-
+                glm::vec3 selectedVoxel = ray.position + ray.normal;
+                chunkManager->updateBlockValueAndMesh(selectedVoxel.x, selectedVoxel.y, selectedVoxel.z, gameCamera.blockTypeSelected, gameCamera);
             }
         }
 
@@ -190,18 +187,14 @@ int main(){
         skyboxShader.setMat4("viewSkybox", glm::mat4(glm::mat3(view)));
         skybox.draw(skyboxShader);
 
-        glm::mat4 Newview = glm::mat4(1.0f); // make sure to initialize matrix to identity matrix first
-        Newview = glm::lookAt(glm::vec3(90, 55, 90), glm::vec3(0, 50, 0), gameCamera.up);
-
         voxelShader.use();
-        voxelShader.setMat4("view", Newview);
+        voxelShader.setMat4("view", view);
 
         if (gameCamera.hasChangedChunk()){
             //chunkManager->startMeshingThreads(&gameCamera);
         }
 
-        for (size_t i = 0; i < shadowMap.shadowCascadeLevels.size(); ++i)
-        {
+        for (size_t i = 0; i < shadowMap.shadowCascadeLevels.size(); ++i){
             voxelShader.setFloat("cascadePlaneDistances[" + std::to_string(i) + "]", shadowMap.shadowCascadeLevels[i]);
         }
         

@@ -4,51 +4,103 @@
 #include <vector>
 #include "FastNoiseLite.h"
 
+enum class Biomes{
+    Forest,
+    Mountain
+};
+
 struct Biome{
+    Biomes biome;
     FastNoiseLite noise;
     int waterLevel = 0;
     int averageHeightValue = 0;
     int heightOffsetValue = 0;
 
     Biome(FastNoiseLite noise, int waterLevel, int averageHeightValue, int heightOffsetValue){
+        this->biome = biome;
         this->noise = noise;
         this->waterLevel = waterLevel;
         this->averageHeightValue = averageHeightValue;
         this->heightOffsetValue = heightOffsetValue;
     }
+
+    virtual float getNoiseValue(float x, float z) {return 0;};   
 };
 
-class Biomes{
-    public:
-        enum biomes{
-            Forest
-        };
+struct ForestBiome : Biome{
+    ForestBiome(FastNoiseLite noise, int waterLevel, int averageHeightValue, int heightOffsetValue) : Biome(noise, waterLevel, averageHeightValue, heightOffsetValue){
+        this->biome = biome;
+        this->noise = noise;
+        this->waterLevel = waterLevel;
+        this->averageHeightValue = averageHeightValue;
+        this->heightOffsetValue = heightOffsetValue;
+    }
 
-        static Biome getBiome(biomes biomeVal){
+    float getNoiseValue(float x, float z) {
+        return noise.GetNoise(x, z);
+    }   
+};
+
+struct MountainBiome : Biome{
+    MountainBiome(FastNoiseLite noise, int waterLevel, int averageHeightValue, int heightOffsetValue) : Biome(noise, waterLevel, averageHeightValue, heightOffsetValue){
+        this->biome = biome;
+        this->noise = noise;
+        this->waterLevel = waterLevel;
+        this->averageHeightValue = averageHeightValue;
+        this->heightOffsetValue = heightOffsetValue;
+    }
+
+
+    float getNoiseValue(float x, float z) {
+        float noiseValue = noise.GetNoise(x, z);
+
+        if (noiseValue > 0.55){
+            noiseValue = pow(3, noiseValue + 0.3) - 2;
+        }
+
+        return noiseValue;
+    } 
+};
+
+
+class BiomeHandler{
+    public:
+        static Biome* getBiome(Biomes biomeVal){
+            int index = static_cast<int>(biomeVal);
+
             if (biomesVector.size() == 0){
                 buildBiomeVector();
-                return biomesVector[biomeVal];
+                return biomesVector[index];
             } else {
-                return biomesVector[biomeVal];
+                return biomesVector[index];
             }
         }
 
         static void buildBiomeVector(){
-            FastNoiseLite plainNoise;
-            plainNoise.SetNoiseType(FastNoiseLite::NoiseType_Perlin);
-            plainNoise.SetFractalType(FastNoiseLite::FractalType_FBm);
-            plainNoise.SetFrequency(0.002);
-            plainNoise.SetFractalOctaves(3);
-            plainNoise.SetFractalWeightedStrength(8);
+            FastNoiseLite noise;
+            noise.SetNoiseType(FastNoiseLite::NoiseType_Perlin);
+            noise.SetFractalType(FastNoiseLite::FractalType_FBm);
+            noise.SetFrequency(0.002);
+            noise.SetFractalOctaves(3);
+            noise.SetFractalWeightedStrength(8);
 
             { // Forest
-                biomesVector.push_back(Biome(plainNoise, 8, 16, 16));
+                int waterLevel = 8;
+                int averageHeight = 16;
+                int averageOffset = 16;
+
+                biomesVector.push_back(new ForestBiome(noise, waterLevel, averageHeight, averageOffset));
             }
 
-            { // ?
+            { // Mountain
+                int waterLevel = 8;
+                int averageHeight = 16;
+                int averageOffset = 16;
 
+                noise.SetFrequency(0.001);
+                biomesVector.push_back(new MountainBiome(noise, waterLevel, averageHeight, averageOffset));
             }
         }
     private:
-        inline static std::vector<Biome> biomesVector = std::vector<Biome>{};
+        inline static std::vector<Biome*> biomesVector = std::vector<Biome*>{};
 };
