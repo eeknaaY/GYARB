@@ -121,7 +121,7 @@ Octree::Octree(){
     mainNode = new Node();
 }
 
-Octree::Octree(int _chunkXcoord, int _chunkYcoord, int _chunkZcoord, FastNoiseLite noise){
+Octree::Octree(int _chunkXcoord, int _chunkYcoord, int _chunkZcoord){
     mainNode = new Node(-1, 0, nullptr, false, true);
     chunk_xcoord = _chunkXcoord;
     chunk_zcoord = _chunkZcoord;

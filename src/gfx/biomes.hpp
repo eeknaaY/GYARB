@@ -28,13 +28,7 @@ struct Biome{
 };
 
 struct ForestBiome : Biome{
-    ForestBiome(FastNoiseLite noise, int waterLevel, int averageHeightValue, int heightOffsetValue) : Biome(noise, waterLevel, averageHeightValue, heightOffsetValue){
-        this->biome = biome;
-        this->noise = noise;
-        this->waterLevel = waterLevel;
-        this->averageHeightValue = averageHeightValue;
-        this->heightOffsetValue = heightOffsetValue;
-    }
+    using Biome::Biome;
 
     float getNoiseValue(float x, float z) {
         return noise.GetNoise(x, z);
@@ -42,14 +36,7 @@ struct ForestBiome : Biome{
 };
 
 struct MountainBiome : Biome{
-    MountainBiome(FastNoiseLite noise, int waterLevel, int averageHeightValue, int heightOffsetValue) : Biome(noise, waterLevel, averageHeightValue, heightOffsetValue){
-        this->biome = biome;
-        this->noise = noise;
-        this->waterLevel = waterLevel;
-        this->averageHeightValue = averageHeightValue;
-        this->heightOffsetValue = heightOffsetValue;
-    }
-
+    using Biome::Biome;
 
     float getNoiseValue(float x, float z) {
         float noiseValue = noise.GetNoise(x, z);

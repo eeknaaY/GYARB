@@ -8,7 +8,7 @@
 #include "chunk.hpp"
 
 struct voxelFace{
-    short x, y, z, width = 0, height = 1, texture;
+    int x, y, z, width = 0, height = 1, texture;
 
     voxelFace(short _x, short _y, short _z){
         x = _x;
@@ -33,7 +33,6 @@ class ChunkManager{
         std::vector<std::pair<int, int>> chunksToRemoveth1;
         std::vector<std::pair<int, int>> chunksToRemoveth2;
 
-        FastNoiseLite noise;
         std::map<std::pair<int, int>, std::vector<Chunk*>> chunkMap;
 
         void appendChunk(int x, int z, int LoD);
@@ -62,7 +61,7 @@ class ChunkManager{
         bool isAirBlock(int voxelValues[], int x, int y, int z, int LoD);
         bool isAccountedFor(bool accountedVoxels[], int x, int y, int z);
         bool isFacingAirblock(int voxelValues[], int x, int y, int z, int reverseConstant, int constantPos, int LoD);
-        void getTextureCoordinates(int textureValue, float &u, float &v, voxelFaces face, int LoD);
+        void updateTextureValue(int& textureValue, voxelFaces face, int LoD);
         void buildVoxelValueArray(int voxelValues[], Chunk* chunk, int LoD);
         int getVoxelValue(int voxelValues[], int x, int y, int z);
 };

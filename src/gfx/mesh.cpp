@@ -44,9 +44,9 @@ void Mesh::bindMesh()
     // vertex positions
     glEnableVertexAttribArray(0);	
     glVertexAttribIPointer(0, 1, GL_INT, sizeof(Vertex), (void*)0);
-    // vertex texture coords
-    glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)sizeof(int));
+
+    glEnableVertexAttribArray(1);	
+    glVertexAttribIPointer(1, 1, GL_SHORT, sizeof(Vertex), (void*)sizeof(int));
 
     glBindVertexArray(0);
 
@@ -67,9 +67,9 @@ void Mesh::bindMesh()
     // vertex positions
     glEnableVertexAttribArray(0);	
     glVertexAttribIPointer(0, 1, GL_INT, sizeof(Vertex), (void*)0);
-    // vertex texture coords
-    glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)sizeof(int));
+
+    glEnableVertexAttribArray(1);	
+    glVertexAttribIPointer(1, 1, GL_SHORT, sizeof(Vertex), (void*)sizeof(int));
 
     glBindVertexArray(0);
 

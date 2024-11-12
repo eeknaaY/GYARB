@@ -36,7 +36,7 @@ class Node{
 class Octree{
     public:
         Octree();
-        Octree(int _chunk_xcoord, int _chunk_ycoord, int _chunk_zcoord, FastNoiseLite noise);
+        Octree(int _chunk_xcoord, int _chunk_ycoord, int _chunk_zcoord);
         Octree(int initValue);
         ~Octree();
         Node* mainNode;

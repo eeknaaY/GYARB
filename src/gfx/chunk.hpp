@@ -36,22 +36,22 @@ class Chunk{
         int getBlockValue(int x, int y, int z);
         
 
-        Chunk(int _xCoordinate, int _yCoordinate, int _zCoordinate, int LoD, FastNoiseLite noise){
+        Chunk(int _xCoordinate, int _yCoordinate, int _zCoordinate, int LoD){
             this->xCoordinate = _xCoordinate;
             this->zCoordinate = _zCoordinate;
             this->yCoordinate = _yCoordinate;
             currentLoD = LoD;
-            octree = new Octree(_xCoordinate, _yCoordinate, _zCoordinate, noise);
+            octree = new Octree(_xCoordinate, _yCoordinate, _zCoordinate);
             octreeExists = true;
         }
 
-        Chunk(int _xCoordinate, int _yCoordinate, int _zCoordinate, int LoD = 5){
+        Chunk(int fillValue, int _xCoordinate, int _yCoordinate, int _zCoordinate, int LoD){
             this->xCoordinate = _xCoordinate;
             this->zCoordinate = _zCoordinate;
             this->yCoordinate = _yCoordinate;
             currentLoD = LoD;
             // Initialize empty octree
-            octree = new Octree(0);
+            octree = new Octree(fillValue);
             octreeExists = true;
         }
 

@@ -6,16 +6,17 @@
 #include "camera.hpp"
 
 struct Vertex {
-    int Position;
-    glm::vec2 TexCoords;
+    int bitPackedData1;
+    short bitPackedData2;
 
-    Vertex(int _x, int _y, int _z, float u, float v, int faceIndex, int textureID){
-        // XYZ = 6 bits
+    Vertex(int _x, int _y, int _z, int faceIndex, int textureID, int uvID, int blockWidth, int blockHeight){
+        // XYZ = 18 bits
         // faceIndex = 3 bits
-        // textureID 
-        Position =  (textureID << 21) | (faceIndex << 18) | (_x << 12) | (_y << 6) | _z;
-        TexCoords.x = u;
-        TexCoords.y = v;
+        // textureID 8 bits
+        // uvID = 2 bits
+        // blockSize = 12 bits
+        bitPackedData1 = (uvID << 29) | (textureID << 21) | (faceIndex << 18) | (_x << 12) | (_y << 6) | _z;
+        bitPackedData2 = (blockHeight << 6) | blockWidth;
     }
 };
 
@@ -42,10 +43,14 @@ class Mesh {
 
 class SkyboxMesh : public Mesh{
     public:
+        SkyboxMesh(){
+            bindMesh();
+        }
+
         void draw(const Shader &shader);
-        void bindMesh();
         
     private:
+        void bindMesh();
         float boxVertices[108] = {
             // positions          
             -1.0f,  1.0f, -1.0f,
@@ -99,11 +104,12 @@ class ShadowMap{
 
         glm::mat4 getViewMatrix(const Camera& camera, float nearPlane, float farPlane);
         std::vector<glm::mat4> getViewMatrices(const Camera& camera);
-        void bindMesh();
 
         ShadowMap(const Camera& camera){
             shadowCascadeLevels = std::vector<float>{camera.FAR_FRUSTUM / 16.f, camera.FAR_FRUSTUM / 4.f, camera.FAR_FRUSTUM / 2.f};
+            bindMesh();
         }
     private:
+        void bindMesh();
         inline static bool hasBindedTextures = false;
 };

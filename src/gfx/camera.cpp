@@ -8,14 +8,21 @@ bool Camera::hasChangedChunk(){
     return (currentChunk_x != oldChunk_x) || (currentChunk_z != oldChunk_z) || (currentChunk_y != oldChunk_y);
 }
 
-void Camera::processInput(float deltaTime)
+void Camera::processInput(GLFWwindow* window, float deltaTime)
 {   
+    handleMouse(window);
+
+    this->hasMovedBlockPosition = false;
+    this->oldPosition = position;
     processKeyInput(deltaTime);
+    if (floor(this->oldPosition) != floor(this->position)){
+        this->hasMovedBlockPosition = true;
+    }
+
     updateChunkPosition();
 }
 
 void Camera::updateChunkPosition(){
-
     this->oldChunk_x = this->currentChunk_x;
     this->oldChunk_z = this->currentChunk_z;
     this->oldChunk_y = this->currentChunk_y;
@@ -26,6 +33,10 @@ void Camera::updateChunkPosition(){
 
     if (position.x < 0) currentChunk_x--;
     if (position.z < 0) currentChunk_z--;
+}
+
+float Camera::distanceFromCamera(int x, int y, int z) const {
+    return sqrt(pow((position.x - x), 2) + pow((position.y - y), 2) + pow((position.z - z), 2));
 }
 
 std::vector<glm::vec4> Camera::getFrustumCornersWorldSpace(glm::mat4x4* projection) const {
@@ -107,4 +118,40 @@ void Camera::processKeyInput(float deltaTime){
     if (glfwGetKey(window, GLFW_KEY_0) == GLFW_PRESS){
         blockTypeSelected = 10;
     }
+}
+
+void Camera::handleMouse(GLFWwindow* window){
+    GLdouble xPos, yPos;
+    glfwGetCursorPos(window, &xPos, &yPos);
+
+    if (this->firstMouse)
+    {
+        this->lastX = xPos;
+        this->lastY = yPos;
+        this->firstMouse = false;
+    }
+
+    float xoffset = xPos - this->lastX;
+    float yoffset = this->lastY - yPos; // reversed since y-coordinates go from bottom to top
+    this->lastX = xPos;
+    this->lastY = yPos;
+
+    float sensitivity = 0.1f; // change this value to your liking
+    xoffset *= sensitivity;
+    yoffset *= sensitivity;
+
+    this->yaw += xoffset;
+    this->pitch += yoffset;
+
+    // make sure that when this->pitch is out of bounds, screen doesn't get flipped
+    if (this->pitch > 89.0f)
+        this->pitch = 89.0f;
+    if (this->pitch < -89.0f)
+        this->pitch = -89.0f;
+
+    glm::vec3 camFront;
+    camFront.x = cos(glm::radians(this->yaw)) * cos(glm::radians(this->pitch));
+    camFront.y = sin(glm::radians(this->pitch));
+    camFront.z = sin(glm::radians(this->yaw)) * cos(glm::radians(this->pitch));
+    this->front = glm::normalize(camFront);
 }

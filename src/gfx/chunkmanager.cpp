@@ -8,9 +8,9 @@
 
 void ChunkManager::appendChunk(int x, int z, int LoD){
     if (getChunkVector(x, z).size() == 0){
-        chunkMap[std::make_pair(x, z)] = std::vector<Chunk*>{new Chunk(x, 0, z, LoD, noise)};
+        chunkMap[std::make_pair(x, z)] = std::vector<Chunk*>{new Chunk(x, 0, z, LoD)};
     } else {
-        chunkMap[std::make_pair(x, z)].push_back(new Chunk(x, 0, z, LoD, noise));
+        chunkMap[std::make_pair(x, z)].push_back(new Chunk(x, 0, z, LoD));
     }
 
     Biome* currentBiome = BiomeHandler::getBiome(Biomes::Forest);
@@ -20,7 +20,7 @@ void ChunkManager::appendChunk(int x, int z, int LoD){
             // Change height here and in octree
             int maxHeight = currentBiome->averageHeightValue + Chunk::CHUNK_SIZE + (int)((currentBiome->heightOffsetValue) * noiseVal);
             if (maxHeight - getChunkVector(x, z).size() * Chunk::CHUNK_SIZE > Chunk::CHUNK_SIZE){
-                appendChunk(new Chunk(x, getChunkVector(x, z).size(), z, LoD, noise));
+                appendChunk(new Chunk(x, getChunkVector(x, z).size(), z, LoD));
                 return;
             }
         }
@@ -42,7 +42,7 @@ void ChunkManager::appendChunk(Chunk* ptr){
             int maxHeight = currentBiome->averageHeightValue + Chunk::CHUNK_SIZE + (int)((currentBiome->heightOffsetValue) * noiseVal);
 
             if (maxHeight - (ptr->yCoordinate + 1) * Chunk::CHUNK_SIZE > Chunk::CHUNK_SIZE){
-                appendChunk(new Chunk(ptr->xCoordinate, ptr->yCoordinate + 1, ptr->zCoordinate, ptr->currentLoD, noise));
+                appendChunk(new Chunk(ptr->xCoordinate, ptr->yCoordinate + 1, ptr->zCoordinate, ptr->currentLoD));
                 return;
             }
         }
@@ -59,7 +59,6 @@ void ChunkManager::removeChunk(int x, int z){
 }
 
 Chunk* ChunkManager::getChunk(int x, int y, int z){
-    if (x > 25 || z > 25 || x < -25 || z < -25) return nullptr;
     try{
         if (y > chunkMap.at(std::make_pair(x, z)).size() - 1) return nullptr;
         return chunkMap.at(std::make_pair(x, z))[y];
@@ -143,7 +142,7 @@ void ChunkManager::updateTerrain(Camera* gameCamera, int threadMultiplier){
                 if (!chunk){
                     int LoD = 5;
                     if (abs(dx - xPos) > 10 || abs(dz - zPos) > 10) LoD = 4;
-                    Chunk* _chunk = new Chunk(dx, 0, dz, LoD, noise);
+                    Chunk* _chunk = new Chunk(dx, 0, dz, LoD);
                     appendChunk(_chunk);
                     continue;
                 }
@@ -183,7 +182,7 @@ void ChunkManager::updateTerrain(Camera* gameCamera, int threadMultiplier){
                 if (!chunk){
                     int LoD = 5;
                     if (abs(dx - xPos) > 10 || abs(dz - zPos) > 10) LoD = 4;
-                    Chunk* _chunk = new Chunk(dx, 0, dz, LoD, noise);
+                    Chunk* _chunk = new Chunk(dx, 0, dz, LoD);
                     appendChunk(_chunk);
                     continue;
                 }
@@ -295,8 +294,12 @@ bool ChunkManager::isFacingAirblock(int voxelVal[], int x, int y, int z, int rev
 
     int blockValue = getVoxelValue(voxelVal, x, y, z);
 
-    if (currentBlockValue == 17){
+    if (currentBlockValue == (int)Block::Water){
         if (reverseConstant == 1 && constantPos == 2) return 1;
+        return blockValue == 0;
+    }
+
+    if (currentBlockValue == (int)Block::Glass){
         return blockValue == 0;
     }
 
@@ -319,7 +322,7 @@ void ChunkManager::buildVoxelValueArray(int voxelValues[], Chunk* chunk, int LoD
     }
 }
 
-void ChunkManager::getTextureCoordinates(int textureValue, float &u, float &v, voxelFaces face, int LoD){ // Replace sides of a grass block to semi dirt + semi grass
+void ChunkManager::updateTextureValue(int &textureValue, voxelFaces face, int LoD){ // Replace sides of a grass block to semi dirt + semi grass
     Block blockType = (Block)textureValue;
     switch (blockType)
     {
@@ -336,14 +339,7 @@ void ChunkManager::getTextureCoordinates(int textureValue, float &u, float &v, v
         break;
     }
 
-    const float textureBlockSize = 0.0625f;
-
-    // Since air is the value 0, we need to remove one value so textures begin at 0.
-    int _textureValue = (int)blockType - 1;
-
-
-    u = textureBlockSize * (_textureValue % 16);
-    v = textureBlockSize * (_textureValue - _textureValue % 16)/16; 
+    textureValue = (int)blockType;
 }
 
 #include <chrono>
@@ -368,11 +364,11 @@ Mesh ChunkManager::buildMesh(Chunk* _chunk, Camera gameCamera){
     buildVoxelValueArray(voxelValues, _chunk, LoD);
 
     for (int currentFace = TOP_FACE; currentFace <= RIGHT_FACE; currentFace++){
-        if (chunk_dx > 5 && currentFace == FRONT_FACE) continue;
-        if (chunk_dx < -5 && currentFace == BACK_FACE) continue;
-        if (chunk_dz < -5 && currentFace == RIGHT_FACE) continue;
-        if (chunk_dz > 5 && currentFace == LEFT_FACE) continue;
-        if (chunk_dy > 5 && currentFace == TOP_FACE) continue;
+        // if (chunk_dx > 5 && currentFace == FRONT_FACE) continue;
+        // if (chunk_dx < -5 && currentFace == BACK_FACE) continue;
+        // if (chunk_dz < -5 && currentFace == RIGHT_FACE) continue;
+        // if (chunk_dz > 5 && currentFace == LEFT_FACE) continue;
+        // if (chunk_dy > 5 && currentFace == TOP_FACE) continue;
         //if (chunk_dy < 5 && currentFace == BOTTOM_FACE) continue;
 
         bool accountedVoxels[32 * 32 * 32] = {false};
@@ -438,15 +434,14 @@ Mesh ChunkManager::buildMesh(Chunk* _chunk, Camera gameCamera){
                 }
 
                 int vertexCount = vertices->size();
-                float u, v;
 
                 if (currentFace == TOP_FACE){
-                    getTextureCoordinates(face.texture, u, v, TOP_FACE, LoD);
+                    updateTextureValue(face.texture, TOP_FACE, LoD);
 
-                    vertices->push_back(Vertex(face.x,              face.y + jumpLength, face.z,               u,              v,               TOP_FACE, face.texture)); 
-                    vertices->push_back(Vertex(face.x + face.width, face.y + jumpLength, face.z + face.height, u + face.width, v + face.height, TOP_FACE, face.texture));
-                    vertices->push_back(Vertex(face.x + face.width, face.y + jumpLength, face.z,               u + face.width, v,               TOP_FACE, face.texture));
-                    vertices->push_back(Vertex(face.x,              face.y + jumpLength, face.z + face.height, u,              v + face.height, TOP_FACE, face.texture));
+                    vertices->push_back(Vertex(face.x,              face.y + jumpLength, face.z,               TOP_FACE, face.texture, 0, face.width, face.height)); 
+                    vertices->push_back(Vertex(face.x + face.width, face.y + jumpLength, face.z + face.height, TOP_FACE, face.texture, 3, face.width, face.height));
+                    vertices->push_back(Vertex(face.x + face.width, face.y + jumpLength, face.z,               TOP_FACE, face.texture, 1, face.width, face.height));
+                    vertices->push_back(Vertex(face.x,              face.y + jumpLength, face.z + face.height, TOP_FACE, face.texture, 2, face.width, face.height));
 
                     indices->push_back(vertexCount + 3);
                     indices->push_back(vertexCount + 1);
@@ -455,12 +450,12 @@ Mesh ChunkManager::buildMesh(Chunk* _chunk, Camera gameCamera){
                     indices->push_back(vertexCount + 2);
                     indices->push_back(vertexCount + 0);
                 } else {
-                    getTextureCoordinates(face.texture, u, v, BOTTOM_FACE, LoD);
+                    updateTextureValue(face.texture, BOTTOM_FACE, LoD);
 
-                    vertices->push_back(Vertex(face.x,              face.y, face.z,               u,              v,               BOTTOM_FACE, face.texture)); 
-                    vertices->push_back(Vertex(face.x + face.width, face.y, face.z,               u + face.width, v,               BOTTOM_FACE, face.texture));
-                    vertices->push_back(Vertex(face.x + face.width, face.y, face.z + face.height, u + face.width, v + face.height, BOTTOM_FACE, face.texture));
-                    vertices->push_back(Vertex(face.x,              face.y, face.z + face.height, u,              v + face.height, BOTTOM_FACE, face.texture));
+                    vertices->push_back(Vertex(face.x,              face.y, face.z,               BOTTOM_FACE, face.texture, 0, face.width, face.height)); 
+                    vertices->push_back(Vertex(face.x + face.width, face.y, face.z,               BOTTOM_FACE, face.texture, 1, face.width, face.height));
+                    vertices->push_back(Vertex(face.x + face.width, face.y, face.z + face.height, BOTTOM_FACE, face.texture, 3, face.width, face.height));
+                    vertices->push_back(Vertex(face.x,              face.y, face.z + face.height, BOTTOM_FACE, face.texture, 2, face.width, face.height));
 
                     indices->push_back(vertexCount + 2);
                     indices->push_back(vertexCount + 3);
@@ -528,29 +523,28 @@ Mesh ChunkManager::buildMesh(Chunk* _chunk, Camera gameCamera){
                 }
 
                 int vertexCount = vertices->size();
-                float u, v;
 
                 if (currentFace == BACK_FACE){
-                    getTextureCoordinates(face.texture, u, v, FRONT_FACE, LoD);
+                    updateTextureValue(face.texture, BACK_FACE, LoD);
 
-                    vertices->push_back(Vertex(face.x, face.y + face.height, face.z + face.width, u + face.width, v + face.height, FRONT_FACE, face.texture));
-                    vertices->push_back(Vertex(face.x, face.y + face.height, face.z,              u,              v + face.height, FRONT_FACE, face.texture));
-                    vertices->push_back(Vertex(face.x, face.y,               face.z,              u,              v,               FRONT_FACE, face.texture));
-                    vertices->push_back(Vertex(face.x, face.y,               face.z + face.width, u + face.width, v,               FRONT_FACE, face.texture));
+                    vertices->push_back(Vertex(face.x, face.y + face.height, face.z + face.width, FRONT_FACE, face.texture, 3, face.width, face.height));
+                    vertices->push_back(Vertex(face.x, face.y + face.height, face.z,              FRONT_FACE, face.texture, 2, face.width, face.height));
+                    vertices->push_back(Vertex(face.x, face.y,               face.z,              FRONT_FACE, face.texture, 0, face.width, face.height));
+                    vertices->push_back(Vertex(face.x, face.y,               face.z + face.width, FRONT_FACE, face.texture, 1, face.width, face.height));
 
                     indices->push_back(vertexCount + 2);
                     indices->push_back(vertexCount + 3);
                     indices->push_back(vertexCount + 0);
                     indices->push_back(vertexCount + 2);
                     indices->push_back(vertexCount + 0);
-                    indices->push_back(vertexCount + 1);
+                    indices->push_back(vertexCount + 1); 
                 } else {
-                    getTextureCoordinates(face.texture, u, v, BACK_FACE, LoD);
+                    updateTextureValue(face.texture, FRONT_FACE, LoD);
 
-                    vertices->push_back(Vertex(face.x + jumpLength, face.y + face.height, face.z + face.width, u,              v + face.height, BACK_FACE, face.texture));
-                    vertices->push_back(Vertex(face.x + jumpLength, face.y,               face.z,              u + face.width, v,               BACK_FACE, face.texture));
-                    vertices->push_back(Vertex(face.x + jumpLength, face.y + face.height, face.z,              u + face.width, v + face.height, BACK_FACE, face.texture));
-                    vertices->push_back(Vertex(face.x + jumpLength, face.y,               face.z + face.width, u,              v,               BACK_FACE, face.texture));
+                    vertices->push_back(Vertex(face.x + jumpLength, face.y + face.height, face.z + face.width, BACK_FACE, face.texture, 2, face.width, face.height));
+                    vertices->push_back(Vertex(face.x + jumpLength, face.y,               face.z,              BACK_FACE, face.texture, 1, face.width, face.height));
+                    vertices->push_back(Vertex(face.x + jumpLength, face.y + face.height, face.z,              BACK_FACE, face.texture, 3, face.width, face.height));
+                    vertices->push_back(Vertex(face.x + jumpLength, face.y,               face.z + face.width, BACK_FACE, face.texture, 0, face.width, face.height));
 
                     indices->push_back(vertexCount + 3);
                     indices->push_back(vertexCount + 1);
@@ -617,15 +611,14 @@ Mesh ChunkManager::buildMesh(Chunk* _chunk, Camera gameCamera){
             }
 
             int vertexCount = vertices->size();
-            float u, v;
             
             if (currentFace == LEFT_FACE){
-                getTextureCoordinates(face.texture, u, v, LEFT_FACE, LoD);
+                updateTextureValue(face.texture, LEFT_FACE, LoD);
 
-                vertices->push_back(Vertex(face.x,              face.y,               face.z + jumpLength, u,              v,               LEFT_FACE, face.texture)); 
-                vertices->push_back(Vertex(face.x + face.width, face.y,               face.z + jumpLength, u + face.width, v,               LEFT_FACE, face.texture));
-                vertices->push_back(Vertex(face.x + face.width, face.y + face.height, face.z + jumpLength, u + face.width, v + face.height, LEFT_FACE, face.texture));
-                vertices->push_back(Vertex(face.x,              face.y + face.height, face.z + jumpLength, u,              v + face.height, LEFT_FACE, face.texture));
+                vertices->push_back(Vertex(face.x,              face.y,               face.z + jumpLength, LEFT_FACE, face.texture, 0, face.width, face.height)); 
+                vertices->push_back(Vertex(face.x + face.width, face.y,               face.z + jumpLength, LEFT_FACE, face.texture, 1, face.width, face.height));
+                vertices->push_back(Vertex(face.x + face.width, face.y + face.height, face.z + jumpLength, LEFT_FACE, face.texture, 3, face.width, face.height));
+                vertices->push_back(Vertex(face.x,              face.y + face.height, face.z + jumpLength, LEFT_FACE, face.texture, 2, face.width, face.height));
 
                 indices->push_back(vertexCount + 0);
                 indices->push_back(vertexCount + 1);
@@ -634,12 +627,12 @@ Mesh ChunkManager::buildMesh(Chunk* _chunk, Camera gameCamera){
                 indices->push_back(vertexCount + 2);
                 indices->push_back(vertexCount + 3);
             } else {
-                getTextureCoordinates(face.texture, u, v, RIGHT_FACE, LoD);
+                updateTextureValue(face.texture, RIGHT_FACE, LoD);
 
-                vertices->push_back(Vertex(face.x,              face.y,               face.z, u,              v,               RIGHT_FACE, face.texture)); 
-                vertices->push_back(Vertex(face.x + face.width, face.y + face.height, face.z, u + face.width, v + face.height, RIGHT_FACE, face.texture));
-                vertices->push_back(Vertex(face.x + face.width, face.y,               face.z, u + face.width, v,               RIGHT_FACE, face.texture));
-                vertices->push_back(Vertex(face.x,              face.y + face.height, face.z, u,              v + face.height, RIGHT_FACE, face.texture));
+                vertices->push_back(Vertex(face.x,              face.y,               face.z, RIGHT_FACE, face.texture, 0, face.width, face.height)); 
+                vertices->push_back(Vertex(face.x + face.width, face.y + face.height, face.z, RIGHT_FACE, face.texture, 3, face.width, face.height));
+                vertices->push_back(Vertex(face.x + face.width, face.y,               face.z, RIGHT_FACE, face.texture, 1, face.width, face.height));
+                vertices->push_back(Vertex(face.x,              face.y + face.height, face.z, RIGHT_FACE, face.texture, 2, face.width, face.height));
 
                 indices->push_back(vertexCount + 0);
                 indices->push_back(vertexCount + 1);
@@ -753,7 +746,7 @@ void ChunkManager::updateBlockValueAndMesh(int x, int y, int z, int blockValue, 
             updateChunkMesh(getChunk(chunkPosX, chunkPosY + 1, chunkPosZ), camera);
         } else {
             // Initialize new chunk
-            Chunk* newChunk = new Chunk(chunkPosX, chunkPosY + 1, chunkPosZ);
+            Chunk* newChunk = new Chunk(0, chunkPosX, chunkPosY + 1, chunkPosZ);
             appendChunk(newChunk);
             updateBlockValue(x, y, z, blockValue);
         }

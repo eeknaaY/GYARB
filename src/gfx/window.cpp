@@ -37,6 +37,9 @@ GLFWwindow* createWindow(int SCR_WIDTH, int SCR_HEIGHT){
         std::cout << "Failed to initialize GLAD" << std::endl;
     }
 
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    glfwSetKeyCallback(window, keyCallback);
+
     glEnable(GL_DEPTH_TEST);
 
     glEnable(GL_CULL_FACE);

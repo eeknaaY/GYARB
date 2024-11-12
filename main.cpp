@@ -13,18 +13,10 @@
 #include "src/textures/textures.hpp"
 #include "src/gfx/raycast.hpp"
 
-#define STB_IMAGE_IMPLEMENTATION
-#include "stb_image.h"
-
 #include <chrono>
-
-void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 
 float lastFrame = 0.0f;
 float deltaTime = 0.0f;
-
-bool rightMouseButtonDown = false;
-bool leftMouseButtonDown = false;
 
 Camera gameCamera;
 
@@ -35,55 +27,38 @@ int main(){
     GLFWwindow* window = createWindow(windowWidth, windowHeight);
     gameCamera = Camera(window);
 
-    glfwSetKeyCallback(window, keyCallback);
-    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);  
-    glfwSetCursorPosCallback(window, mouse_callback); 
-
-    unsigned int frameCounter = 0;
-
     Shader shadowMapShader("src/shaders/shadowMapShader.vs", "src/shaders/shadowMapShader.fs", "src/shaders/shadowMapShader.gs");
     Shader skyboxShader("src/shaders/skyboxShader.vs", "src/shaders/skyboxShader.fs");
     Shader voxelShader("src/shaders/voxelShader.vs", "src/shaders/voxelShader.fs");
+
     voxelShader.use();
     glUniform1i(glGetUniformLocation(voxelShader.ID, "ourTexture"), 0);
     glUniform1i(glGetUniformLocation(voxelShader.ID, "shadowMap"), 1);
+    voxelShader.setMat4("projection", gameCamera.projectionMatrix);
 
     SkyboxMesh skybox = SkyboxMesh();
-    skybox.bindMesh();
     skyboxShader.use();
     glUniform1i(glGetUniformLocation(skyboxShader.ID, "skybox"), 0);
-
-    glm::mat4 projection = glm::mat4(1.0f);
-    projection = glm::perspective(glm::radians(gameCamera.fov), (float)windowWidth / (float)windowHeight, gameCamera.NEAR_FRUSTUM, gameCamera.FAR_FRUSTUM);
-    gameCamera.projectionMatrix = projection;
-    skyboxShader.setMat4("projectionSkybox", projection);
-
-    voxelShader.use();
-    voxelShader.setMat4("projection", projection);
+    skyboxShader.setMat4("projectionSkybox", gameCamera.projectionMatrix);
 
     ShadowMap shadowMap = ShadowMap(gameCamera);
-    shadowMap.bindMesh();
+    shadowMapShader.use();
 
-    Renderer gameRenderer = Renderer();
     ChunkManager* chunkManager = new ChunkManager();
-    gameRenderer.chunkManager = chunkManager;
+    Renderer gameRenderer = Renderer(chunkManager);
 
     for (int dz = -gameCamera.renderDistance; dz <= gameCamera.renderDistance; dz++){
         for (int dx = -gameCamera.renderDistance; dx <= gameCamera.renderDistance; dx++){
-            Chunk* chunk = chunkManager->getChunk(dx, 0, dz);
+            auto start = std::chrono::high_resolution_clock::now();
 
-            if (!chunk){
-                auto start = std::chrono::high_resolution_clock::now();
+            int LoD = 5;
+            if (abs(dz) > 12 || abs(dx) > 12) LoD = 4;
+            Chunk* _chunk = new Chunk(dx, 0, dz, LoD);
+            chunkManager->appendChunk(_chunk);
 
-                int LoD = 5;
-                if (abs(dz) > 12 || abs(dx) > 12) LoD = 4;
-                Chunk* _chunk = new Chunk(dx, 0, dz, LoD, chunkManager->noise);
-                chunkManager->appendChunk(_chunk);
-
-                auto stop = std::chrono::high_resolution_clock::now();
-                auto duration = std::chrono::duration_cast<std::chrono::milliseconds> (stop-start);
-                printf("Creating chunk %i, %i data took: %.1d\n", dz, dx, duration.count());
-            }
+            auto stop = std::chrono::high_resolution_clock::now();
+            auto duration = std::chrono::duration_cast<std::chrono::milliseconds> (stop-start);
+            printf("Creating chunk %i, %i data took: %.1d\n", dz, dx, duration.count());
         }
     }
 
@@ -92,40 +67,35 @@ int main(){
     chunkManager->updateBlockValue(0, 31, -1, 8);
     chunkManager->updateBlockValue(-1, 31, -1, 8);
 
-
     for (int dz = -gameCamera.renderDistance; dz <= gameCamera.renderDistance; dz++){
         for (int dx = -gameCamera.renderDistance; dx <= gameCamera.renderDistance; dx++){
-            for (int dy = 0;;dy++){
-                Chunk* chunk = chunkManager->getChunk(dx, dy, dz);
-                if (!chunk) break;
-                chunkManager->updateChunkMesh(chunk, gameCamera); 
+            std::vector<Chunk*> chunkVector = chunkManager->getChunkVector(dx, dz);
+            for (Chunk* chunk : chunkVector){
+                chunkManager->updateChunkMesh(chunk, gameCamera);
             }
         }
     }
 
     double startTime = glfwGetTime();
+    int frameCounter = 0;
+    bool rightMouseButtonDown = false;
+    bool leftMouseButtonDown = false;
 
-    while (!glfwWindowShouldClose(window))
-    {   
+    while (!glfwWindowShouldClose(window)){   
         frameCounter += 1;
         if (glfwGetTime() - startTime >= 1.0f){
-            //std::cout << "ms/frame: " << 1000.0 / double(frameCounter) << "\n";
+            std::cout << "ms/frame: " << 1000.0 / double(frameCounter) << "\n";
             //printf("Speed: %.2f\n", gameCamera.automatedMovementSpeed);
             //printf("X: %.1f, Z: %.1f\nX: %.1f, Y: %.1f, Z: %.1f\n ", gameCamera.yaw, gameCamera.pitch, gameCamera.position.x, gameCamera.position.y,gameCamera.position.z);
             frameCounter = 0;
             startTime += 1;
         }
 
-
         float currentFrame = glfwGetTime();
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;  
-        gameCamera.processInput(deltaTime);
-
-        gameCamera.position.z -= gameCamera.automatedMovementSpeed;
+        gameCamera.processInput(window, deltaTime);
         
-
-
         if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS && !rightMouseButtonDown){
             //gameCamera.automatedMovementSpeed -= 0.05;
 
@@ -175,6 +145,7 @@ int main(){
         glViewport(0, 0, 2048, 2048);
         glBindFramebuffer(GL_FRAMEBUFFER, shadowMap.depthMapFBO);
         glClear(GL_DEPTH_BUFFER_BIT);
+
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, Textures::getTextureIndex());
         gameRenderer.renderVisibleChunks(shadowMapShader, gameCamera);
@@ -215,43 +186,4 @@ int main(){
 
     glfwTerminate();
     return 0;
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-void mouse_callback(GLFWwindow* window, double xposIn, double yposIn)
-{
-    float xpos = static_cast<float>(xposIn);
-    float ypos = static_cast<float>(yposIn);
-
-    if (gameCamera.firstMouse)
-    {
-        gameCamera.lastX = xpos;
-        gameCamera.lastY = ypos;
-        gameCamera.firstMouse = false;
-    }
-
-    float xoffset = xpos - gameCamera.lastX;
-    float yoffset = gameCamera.lastY - ypos; // reversed since y-coordinates go from bottom to top
-    gameCamera.lastX = xpos;
-    gameCamera.lastY = ypos;
-
-    float sensitivity = 0.1f; // change this value to your liking
-    xoffset *= sensitivity;
-    yoffset *= sensitivity;
-
-    gameCamera.yaw += xoffset;
-    gameCamera.pitch += yoffset;
-
-    // make sure that when gameCamera.pitch is out of bounds, screen doesn't get flipped
-    if (gameCamera.pitch > 89.0f)
-        gameCamera.pitch = 89.0f;
-    if (gameCamera.pitch < -89.0f)
-        gameCamera.pitch = -89.0f;
-
-    glm::vec3 camFront;
-    camFront.x = cos(glm::radians(gameCamera.yaw)) * cos(glm::radians(gameCamera.pitch));
-    camFront.y = sin(glm::radians(gameCamera.pitch));
-    camFront.z = sin(glm::radians(gameCamera.yaw)) * cos(glm::radians(gameCamera.pitch));
-    gameCamera.front = glm::normalize(camFront);
 }

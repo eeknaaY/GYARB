@@ -1,8 +1,16 @@
 #include "chunk.hpp"
 #include "renderer.hpp"
 
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
+
+#include <algorithm>
+#include <numeric>
+
 
 void Renderer::renderVisibleChunks(const Shader &shader, const Camera& camera){
+
+
     float minX = std::numeric_limits<float>::max();
     float maxX = std::numeric_limits<float>::lowest();
     float minY = std::numeric_limits<float>::max();
@@ -46,15 +54,15 @@ void Renderer::renderVisibleChunks(const Shader &shader, const Camera& camera){
 
 void Renderer::drawChunkVector(int x, int z, Shader shader, const std::vector<float>& frustumExtremeValues){
     // If a chunk is outside of the frustum, dont render.
-    int errorMargain = 1;
-    if ((x + errorMargain) * Chunk::CHUNK_SIZE < frustumExtremeValues[0]) return;
-    if ((x - errorMargain) * Chunk::CHUNK_SIZE > frustumExtremeValues[1]) return;
-    if ((z + errorMargain) * Chunk::CHUNK_SIZE < frustumExtremeValues[4]) return;
-    if ((z - errorMargain) * Chunk::CHUNK_SIZE > frustumExtremeValues[5]) return;
+    // int errorMargain = 1;
+    // if ((x + errorMargain) * Chunk::CHUNK_SIZE < frustumExtremeValues[0]) return;
+    // if ((x - errorMargain) * Chunk::CHUNK_SIZE > frustumExtremeValues[1]) return;
+    // if ((z + errorMargain) * Chunk::CHUNK_SIZE < frustumExtremeValues[4]) return;
+    // if ((z - errorMargain) * Chunk::CHUNK_SIZE > frustumExtremeValues[5]) return;
 
     for (Chunk* chunk : chunkManager->getChunkVector(x, z)){
-        if ((chunk->yCoordinate + errorMargain) * Chunk::CHUNK_SIZE < frustumExtremeValues[2]) return;
-        if ((chunk->yCoordinate - errorMargain) * Chunk::CHUNK_SIZE > frustumExtremeValues[3]) return;
+        // if ((chunk->yCoordinate + errorMargain) * Chunk::CHUNK_SIZE < frustumExtremeValues[2]) return;
+        // if ((chunk->yCoordinate - errorMargain) * Chunk::CHUNK_SIZE > frustumExtremeValues[3]) return;
 
 
         chunk->draw(shader);

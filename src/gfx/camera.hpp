@@ -3,7 +3,8 @@
 
 #include "glm/glm.hpp"
 #include "glm/vec3.hpp"
-#include <GLFW/glfw3.h>
+#include <glm/gtc/matrix_transform.hpp>
+#include "GLFW/glfw3.h"
 
 class Camera{
     public:
@@ -22,19 +23,25 @@ class Camera{
             lastX =  1600.0f / 2.0;
             lastY =  900.0 / 2.0;
             firstMouse = true;
+
+            int width, height;
+            glfwGetWindowSize(_window, &width, &height);
+            projectionMatrix = glm::perspective(glm::radians(fov), (float)width / (float)height, NEAR_FRUSTUM, FAR_FRUSTUM);
         }
 
         Camera() = default;
 
         void updateChunkPosition();
-        void processInput(float deltaTime);
+        void processInput(GLFWwindow* window, float deltaTime);
         void processKeyInput(float deltaTime);
         bool hasChangedChunk();
         std::vector<glm::vec4> getFrustumCornersWorldSpace(glm::mat4x4* projection = nullptr) const;
+        void handleMouse(GLFWwindow* window);
+        float distanceFromCamera(int x, int y, int z) const;
 
         float NEAR_FRUSTUM = 0.1f;
         float FAR_FRUSTUM = 800.0f;
-        int renderDistance = 12;
+        int renderDistance = 2;
 
         float automatedMovementSpeed = 0;
         int blockTypeSelected = 0;
@@ -45,6 +52,7 @@ class Camera{
         int oldChunk_x = 0;
         int oldChunk_z = 0;
         int oldChunk_y = 0;
+        bool hasMovedBlockPosition = false;
 
         glm::mat4 projectionMatrix;
         glm::mat4 viewMatrix;
@@ -64,6 +72,7 @@ class Camera{
         bool firstMouse;
 
     private:
+        glm::vec3 oldPosition;
         GLFWwindow* window;
 };
 

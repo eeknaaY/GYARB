@@ -2,7 +2,11 @@
 #include "chunkmanager.hpp"
 
 class Renderer{
-    public: 
+    public:
+        Renderer(ChunkManager* chunkManager){
+            this->chunkManager = chunkManager;
+        }
+
         ChunkManager* chunkManager;
         void renderVisibleChunks(const Shader &shader, const Camera& camera);
         void drawChunkVector(int x, int z, Shader shader, const std::vector<float>& frustumExtremeValues);
