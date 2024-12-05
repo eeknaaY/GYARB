@@ -34,14 +34,15 @@ class Camera{
         void updateChunkPosition();
         void processInput(GLFWwindow* window, float deltaTime);
         void processKeyInput(float deltaTime);
-        bool hasChangedChunk();
+        bool hasChangedChunk() const;
         std::vector<glm::vec4> getFrustumCornersWorldSpace(glm::mat4x4* projection = nullptr) const;
         void handleMouse(GLFWwindow* window);
-        float distanceFromCamera(int x, int y, int z) const;
+        float distanceFromCamera(float x, float y, float z) const;
+        bool hasChangedBlock() const;
 
         float NEAR_FRUSTUM = 0.1f;
         float FAR_FRUSTUM = 800.0f;
-        int renderDistance = 2;
+        int renderDistance = 7;
 
         float automatedMovementSpeed = 0;
         int blockTypeSelected = 0;
@@ -52,7 +53,6 @@ class Camera{
         int oldChunk_x = 0;
         int oldChunk_z = 0;
         int oldChunk_y = 0;
-        bool hasMovedBlockPosition = false;
 
         glm::mat4 projectionMatrix;
         glm::mat4 viewMatrix;

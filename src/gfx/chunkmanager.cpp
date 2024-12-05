@@ -13,7 +13,7 @@ void ChunkManager::appendChunk(int x, int z, int LoD){
         chunkMap[std::make_pair(x, z)].push_back(new Chunk(x, 0, z, LoD));
     }
 
-    Biome* currentBiome = BiomeHandler::getBiome(Biomes::Forest);
+    Biome* currentBiome = getChunk(x, getChunkVector(x, z).size(), z)->biomeType;
     for (int _x = 0; _x < 32; _x++){
         for (int _z = 0; _z < 32; _z++){
             float noiseVal = currentBiome->noise.GetNoise((float)(_x + 32 * x), (float)(_z + 32 * z));
@@ -34,12 +34,11 @@ void ChunkManager::appendChunk(Chunk* ptr){
         chunkMap[std::make_pair(ptr->xCoordinate, ptr->zCoordinate)].push_back(ptr);
     }
 
-    Biome* currentBiome = BiomeHandler::getBiome(Biomes::Mountain);
+    Biome* currentBiome = getChunk(ptr->xCoordinate, ptr->yCoordinate, ptr->zCoordinate)->biomeType;
     for (int x = 0; x < 32; x++){
         for (int z = 0; z < 32; z++){
-            float noiseVal = currentBiome->getNoiseValue(32 * ptr->xCoordinate + x, 32 * ptr->zCoordinate + z);
-            // Change height here and in octree
-            int maxHeight = currentBiome->averageHeightValue + Chunk::CHUNK_SIZE + (int)((currentBiome->heightOffsetValue) * noiseVal);
+            // Determine if another chunk above current chunk is required.
+            float maxHeight = BiomeHandler::getHeightValue(32 * ptr->xCoordinate + x, 32 * ptr->zCoordinate + z) + Chunk::CHUNK_SIZE;
 
             if (maxHeight - (ptr->yCoordinate + 1) * Chunk::CHUNK_SIZE > Chunk::CHUNK_SIZE){
                 appendChunk(new Chunk(ptr->xCoordinate, ptr->yCoordinate + 1, ptr->zCoordinate, ptr->currentLoD));
@@ -88,6 +87,7 @@ void ChunkManager::updateChunkMesh(Chunk* _chunk, Camera gameCamera){
 }
 
 void ChunkManager::updateChunkMesh_MT(Chunk* _chunk, Camera gameCamera){
+    if (!_chunk) return;
     Mesh updatedMesh = buildMesh(_chunk, gameCamera);
     _chunk->mesh.solid_vertices = updatedMesh.solid_vertices;
     _chunk->mesh.solid_indices = updatedMesh.solid_indices;
@@ -96,8 +96,8 @@ void ChunkManager::updateChunkMesh_MT(Chunk* _chunk, Camera gameCamera){
 }
 
 void ChunkManager::startMeshingThreads(Camera* gameCamera){
-    // if (meshingThread1.joinable()) meshingThread1.join();
-    // if (meshingThread2.joinable()) meshingThread2.join();
+    if (meshingThread1.joinable()) meshingThread1.join();
+    if (meshingThread2.joinable()) meshingThread2.join();
 
     while (chunksToRemoveth1.size() != 0){
         std::pair<int, int> pair = chunksToRemoveth1[0];
@@ -111,8 +111,8 @@ void ChunkManager::startMeshingThreads(Camera* gameCamera){
         chunksToRemoveth2.erase(chunksToRemoveth2.begin());
     }
 
-    // meshingThread1 = std::thread(updateTerrain, this, gameCamera, 0);
-    // meshingThread2 = std::thread(updateTerrain, this, gameCamera, 1);
+    meshingThread1 = std::thread(updateTerrain, this, gameCamera, 0);
+    meshingThread2 = std::thread(updateTerrain, this, gameCamera, 1);
 }
 
 void ChunkManager::updateTerrain(Camera* gameCamera, int threadMultiplier){
@@ -292,19 +292,14 @@ bool ChunkManager::isFacingAirblock(int voxelVal[], int x, int y, int z, int rev
         break;
     }
 
-    int blockValue = getVoxelValue(voxelVal, x, y, z);
+    int facingBlockValue = getVoxelValue(voxelVal, x, y, z);
 
-    if (currentBlockValue == (int)Block::Water){
-        if (reverseConstant == 1 && constantPos == 2) return 1;
-        return blockValue == 0;
-    }
-
-    if (currentBlockValue == (int)Block::Glass){
-        return blockValue == 0;
+    if (currentBlockValue == (int)Block::Water || currentBlockValue == (int)Block::Glass){
+        return facingBlockValue == (int)Block::Air;
     }
 
     // Facing water or air
-    return (blockValue == 0 || blockValue == (int)Block::Water || blockValue == (int)Block::Glass);
+    return (facingBlockValue == (int)Block::Air || facingBlockValue == (int)Block::Water || facingBlockValue == (int)Block::Glass || facingBlockValue == (int)Block::Leaf);
 }
 
 int ChunkManager::getVoxelValue(int voxelValues[], int x, int y, int z){
@@ -428,7 +423,7 @@ Mesh ChunkManager::buildMesh(Chunk* _chunk, Camera gameCamera){
                 std::vector<Vertex>* vertices = &solid_vertices;
                 std::vector<unsigned int>* indices = &solid_indices;
 
-                if (face.texture == (int)Block::Water || face.texture == (int)Block::Glass){ 
+                if ((face.texture == (int)Block::Water || face.texture == (int)Block::Glass || face.texture == (int)Block::Leaf) && _chunk->currentLoD == 5){ 
                     vertices = &transparent_vertices;
                     indices = &transparent_indices;
                 }
@@ -517,7 +512,7 @@ Mesh ChunkManager::buildMesh(Chunk* _chunk, Camera gameCamera){
                 std::vector<Vertex>* vertices = &solid_vertices;
                 std::vector<unsigned int>* indices = &solid_indices;
 
-                if (face.texture == (int)Block::Water || face.texture == (int)Block::Glass){ // If texture is water.
+                if ((face.texture == (int)Block::Water || face.texture == (int)Block::Glass || face.texture == (int)Block::Leaf) && _chunk->currentLoD == 5){ // If texture is water.
                     vertices = &transparent_vertices;
                     indices = &transparent_indices;
                 }
@@ -605,7 +600,7 @@ Mesh ChunkManager::buildMesh(Chunk* _chunk, Camera gameCamera){
             std::vector<Vertex>* vertices = &solid_vertices;
             std::vector<unsigned int>* indices = &solid_indices;
 
-            if (face.texture == (int)Block::Water || face.texture == (int)Block::Glass){ // If texture is water.
+            if ((face.texture == (int)Block::Water || face.texture == (int)Block::Glass || face.texture == (int)Block::Leaf) && _chunk->currentLoD == 5){ // If texture is water.
                 vertices = &transparent_vertices;
                 indices = &transparent_indices;
             }
@@ -681,7 +676,7 @@ int ChunkManager::getBlockValue(int x, int y, int z){
 }
 
 
-void ChunkManager::updateBlockValue(int x, int y, int z, int blockValue){
+void ChunkManager::setBlockValue(int x, int y, int z, int blockValue){
     // Coords are in global scope, find the chunk and make them local.
     int chunkPosX = (int)((round(x) - (int)round(x) % Chunk::CHUNK_SIZE) / Chunk::CHUNK_SIZE);
     int chunkPosY = (int)((round(y) - (int)round(y) % Chunk::CHUNK_SIZE) / Chunk::CHUNK_SIZE);
@@ -702,12 +697,12 @@ void ChunkManager::updateBlockValue(int x, int y, int z, int blockValue){
         z += Chunk::CHUNK_SIZE;
     }
 
-    getChunk(chunkPosX, chunkPosY, chunkPosZ)->updateBlockValue(x, y, z, blockValue);
+    Chunk* chunk = getChunk(chunkPosX, chunkPosY, chunkPosZ);
+    if (!chunk) return;
+    getChunk(chunkPosX, chunkPosY, chunkPosZ)->setBlockValue(x, y, z, blockValue);
 }
 
-void ChunkManager::updateBlockValueAndMesh(int x, int y, int z, int blockValue, Camera camera){
-    updateBlockValue(x, y, z, blockValue);
-
+void ChunkManager::updateBlockValueAndMesh(int x, int y, int z, int blockValue, const Camera& camera){
     int chunkPosX = (int)((round(x) - (int)round(x) % Chunk::CHUNK_SIZE) / Chunk::CHUNK_SIZE);
     int chunkPosY = (int)((round(y) - (int)round(y) % Chunk::CHUNK_SIZE) / Chunk::CHUNK_SIZE);
     int chunkPosZ = (int)((round(z) - (int)round(z) % Chunk::CHUNK_SIZE) / Chunk::CHUNK_SIZE);
@@ -726,6 +721,14 @@ void ChunkManager::updateBlockValueAndMesh(int x, int y, int z, int blockValue, 
         z += Chunk::CHUNK_SIZE;
     }
 
+    if (!getChunk(chunkPosX, chunkPosY, chunkPosZ)){
+        Chunk* newChunk = new Chunk(0, chunkPosX, chunkPosY, chunkPosZ, 5);
+        appendChunk(newChunk);
+    }
+    
+    Chunk* currentChunk = getChunk(chunkPosX, chunkPosY, chunkPosZ);
+
+    currentChunk->setBlockValue(x, y, z, blockValue);
     updateChunkMesh(getChunk(chunkPosX, chunkPosY, chunkPosZ), camera);
 
     if (x == 0){
@@ -741,15 +744,7 @@ void ChunkManager::updateBlockValueAndMesh(int x, int y, int z, int blockValue, 
     }
 
     if (y == 31){
-        Chunk* _chunk = getChunk(chunkPosX, chunkPosY + 1, chunkPosZ);
-        if (_chunk){
-            updateChunkMesh(getChunk(chunkPosX, chunkPosY + 1, chunkPosZ), camera);
-        } else {
-            // Initialize new chunk
-            Chunk* newChunk = new Chunk(0, chunkPosX, chunkPosY + 1, chunkPosZ);
-            appendChunk(newChunk);
-            updateBlockValue(x, y, z, blockValue);
-        }
+        updateChunkMesh(getChunk(chunkPosX, chunkPosY + 1, chunkPosZ), camera);
     }
 
     if (z == 0){

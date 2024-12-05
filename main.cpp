@@ -18,35 +18,42 @@
 float lastFrame = 0.0f;
 float deltaTime = 0.0f;
 
-Camera gameCamera;
-
 int main(){
     int windowHeight = 900;
     int windowWidth = 1600;
 
     GLFWwindow* window = createWindow(windowWidth, windowHeight);
-    gameCamera = Camera(window);
+    Camera gameCamera = Camera(window);
 
     Shader shadowMapShader("src/shaders/shadowMapShader.vs", "src/shaders/shadowMapShader.fs", "src/shaders/shadowMapShader.gs");
     Shader skyboxShader("src/shaders/skyboxShader.vs", "src/shaders/skyboxShader.fs");
     Shader voxelShader("src/shaders/voxelShader.vs", "src/shaders/voxelShader.fs");
-
-    voxelShader.use();
-    glUniform1i(glGetUniformLocation(voxelShader.ID, "ourTexture"), 0);
-    glUniform1i(glGetUniformLocation(voxelShader.ID, "shadowMap"), 1);
-    voxelShader.setMat4("projection", gameCamera.projectionMatrix);
 
     SkyboxMesh skybox = SkyboxMesh();
     skyboxShader.use();
     glUniform1i(glGetUniformLocation(skyboxShader.ID, "skybox"), 0);
     skyboxShader.setMat4("projectionSkybox", gameCamera.projectionMatrix);
 
+    voxelShader.use();
+    glUniform1i(glGetUniformLocation(voxelShader.ID, "ourTexture"), 0);
+    glUniform1i(glGetUniformLocation(voxelShader.ID, "shadowMap"), 1);
+    glUniform1i(glGetUniformLocation(voxelShader.ID, "skybox"), 2);
+    voxelShader.setMat4("projection", gameCamera.projectionMatrix);
+
     ShadowMap shadowMap = ShadowMap(gameCamera);
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, Textures::getTextureIndex());
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D_ARRAY, shadowMap.depthMaps);
+    glActiveTexture(GL_TEXTURE2);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, skybox.texture);
+    
     shadowMapShader.use();
 
     ChunkManager* chunkManager = new ChunkManager();
     Renderer gameRenderer = Renderer(chunkManager);
-
+    
     for (int dz = -gameCamera.renderDistance; dz <= gameCamera.renderDistance; dz++){
         for (int dx = -gameCamera.renderDistance; dx <= gameCamera.renderDistance; dx++){
             auto start = std::chrono::high_resolution_clock::now();
@@ -62,10 +69,9 @@ int main(){
         }
     }
 
-    chunkManager->updateBlockValue(0, 31, 0, 8);
-    chunkManager->updateBlockValue(-1, 31, 0, 8);
-    chunkManager->updateBlockValue(0, 31, -1, 8);
-    chunkManager->updateBlockValue(-1, 31, -1, 8);
+    chunkManager->setBlockValue(2, 31, 2, 8);
+    chunkManager->setBlockValue(0, 31, 0, 8);
+    chunkManager->setBlockValue(2, 32, 2, 8);
 
     for (int dz = -gameCamera.renderDistance; dz <= gameCamera.renderDistance; dz++){
         for (int dx = -gameCamera.renderDistance; dx <= gameCamera.renderDistance; dx++){
@@ -129,8 +135,6 @@ int main(){
         view = glm::lookAt(gameCamera.position, gameCamera.position + gameCamera.front, gameCamera.up);
         gameCamera.viewMatrix = view;
 
-        glm::vec3 sunPos = glm::vec3(gameCamera.position.x + 100, 100, gameCamera.position.z + 100);
-
         auto lightMatrices = shadowMap.getViewMatrices(gameCamera);
         glBindBuffer(GL_UNIFORM_BUFFER, shadowMap.matricesUBO);
         for (size_t i = 0; i < lightMatrices.size(); ++i)
@@ -146,17 +150,19 @@ int main(){
         glBindFramebuffer(GL_FRAMEBUFFER, shadowMap.depthMapFBO);
         glClear(GL_DEPTH_BUFFER_BIT);
 
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, Textures::getTextureIndex());
+        // glActiveTexture(GL_TEXTURE0);
+        // glBindTexture(GL_TEXTURE_2D, Textures::getTextureIndex());
         gameRenderer.renderVisibleChunks(shadowMapShader, gameCamera);
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
         glViewport(0, 0, windowWidth, windowHeight);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+        //Draw skybox
         skyboxShader.use();
         skyboxShader.setMat4("viewSkybox", glm::mat4(glm::mat3(view)));
         skybox.draw(skyboxShader);
+        // glClearColor(0.0f, 0.6f, 0.8f, 1.0f);
 
         voxelShader.use();
         voxelShader.setMat4("view", view);
@@ -165,16 +171,19 @@ int main(){
             //chunkManager->startMeshingThreads(&gameCamera);
         }
 
-        for (size_t i = 0; i < shadowMap.shadowCascadeLevels.size(); ++i){
+        for (int i = 0; i < shadowMap.shadowCascadeLevels.size(); i++){
             voxelShader.setFloat("cascadePlaneDistances[" + std::to_string(i) + "]", shadowMap.shadowCascadeLevels[i]);
         }
         
         voxelShader.setVec3("playerPosition", gameCamera.position);
         voxelShader.setMat4("viewMatrix", gameCamera.viewMatrix);
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, Textures::getTextureIndex());
-        glActiveTexture(GL_TEXTURE1);
-        glBindTexture(GL_TEXTURE_2D_ARRAY, shadowMap.depthMaps);
+        // glActiveTexture(GL_TEXTURE0);
+        // glBindTexture(GL_TEXTURE_2D, Textures::getTextureIndex());
+        // glActiveTexture(GL_TEXTURE1);
+        // glBindTexture(GL_TEXTURE_2D_ARRAY, shadowMap.depthMaps);
+        // glActiveTexture(GL_TEXTURE2);
+        // glBindTexture(GL_TEXTURE_CUBE_MAP, skybox.texture);
+        
 
         gameRenderer.renderVisibleChunks(voxelShader, gameCamera);
         gameRenderer.updataChunkData();

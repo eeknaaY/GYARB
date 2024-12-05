@@ -4,21 +4,19 @@
 #include <vector>
 #include "camera.hpp"
 
-bool Camera::hasChangedChunk(){
+bool Camera::hasChangedChunk() const {
     return (currentChunk_x != oldChunk_x) || (currentChunk_z != oldChunk_z) || (currentChunk_y != oldChunk_y);
+}
+
+bool Camera::hasChangedBlock() const {
+    return position != oldPosition;
 }
 
 void Camera::processInput(GLFWwindow* window, float deltaTime)
 {   
     handleMouse(window);
-
-    this->hasMovedBlockPosition = false;
     this->oldPosition = position;
     processKeyInput(deltaTime);
-    if (floor(this->oldPosition) != floor(this->position)){
-        this->hasMovedBlockPosition = true;
-    }
-
     updateChunkPosition();
 }
 
@@ -35,8 +33,8 @@ void Camera::updateChunkPosition(){
     if (position.z < 0) currentChunk_z--;
 }
 
-float Camera::distanceFromCamera(int x, int y, int z) const {
-    return sqrt(pow((position.x - x), 2) + pow((position.y - y), 2) + pow((position.z - z), 2));
+float Camera::distanceFromCamera(float x, float y, float z) const {
+    return sqrtf((x - position.x) * (x - position.x) + (y - position.y) * (y - position.y) + (z - position.z) * (z - position.z));
 }
 
 std::vector<glm::vec4> Camera::getFrustumCornersWorldSpace(glm::mat4x4* projection) const {

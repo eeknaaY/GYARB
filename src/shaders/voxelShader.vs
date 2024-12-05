@@ -2,17 +2,28 @@
 layout (location = 0) in int bitPackedData;
 layout (location = 1) in int bitPackedData2;
 
-out int textureID;
+out vec3 playerPos;
 out vec2 TexCoord;
 out vec2 tilePos;
-out int faceIndex;
-out vec3 FragPos;
-out vec3 playerPos;
 
 uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
 uniform vec3 playerPosition;
+
+out struct VertexData{
+    vec3 localPosition;
+    vec3 globalPosition;
+    vec2 objectSize;
+    vec2 UV;
+} vertexData;
+
+flat out struct FlatVertexData{
+    int textureID;
+    int normalIndex;
+    int faceID;
+} flatVertexData;
+
 
 vec2 getUVCoordinate(int tID, int uvID){
     tID -= 1;
@@ -41,23 +52,25 @@ vec2 getUVCoordinate(int tID, int uvID){
 
 void main()
 {   
-    faceIndex = (bitPackedData >> 18) & 0x07;
-    textureID = (bitPackedData >> 21) & 0xFF;
-    int uvID = (bitPackedData >> 29) & 0x03;
+    flatVertexData.normalIndex = (bitPackedData >> 18) & 0x07;
+    flatVertexData.textureID = (bitPackedData >> 21) & 0xFF;
+    flatVertexData.faceID = (bitPackedData >> 29) & 0x03;
 
     vec3 position;
     position.z = bitPackedData & 0x3F;
     position.y = (bitPackedData >> 6) & 0x3F;
     position.x = (bitPackedData >> 12) & 0x3F;
 
-    gl_Position = projection * view * model * vec4(position, 1.0);
+    vertexData.localPosition = position;
+    vertexData.globalPosition = vec3(model * vec4(position, 1.0));
 
-    FragPos = vec3(model * vec4(position, 1.0));
+    gl_Position = projection * view * vec4(vertexData.globalPosition, 1.0);
 
-    vec2 uvCoords = getUVCoordinate(textureID, uvID);
+    vertexData.UV = getUVCoordinate(flatVertexData.textureID, flatVertexData.faceID);
+    vertexData.objectSize = vec2(bitPackedData2 & 0x3F, (bitPackedData2 >> 6) & 0x3F);
 
-    tilePos = fract(uvCoords);
-    TexCoord = floor(uvCoords);
+    tilePos = fract(vertexData.UV);
+    TexCoord = floor(vertexData.UV);
     
     playerPos = playerPosition;
 }

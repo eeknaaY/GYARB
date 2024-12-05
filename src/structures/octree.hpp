@@ -30,25 +30,26 @@ class Node{
         ~Node();
         Node();
         Node(Node* parentPtr);
-        Node(int value, int depth, Node* parentPtr, bool _isEndNode, bool initChildren);
+        Node(int value, int depth, Node* parentPtr, bool _isEndNode, bool initChildren);        
 };
 
 class Octree{
     public:
-        Octree();
-        Octree(int _chunk_xcoord, int _chunk_ycoord, int _chunk_zcoord);
-        Octree(int initValue);
-        ~Octree();
         Node* mainNode;
+        
         Node* getNodeFromPosition(int _x, int _y, int _z, int _depth = 5);
         Node* getNodeFromPosition(int _x, int _y, int _z, short &width, int _depth = 5);
-        
-        int nodeAmount();
-        void setInitialBlockValues(int _chunk_xcoord, int _chunk_ycoord, int _chunk_zcoord);
+        size_t nodeAmount();
+        void setInitialBlockValues(int _chunk_xcoord, int _chunk_ycoord, int _chunk_zcoord, Biome* biomeType);
         void optimizeTree();
         int determineBlockValue(int y, int localMaxHeight, int globalMaxHeight, int waterLevel);
         void buildAMinecraftTree(int x, int y, int z);
         void updateNodeValueFromPosition(int x, int y, int z, int blockValue);
+
+        Octree();
+        Octree(int _chunk_xcoord, int _chunk_ycoord, int _chunk_zcoord, Biome* biomeType);
+        Octree(int initValue);
+        ~Octree();
     private:
         int LoD;
         int chunk_xcoord, chunk_zcoord;

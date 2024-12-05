@@ -1,17 +1,30 @@
 #version 440 core
 out vec4 FragColor;
 
-flat in int textureID;
-flat in int faceIndex;
+in struct VertexData{
+    vec3 localPosition;
+    vec3 globalPosition;
+    vec2 objectSize;
+    vec2 UV;
+} vertexData;
+
+flat in struct FlatVertexData{
+    int textureID;
+    int normalIndex;
+    int faceID;
+} flatVertexData;
+
+in vec3 playerPos;
+
+// Dont know why I need to send these from vs, and why they dont work inside vertex.
 in vec2 TexCoord;
 in vec2 tilePos;
-in vec3 playerPos;
-in vec3 FragPos;
 
 // texture samplers
 uniform sampler2D ourTexture;
 uniform sampler2DArray shadowMap;
 uniform mat4 viewMatrix;
+uniform samplerCube skybox;
 
 layout (std140) uniform LightSpaceMatrices
 {
@@ -33,7 +46,7 @@ vec3 faceNormals[6] = vec3[6] (
 
 float ShadowCalculation()
 {   
-    vec4 fragPosViewSpace = viewMatrix * vec4(FragPos, 1.0);
+    vec4 fragPosViewSpace = viewMatrix * vec4(vertexData.globalPosition, 1.0);
     float depthValue = abs(fragPosViewSpace.z);
 
     int shadowLayer = -1;
@@ -51,9 +64,9 @@ float ShadowCalculation()
     }
         
 
-    vec3 fragPosition = FragPos;
+    vec3 fragPosition = vertexData.globalPosition;
 
-    if (faceIndex <= 1){
+    if (flatVertexData.normalIndex <= 1){
         if (shadowLayer == 1){
             fragPosition -= vec3(0.1, 0, 0.1);
         }
@@ -75,12 +88,11 @@ float ShadowCalculation()
     float currentDepth = projCoords.z;
     
     // calculate bias (based on depth map resolution and slope)
-    vec3 normal = faceNormals[faceIndex];
+    vec3 normal = faceNormals[flatVertexData.normalIndex];
     vec3 sunPos = vec3(playerPos.x + 100, 100, playerPos.z + 100);
-	vec3 lightDir = normalize(sunPos - FragPos);
-    //0.002;
-    float bias = 0;// max(0.001 * (1.0 - dot(normal, lightDir)), 0.005);
-    float texelSize = 1.0 / 2048;
+	vec3 lightDir = normalize(sunPos - vertexData.globalPosition);
+
+    float bias = 0;
 
     if (shadowLayer == 0){
         bias = max(0.003 * (1.0 - dot(normal, lightDir)), 0.004);
@@ -135,38 +147,39 @@ void main()
         FragColor = cursorColor;
         return;
     }
-
-	vec2 dx = dFdx(TexCoord);
+    vec2 dx = dFdx(TexCoord);
 	vec2 dy = dFdy(TexCoord);
 	vec2 texcoord = tilePos + vec2(1.0/16, 1.0/16) * fract(TexCoord);
 
 	float ambientStrength = 0.1;
 	
     float fog_maxdist = 600.0;
-    float fog_mindist = 400.0;
-    vec4 fog_color = vec4(0.4, 0.4, 0.4, 1.0);
-    float dist = length(FragPos.xyz - playerPos);
-    float fog_factor = (fog_maxdist - dist) /
-                  (fog_maxdist - fog_mindist);
-    fog_factor = 1;//clamp(fog_factor, 0.0, 1.0);
+    float fog_mindist = 500.0;
 
-    vec3 sunPos = vec3(playerPos.x + 100, 100, playerPos.z + 100);
-	vec3 lightDir = normalize(sunPos - FragPos);
-	float diff = max(dot(faceNormals[faceIndex], lightDir), 0);
+    vec4 fogColor = texture(skybox, normalize(vertexData.globalPosition - playerPos));
+    float dist = length(vertexData.globalPosition.xyz - playerPos);
+    float fogFactor = (fog_maxdist - dist) / (fog_maxdist - fog_mindist);
+    fogFactor = clamp(fogFactor, 0.0, 1.0);
 
-	vec4 color = textureGrad(ourTexture, texcoord, dx, dy);
+    vec3 sunPos = playerPos + 1000;
+	vec3 lightDir = normalize(sunPos - vertexData.globalPosition);
+	float diff = max(dot(faceNormals[flatVertexData.normalIndex], lightDir), 0);
+
+	vec4 textureColor = textureGrad(ourTexture, texcoord, dx, dy);
+    FragColor = textureColor;
 	float shadow = ShadowCalculation();
-	vec4 fragColor = (ambientStrength + (1.0 - shadow) * diff) * color;
-    fragColor = mix(fog_color, fragColor, fog_factor);
+	vec4 fragColor = (ambientStrength + (1.0 - shadow) * diff) * textureColor;
 
-	float gamma = 1.7;
-    FragColor.rgb = pow(fragColor.rgb, vec3(1.0/gamma));
-    FragColor.a = color.a;
+    float gamma = 1.7;
+    fragColor.rgb = pow(fragColor.rgb, vec3(1.0/gamma));
+
+    vec4 colorMix = mix(fogColor, fragColor, fogFactor);
+    FragColor = colorMix;
+    FragColor.a = textureColor.a;
 
     //Water alpha
-    if (textureID == 17){
-        FragColor.a = 0.3;
+    if (flatVertexData.textureID == 17){
+        FragColor.a = 0.8;
     }
-
 }
 

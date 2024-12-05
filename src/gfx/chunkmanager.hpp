@@ -45,15 +45,15 @@ class ChunkManager{
         void updateChunkMesh_MT(Chunk* _chunk, Camera gameCamera);
         void startMeshingThreads(Camera* gameCamera);
         void updateTerrain(Camera* gameCamera, int threadMultiplier);
-        void updateBlockValue(int x, int y, int z, int blockValue);
+        void setBlockValue(int x, int y, int z, int blockValue);
         int getBlockValue(float x, float y, float z);
         int getBlockValue(int x, int y, int z);
-        void updateBlockValueAndMesh(int x, int y, int z, int blockValue, Camera camera);
+        void updateBlockValueAndMesh(int x, int y, int z, int blockValue, const Camera& camera);
 
         ChunkManager(){}
     private:
-        // std::thread meshingThread1;
-        // std::thread meshingThread2;
+        std::thread meshingThread1;
+        std::thread meshingThread2;
         
         // These shouldn't really be inside ChunkManager, but in a meshing class, couldnt fix that so now its here for now
         int getBlockValueFromPosition(Chunk* chunk, int x, int y, int z, int LoD);

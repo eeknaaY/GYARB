@@ -8,7 +8,7 @@
 struct Vertex {
     int bitPackedData1;
     short bitPackedData2;
-
+    Vertex(){};
     Vertex(int _x, int _y, int _z, int faceIndex, int textureID, int uvID, int blockWidth, int blockHeight){
         // XYZ = 18 bits
         // faceIndex = 3 bits
@@ -31,6 +31,7 @@ class Mesh {
         void draw(const Shader &shader, int x, int y, int z);
         void drawChunk(const Shader &shader, int x, int y, int z);
         void updateMesh();
+        void updateTransparentMesh();
         void bindMesh();
 
         Mesh();
@@ -48,6 +49,7 @@ class SkyboxMesh : public Mesh{
         }
 
         void draw(const Shader &shader);
+        unsigned int texture;
         
     private:
         void bindMesh();
@@ -94,6 +96,50 @@ class SkyboxMesh : public Mesh{
             1.0f, -1.0f, -1.0f,
             -1.0f, -1.0f,  1.0f,
             1.0f, -1.0f,  1.0f
+        };
+        float boxVerticesWithTextures[180] = {
+            // positions          
+            -1.0f,  1.0f, -1.0f, 0.0, 0.0,
+            -1.0f, -1.0f, -1.0f, 0.0, 0.0,
+            1.0f, -1.0f, -1.0f, 0.0, 0.0,
+            1.0f, -1.0f, -1.0f, 0.0, 0.0,
+            1.0f,  1.0f, -1.0f, 0.0, 0.0,
+            -1.0f,  1.0f, -1.0f, 0.0, 0.0,
+
+            -1.0f, -1.0f,  1.0f, 0.0, 0.0,
+            -1.0f, -1.0f, -1.0f, 0.0, 0.0,
+            -1.0f,  1.0f, -1.0f, 0.0, 0.0,
+            -1.0f,  1.0f, -1.0f, 0.0, 0.0,
+            -1.0f,  1.0f,  1.0f, 0.0, 0.0,
+            -1.0f, -1.0f,  1.0f, 0.0, 0.0,
+
+            1.0f, -1.0f, -1.0f, 0.0, 0.0,
+            1.0f, -1.0f,  1.0f, 0.0, 0.0,
+            1.0f,  1.0f,  1.0f, 0.0, 0.0,
+            1.0f,  1.0f,  1.0f, 0.0, 0.0,
+            1.0f,  1.0f, -1.0f, 0.0, 0.0,
+            1.0f, -1.0f, -1.0f, 0.0, 0.0,
+
+            -1.0f, -1.0f,  1.0f, 0.0, 0.0,
+            -1.0f,  1.0f,  1.0f, 0.0, 0.0,
+            1.0f,  1.0f,  1.0f, 0.0, 0.0,
+            1.0f,  1.0f,  1.0f, 0.0, 0.0,
+            1.0f, -1.0f,  1.0f, 0.0, 0.0,
+            -1.0f, -1.0f,  1.0f, 0.0, 0.0,
+
+            -1.0f,  1.0f, -1.0f, 0.0, 0.0,
+            1.0f,  1.0f, -1.0f, 0.0, 0.0,
+            1.0f,  1.0f,  1.0f, 0.0, 0.0,
+            1.0f,  1.0f,  1.0f, 0.0, 0.0,
+            -1.0f,  1.0f,  1.0f, 0.0, 0.0,
+            -1.0f,  1.0f, -1.0f, 0.0, 0.0,
+
+            -1.0f, -1.0f, -1.0f, 0.0, 0.0,
+            -1.0f, -1.0f,  1.0f, 0.0, 0.0,
+            1.0f, -1.0f, -1.0f, 0.0, 0.0,
+            1.0f, -1.0f, -1.0f, 0.0, 0.0,
+            -1.0f, -1.0f,  1.0f, 0.0, 0.0,
+            1.0f, -1.0f,  1.0f, 0.0, 0.0
         };
 };
 

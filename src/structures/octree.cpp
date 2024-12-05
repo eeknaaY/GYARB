@@ -14,6 +14,7 @@ Node::Node(int value, int depth, Node* parentPtr, bool _isEndNode, bool initChil
 
 
     if (initChildren && !isEndNode){
+        this->children.reserve(8);
         if (depth < 4) {
             for (int i = 0; i < 8; i++){
                 children.push_back(new Node(value, depth + 1, this, false, initChildren));
@@ -121,12 +122,12 @@ Octree::Octree(){
     mainNode = new Node();
 }
 
-Octree::Octree(int _chunkXcoord, int _chunkYcoord, int _chunkZcoord){
+Octree::Octree(int _chunkXcoord, int _chunkYcoord, int _chunkZcoord, Biome* biomeType){
     mainNode = new Node(-1, 0, nullptr, false, true);
     chunk_xcoord = _chunkXcoord;
     chunk_zcoord = _chunkZcoord;
     // chunks only needed to get noise values
-    setInitialBlockValues(_chunkXcoord, _chunkYcoord, _chunkZcoord);
+    setInitialBlockValues(_chunkXcoord, _chunkYcoord, _chunkZcoord, biomeType);
     optimizeTree();
 }
 
@@ -243,19 +244,18 @@ void Octree::buildAMinecraftTree(int x, int y, int z){
         }
     }
 
-    for (int height = 0; height < 3; height++){
+    for (int height = 0; height < 6; height++){
         getNodeFromPosition(x, y + height, z)->blockValue = 5; // Wood
     }
 }
 
-void Octree::setInitialBlockValues(int _chunk_xcoord, int _chunk_ycoord, int _chunk_zcoord){
-    Biome* currentBiome = BiomeHandler::getBiome(Biomes::Mountain);
+void Octree::setInitialBlockValues(int _chunk_xcoord, int _chunk_ycoord, int _chunk_zcoord, Biome* biomeType){
+    Biome* currentBiome = biomeType;
 
     for (int x = 0; x < 32; x++){
         for (int z = 0; z < 32; z++){
 
-            float noiseVal = currentBiome->getNoiseValue(32 * _chunk_xcoord + x, 32 * _chunk_zcoord + z);
-            int globalMaxHeight = currentBiome->averageHeightValue + (int)(currentBiome->heightOffsetValue * noiseVal);
+            float globalMaxHeight = BiomeHandler::getHeightValue(32 * _chunk_xcoord + x, 32 * _chunk_zcoord + z);
             int localMaxHeight = globalMaxHeight - 32 * _chunk_ycoord;
 
             if (localMaxHeight < 0 && _chunk_ycoord == 0) localMaxHeight = 0;
@@ -269,7 +269,7 @@ void Octree::setInitialBlockValues(int _chunk_xcoord, int _chunk_ycoord, int _ch
                 getNodeFromPosition(x, y, z)->blockValue = blockValue;
 
                 if (x > 2 && x < 30 && z > 2 && z < 30 && y < 24){
-                    if (std::rand() % 200 <= 3 && y == localMaxHeight && (y + 32 * _chunk_ycoord) > waterLevel){
+                    if (std::rand() % 100 < biomeType->treeProbability * 100 && y == localMaxHeight && (y + 32 * _chunk_ycoord) > waterLevel){
                         buildAMinecraftTree(x, y + 1, z);
                     }
                 }
@@ -325,21 +325,37 @@ void Octree::optimizeTree(){
     }
 }
 
-int Octree::nodeAmount(){
-    int n = 0;
+size_t Octree::nodeAmount(){
+    size_t size = 0;
+    size++;
+    // size+=sizeof(Node);
+    // size+=mainNode->children.capacity() * 8;
     for (Node* node_1 : mainNode->children){
-        n++;
+        size++;
+        // size+=sizeof(Node);
+        // size+=node_1->children.capacity() * 8;
         for (Node* node_2 : node_1->children){
-            n++;
+            size++;
+            // size+=sizeof(Node);
+            // size+=node_2->children.capacity() * 8;
             for (Node* node_3 : node_2->children){
-                n++;
+                size++;
+                // size+=sizeof(Node);
+                // size+=node_3->children.capacity() * 8;
                 for (Node* node_4 : node_3->children){
-                    n++;
+                    size++;
+                    // size+=sizeof(Node);
+                    // size+=node_4->children.capacity() * 8;
+                    for (Node* node_5 : node_4->children){
+                        size++;
+                        // size+=sizeof(Node);
+                        // size+=node_5->children.capacity() * 8;
+                    }
                 }
             }
         }
     }
-    return n;
+    return size;
 }
 
 void Octree::updateNodeValueFromPosition(int x, int y, int z, int blockValue){
