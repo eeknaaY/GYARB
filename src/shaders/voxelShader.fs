@@ -21,7 +21,7 @@ in vec2 TexCoord;
 in vec2 tilePos;
 
 // texture samplers
-uniform sampler2D ourTexture;
+uniform sampler2D textureAtlas;
 uniform sampler2DArray shadowMap;
 uniform mat4 viewMatrix;
 uniform samplerCube skybox;
@@ -165,7 +165,7 @@ void main()
 	vec3 lightDir = normalize(sunPos - vertexData.globalPosition);
 	float diff = max(dot(faceNormals[flatVertexData.normalIndex], lightDir), 0);
 
-	vec4 textureColor = textureGrad(ourTexture, texcoord, dx, dy);
+	vec4 textureColor = textureGrad(textureAtlas, texcoord, dx, dy);
     FragColor = textureColor;
 	float shadow = ShadowCalculation();
 	vec4 fragColor = (ambientStrength + (1.0 - shadow) * diff) * textureColor;

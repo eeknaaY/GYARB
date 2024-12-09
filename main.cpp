@@ -15,9 +15,6 @@
 
 #include <chrono>
 
-float lastFrame = 0.0f;
-float deltaTime = 0.0f;
-
 int main(){
     int windowHeight = 900;
     int windowWidth = 1600;
@@ -35,7 +32,7 @@ int main(){
     skyboxShader.setMat4("projectionSkybox", gameCamera.projectionMatrix);
 
     voxelShader.use();
-    glUniform1i(glGetUniformLocation(voxelShader.ID, "ourTexture"), 0);
+    glUniform1i(glGetUniformLocation(voxelShader.ID, "textureAtlas"), 0);
     glUniform1i(glGetUniformLocation(voxelShader.ID, "shadowMap"), 1);
     glUniform1i(glGetUniformLocation(voxelShader.ID, "skybox"), 2);
     voxelShader.setMat4("projection", gameCamera.projectionMatrix);
@@ -86,6 +83,8 @@ int main(){
     int frameCounter = 0;
     bool rightMouseButtonDown = false;
     bool leftMouseButtonDown = false;
+    float lastFrame = 0.0f;
+    float deltaTime = 0.0f;
 
     while (!glfwWindowShouldClose(window)){   
         frameCounter += 1;
@@ -106,7 +105,7 @@ int main(){
             //gameCamera.automatedMovementSpeed -= 0.05;
 
             rightMouseButtonDown = true;
-            Raycast::raycastInfo ray = Raycast::sendRaycast(gameCamera, chunkManager);
+            Raycast::RaycastInfo ray = Raycast::sendRaycast(gameCamera, chunkManager);
             if (ray.hit){
                 glm::vec3 selectedVoxel = ray.position + ray.normal;
                 chunkManager->updateBlockValueAndMesh(selectedVoxel.x, selectedVoxel.y, selectedVoxel.z, gameCamera.blockTypeSelected, gameCamera);
@@ -121,7 +120,7 @@ int main(){
             //gameCamera.automatedMovementSpeed += 0.05;
             
             leftMouseButtonDown = true;
-            Raycast::raycastInfo ray = Raycast::sendRaycast(gameCamera, chunkManager);
+            Raycast::RaycastInfo ray = Raycast::sendRaycast(gameCamera, chunkManager);
             if (ray.hit){
                 chunkManager->updateBlockValueAndMesh(ray.position.x, ray.position.y, ray.position.z, 0, gameCamera);
             }
@@ -132,8 +131,7 @@ int main(){
         }
 
         glm::mat4 view = glm::mat4(1.0f); // make sure to initialize matrix to identity matrix first
-        view = glm::lookAt(gameCamera.position, gameCamera.position + gameCamera.front, gameCamera.up);
-        gameCamera.viewMatrix = view;
+        gameCamera.viewMatrix = glm::lookAt(gameCamera.position, gameCamera.position + gameCamera.front, gameCamera.up);
 
         auto lightMatrices = shadowMap.getViewMatrices(gameCamera);
         glBindBuffer(GL_UNIFORM_BUFFER, shadowMap.matricesUBO);
@@ -143,15 +141,11 @@ int main(){
         }
         glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
-
+        // Render shadow maps
         shadowMapShader.use();
-        // Render Scene
         glViewport(0, 0, 2048, 2048);
         glBindFramebuffer(GL_FRAMEBUFFER, shadowMap.depthMapFBO);
         glClear(GL_DEPTH_BUFFER_BIT);
-
-        // glActiveTexture(GL_TEXTURE0);
-        // glBindTexture(GL_TEXTURE_2D, Textures::getTextureIndex());
         gameRenderer.renderVisibleChunks(shadowMapShader, gameCamera);
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
@@ -160,12 +154,11 @@ int main(){
 
         //Draw skybox
         skyboxShader.use();
-        skyboxShader.setMat4("viewSkybox", glm::mat4(glm::mat3(view)));
+        skyboxShader.setMat4("viewSkybox", glm::mat4(glm::mat3(gameCamera.viewMatrix)));
         skybox.draw(skyboxShader);
-        // glClearColor(0.0f, 0.6f, 0.8f, 1.0f);
 
         voxelShader.use();
-        voxelShader.setMat4("view", view);
+        voxelShader.setMat4("view", gameCamera.viewMatrix);
 
         if (gameCamera.hasChangedChunk()){
             //chunkManager->startMeshingThreads(&gameCamera);
@@ -177,19 +170,11 @@ int main(){
         
         voxelShader.setVec3("playerPosition", gameCamera.position);
         voxelShader.setMat4("viewMatrix", gameCamera.viewMatrix);
-        // glActiveTexture(GL_TEXTURE0);
-        // glBindTexture(GL_TEXTURE_2D, Textures::getTextureIndex());
-        // glActiveTexture(GL_TEXTURE1);
-        // glBindTexture(GL_TEXTURE_2D_ARRAY, shadowMap.depthMaps);
-        // glActiveTexture(GL_TEXTURE2);
-        // glBindTexture(GL_TEXTURE_CUBE_MAP, skybox.texture);
-        
 
         gameRenderer.renderVisibleChunks(voxelShader, gameCamera);
         gameRenderer.updataChunkData();
 
         glfwSwapBuffers(window);
-        //glFlush();
         glfwPollEvents();
     }
 

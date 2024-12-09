@@ -18,28 +18,28 @@ double intbound(double s, double ds){
     }
 }
 
-raycastInfo sendRaycast(const Camera &camera, ChunkManager* chunkManager){
+RaycastInfo sendRaycast(const Camera &camera, ChunkManager* chunkManager){
     int x = (int)floor(camera.position.x);
     int y = (int)floor(camera.position.y);
     int z = (int)floor(camera.position.z);
 
-    double dx = camera.front.x;
-    double dy = camera.front.y;
-    double dz = camera.front.z;
+    float dx = camera.front.x;
+    float dy = camera.front.y;
+    float dz = camera.front.z;
 
     int stepX = signum(dx);
     int stepY = signum(dy);
     int stepZ = signum(dz);
 
-    double tMaxX = intbound(camera.position.x, dx);
-    double tMaxY = intbound(camera.position.y, dy);
-    double tMaxZ = intbound(camera.position.z, dz);
+    float tMaxX = intbound(camera.position.x, dx);
+    float tMaxY = intbound(camera.position.y, dy);
+    float tMaxZ = intbound(camera.position.z, dz);
 
-    double tDeltaX = stepX/dx;
-    double tDeltaY = stepY/dy;
-    double tDeltaZ = stepZ/dz;
+    float tDeltaX = stepX/dx;
+    float tDeltaY = stepY/dy;
+    float tDeltaZ = stepZ/dz;
 
-    raycastInfo ray;
+    RaycastInfo ray;
 
     const int MAX_STEPS = 30;
     for (int i = 0; i < MAX_STEPS; i++){
@@ -56,11 +56,8 @@ raycastInfo sendRaycast(const Camera &camera, ChunkManager* chunkManager){
 
         if (tMaxX < tMaxY) {
             if (tMaxX < tMaxZ) {
-                // Update which cube we are now in.
                 x += stepX;
-                // Adjust tMaxX to the next X-oriented boundary crossing.
                 tMaxX += tDeltaX;
-                // Record the normal vector of the cube face we entered.
                 ray.normal = glm::vec3(-stepX, 0, 0);
 
             } else {
@@ -74,8 +71,6 @@ raycastInfo sendRaycast(const Camera &camera, ChunkManager* chunkManager){
                 tMaxY += tDeltaY;
                 ray.normal = glm::vec3(0, -stepY, 0);
             } else {
-                // Identical to the second case, repeated for simplicity in
-                // the conditionals.
                 z += stepZ;
                 tMaxZ += tDeltaZ;
                 ray.normal = glm::vec3(0, 0, -stepZ);
