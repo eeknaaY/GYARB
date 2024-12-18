@@ -26,7 +26,9 @@ struct Biome{
         this->treeProbability = treeProbability;
     }
 
-    virtual int getHeightValue(float x, float z) {return 0;};   
+    virtual int getBlockValue(int globalY, int globalMaxHeight) {return 0;}
+    virtual int getHeightValue(float x, float z) {return 0;}
+    virtual bool shouldGenerateTree(int globalY, int globalMaxHeight) {return false;}
 };
 
 struct ForestBiome : Biome{
@@ -34,24 +36,67 @@ struct ForestBiome : Biome{
 
     int getHeightValue(float x, float z) {
         return this->averageHeightValue + noise.GetNoise(x, z) * this->heightOffsetValue;
-    }   
+    }  
+
+    int getBlockValue(int globalY, int globalMaxHeight){
+        int yChunk = (int)((globalY - globalY % 32) / 32.f);
+        int localY = globalY % 32;
+        int localMaxHeight = globalMaxHeight - 32 * yChunk;
+
+        if (localY > localMaxHeight && globalY < waterLevel) return 17; // Water
+        if (localY > localMaxHeight) return 0; // Air
+
+        if (localY > (localMaxHeight - 1)){ // Grass
+            if (globalY < (waterLevel - 1)) return 3; // Make dirt under water
+            return 1; // Grass
+        }
+
+        if (localY > (localMaxHeight - 2)) return 3; // Dirt
+        return 2; // Stone
+    }
+
+    bool shouldGenerateTree(int globalY, int globalMaxHeight){
+        int yChunk = (int)((globalY - globalY % 32) / 32.f);
+
+        return std::rand() % 100 < treeProbability * 100 && (globalY) > waterLevel && globalY == globalMaxHeight;
+    }
 };
 
 struct MountainBiome : Biome{
     using Biome::Biome;
 
-    // float getHeightValue(float x, float z) {
-    //     float noiseValue = noise.GetNoise(x, z);
-
-    //     if (noiseValue > 0.55){
-    //         noiseValue = pow(3, noiseValue + 0.3) - 2;
-    //     }
-        
-    //     return noiseValue;
-    // }
-
     int getHeightValue(float x, float z) {
+        // float noiseValue = noise.GetNoise(x, z);
+
+        // if (noiseValue > 0.55){
+        //     noiseValue = pow(3, noiseValue + 0.3) - 2;
+        // }
+        
+        // return this->averageHeightValue + noiseValue * this->heightOffsetValue;
         return this->averageHeightValue + noise.GetNoise(x, z) * this->heightOffsetValue;
+    }
+
+    int getBlockValue(int globalY, int globalMaxHeight){
+        int yChunk = (int)((globalY - globalY % 32) / 32.f);
+        int localY = globalY % 32;
+        int localMaxHeight = globalMaxHeight - 32 * yChunk;
+
+        if (localY > localMaxHeight && globalY < waterLevel) return 17; // Water
+        if (localY > localMaxHeight) return 0; // Air
+
+        if (localY > (localMaxHeight - 1)){ // Grass
+            if (globalY < (waterLevel - 1)) return 3; // Make dirt under water
+            return 1; // Grass
+        }
+
+        if (localY > (localMaxHeight - 2)) return 3; // Dirt
+        return 2; // Stone
+    }
+
+    bool shouldGenerateTree(int globalY, int globalMaxHeight){
+        int yChunk = (int)((globalY - globalY % 32) / 32.f);
+
+        return std::rand() % 100 < treeProbability * 100 && (globalY) > waterLevel && globalY == globalMaxHeight;
     }
 };
 

@@ -42,7 +42,6 @@ class Octree{
         size_t nodeAmount();
         void setInitialBlockValues(int _chunk_xcoord, int _chunk_ycoord, int _chunk_zcoord, Biome* biomeType);
         void optimizeTree();
-        int determineBlockValue(int y, int localMaxHeight, int globalMaxHeight, int waterLevel);
         void buildAMinecraftTree(int x, int y, int z);
         void updateNodeValueFromPosition(int x, int y, int z, int blockValue);
 

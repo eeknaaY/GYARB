@@ -5,7 +5,6 @@
 #include "stb_image.h"
 
 #include <algorithm>
-#include <numeric>
 
 
 void Renderer::renderVisibleChunks(const Shader &shader, const Camera& camera){
@@ -49,14 +48,7 @@ void Renderer::renderVisibleChunks(const Shader &shader, const Camera& camera){
     drawChunkVector(chunkPositionX, chunkPositionZ, camera, shader, frustumExtremeValues);
 }
 
-void Renderer::drawChunkVector(int x, int z, const Camera& camera, const Shader& shader, const std::vector<float>& frustumExtremeValues){
-    // If a chunk is outside of the frustum, dont render.
-    int errorMargain = 1;
-    if ((x + errorMargain) * Chunk::CHUNK_SIZE < frustumExtremeValues[0]) return;
-    if ((x - errorMargain) * Chunk::CHUNK_SIZE > frustumExtremeValues[1]) return;
-    if ((z + errorMargain) * Chunk::CHUNK_SIZE < frustumExtremeValues[4]) return;
-    if ((z - errorMargain) * Chunk::CHUNK_SIZE > frustumExtremeValues[5]) return;
-
+void Renderer::drawChunkVector(int x, int z, const Camera& camera, const Shader& shader){
     bool playerInChunkVector = camera.currentChunk_x == x && camera.currentChunk_z == z;
 
     std::vector<Chunk*> chunkVector = chunkManager->getChunkVector(x, z);
@@ -66,9 +58,6 @@ void Renderer::drawChunkVector(int x, int z, const Camera& camera, const Shader&
         } else {
             if(camera.hasChangedChunk()) chunk->sortTransparentFaces(camera);
         }
-
-        if ((chunk->yCoordinate + errorMargain) * Chunk::CHUNK_SIZE < frustumExtremeValues[2]) continue;
-        if ((chunk->yCoordinate - errorMargain) * Chunk::CHUNK_SIZE > frustumExtremeValues[3]) continue;
 
         if(chunk->yCoordinate == camera.currentChunk_y) break;
 
@@ -83,10 +72,52 @@ void Renderer::drawChunkVector(int x, int z, const Camera& camera, const Shader&
             if(camera.hasChangedChunk()) chunk->sortTransparentFaces(camera);
         }
 
+        if(chunk->yCoordinate == camera.currentChunk_y - 1) break;
+
+        chunk->draw(shader);
+    }
+}
+
+void Renderer::drawChunkVector(int x, int z, const Camera& camera, const Shader& shader, const std::vector<float>& frustumExtremeValues){
+    // If a chunk is outside of the frustum, dont render.
+    int errorMargain = 1;
+    if ((x + errorMargain) * Chunk::CHUNK_SIZE < frustumExtremeValues[0]) return;
+    if ((x - errorMargain) * Chunk::CHUNK_SIZE > frustumExtremeValues[1]) return;
+    if ((z + errorMargain) * Chunk::CHUNK_SIZE < frustumExtremeValues[4]) return;
+    if ((z - errorMargain) * Chunk::CHUNK_SIZE > frustumExtremeValues[5]) return;
+
+    bool playerInChunkVector = camera.currentChunk_x == x && camera.currentChunk_z == z;
+
+    std::vector<Chunk*> chunkVector = chunkManager->getChunkVector(x, z);
+    for (Chunk* chunk : chunkVector){
+        if(chunk->yCoordinate == camera.currentChunk_y) break;
+        
+        if (playerInChunkVector){
+            if(camera.hasChangedBlock()) chunk->sortTransparentFaces(camera);
+        } else {
+            if(camera.hasChangedChunk()) chunk->sortTransparentFaces(camera);
+        }
+
         if ((chunk->yCoordinate + errorMargain) * Chunk::CHUNK_SIZE < frustumExtremeValues[2]) continue;
         if ((chunk->yCoordinate - errorMargain) * Chunk::CHUNK_SIZE > frustumExtremeValues[3]) continue;
 
+
+        chunk->draw(shader);
+    }
+
+    std::reverse(chunkVector.begin(), chunkVector.end());
+    for (Chunk* chunk : chunkVector){
         if(chunk->yCoordinate == camera.currentChunk_y - 1) break;
+
+        if (playerInChunkVector){
+            if(camera.hasChangedBlock()) chunk->sortTransparentFaces(camera);
+        } else {
+            if(camera.hasChangedChunk()) chunk->sortTransparentFaces(camera);
+        }
+
+        if ((chunk->yCoordinate + errorMargain) * Chunk::CHUNK_SIZE < frustumExtremeValues[2]) continue;
+        if ((chunk->yCoordinate - errorMargain) * Chunk::CHUNK_SIZE > frustumExtremeValues[3]) continue;
+
 
         chunk->draw(shader);
     }

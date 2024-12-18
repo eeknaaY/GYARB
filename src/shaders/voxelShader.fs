@@ -147,6 +147,7 @@ void main()
         FragColor = cursorColor;
         return;
     }
+
     vec2 dx = dFdx(TexCoord);
 	vec2 dy = dFdy(TexCoord);
 	vec2 texcoord = tilePos + vec2(1.0/16, 1.0/16) * fract(TexCoord);
@@ -166,7 +167,6 @@ void main()
 	float diff = max(dot(faceNormals[flatVertexData.normalIndex], lightDir), 0);
 
 	vec4 textureColor = textureGrad(textureAtlas, texcoord, dx, dy);
-    FragColor = textureColor;
 	float shadow = ShadowCalculation();
 	vec4 fragColor = (ambientStrength + (1.0 - shadow) * diff) * textureColor;
 

@@ -24,7 +24,7 @@ void Chunk::sortTransparentFaces(const Camera& camera){
                 distanceFromFurthestPoint = std::max(distanceFromFurthestPoint, camera.distanceFromCamera(xPosition, yPosition, zPosition));
             }
 
-            distanceFromCamera = camera.distanceFromCamera(sumPosition.x / 4.f, sumPosition.y / 4.f, sumPosition.z / 4.f);
+            distanceFromCamera = camera.distanceFromCamera(sumPosition.x / 4.f, sumPosition.y / 4.f, sumPosition.z / 4.f, false);
         }
     };
 

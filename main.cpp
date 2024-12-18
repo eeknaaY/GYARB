@@ -1,15 +1,9 @@
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-
-#include "src/gfx/chunk.hpp"
 #include "src/gfx/chunkmanager.hpp"
+
 #include "src/gfx/camera.hpp"
 #include "src/gfx/window.hpp"
-#include "src/gfx/mesh.hpp"
 #include "src/gfx/renderer.hpp"
-
 #include "src/shaders/shaders.hpp"
-#include "src/structures/octree.hpp"
 #include "src/textures/textures.hpp"
 #include "src/gfx/raycast.hpp"
 
@@ -133,7 +127,7 @@ int main(){
         glm::mat4 view = glm::mat4(1.0f); // make sure to initialize matrix to identity matrix first
         gameCamera.viewMatrix = glm::lookAt(gameCamera.position, gameCamera.position + gameCamera.front, gameCamera.up);
 
-        auto lightMatrices = shadowMap.getViewMatrices(gameCamera);
+        std::vector<glm::mat4> lightMatrices = shadowMap.getViewMatrices(gameCamera);
         glBindBuffer(GL_UNIFORM_BUFFER, shadowMap.matricesUBO);
         for (size_t i = 0; i < lightMatrices.size(); ++i)
         {

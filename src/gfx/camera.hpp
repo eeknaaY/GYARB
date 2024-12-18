@@ -5,6 +5,7 @@
 #include "glm/vec3.hpp"
 #include <glm/gtc/matrix_transform.hpp>
 #include "GLFW/glfw3.h"
+#include <vector>
 
 class Camera{
     public:
@@ -37,7 +38,7 @@ class Camera{
         bool hasChangedChunk() const;
         std::vector<glm::vec4> getFrustumCornersWorldSpace(glm::mat4x4* projection = nullptr) const;
         void handleMouse(GLFWwindow* window);
-        float distanceFromCamera(float x, float y, float z) const;
+        float distanceFromCamera(float x, float y, float z, bool squareRoot = true) const;
         bool hasChangedBlock() const;
 
         float NEAR_FRUSTUM = 0.1f;

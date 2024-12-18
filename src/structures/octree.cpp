@@ -262,33 +262,20 @@ void Octree::setInitialBlockValues(int _chunk_xcoord, int _chunk_ycoord, int _ch
             int waterLevel = currentBiome->waterLevel;
 
             for (int y = 31; y >= 0; y--){
-                int blockValue = determineBlockValue(y, localMaxHeight, y + 32 * _chunk_ycoord, waterLevel);
+                int blockValue = currentBiome->getBlockValue(y + 32 * _chunk_ycoord, globalMaxHeight);
                 // This stops the function overriding any non-air blocks when it wants them to be air, fucks trees over.
                 if (blockValue == 0 && getNodeFromPosition(x, y, z)->blockValue > 0) continue;
                 
                 getNodeFromPosition(x, y, z)->blockValue = blockValue;
 
                 if (x > 2 && x < 30 && z > 2 && z < 30 && y < 24){
-                    if (std::rand() % 100 < biomeType->treeProbability * 100 && y == localMaxHeight && (y + 32 * _chunk_ycoord) > waterLevel){
+                    if (currentBiome->shouldGenerateTree(y + 32 * _chunk_ycoord, globalMaxHeight)){
                         buildAMinecraftTree(x, y + 1, z);
                     }
                 }
             }
         }
     }
-}
-
-int Octree::determineBlockValue(int localY, int localMaxHeight, int globalYPos, int waterLevel){
-    if (localY > localMaxHeight && globalYPos < waterLevel) return 17; // Water
-    if (localY > localMaxHeight) return 0; // Air
-
-    if (localY > (localMaxHeight - 1)){ // Grass
-        if (globalYPos < (waterLevel - 1)) return 3; // Make dirt under water
-        return 1; // Grass
-    }
-
-    if (localY > (localMaxHeight - 2)) return 3; // Dirt
-    return 2; // Stone
 }
 
 void Octree::optimizeTree(){

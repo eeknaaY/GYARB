@@ -16,9 +16,8 @@ void ChunkManager::appendChunk(int x, int z, int LoD){
     Biome* currentBiome = getChunk(x, getChunkVector(x, z).size(), z)->biomeType;
     for (int _x = 0; _x < 32; _x++){
         for (int _z = 0; _z < 32; _z++){
-            float noiseVal = currentBiome->noise.GetNoise((float)(_x + 32 * x), (float)(_z + 32 * z));
             // Change height here and in octree
-            int maxHeight = currentBiome->averageHeightValue + Chunk::CHUNK_SIZE + (int)((currentBiome->heightOffsetValue) * noiseVal);
+            int maxHeight = BiomeHandler::getHeightValue(_x + 32 * x, _z + 32 * z);
             if (maxHeight - getChunkVector(x, z).size() * Chunk::CHUNK_SIZE > Chunk::CHUNK_SIZE){
                 appendChunk(new Chunk(x, getChunkVector(x, z).size(), z, LoD));
                 return;
@@ -38,9 +37,9 @@ void ChunkManager::appendChunk(Chunk* ptr){
     for (int x = 0; x < 32; x++){
         for (int z = 0; z < 32; z++){
             // Determine if another chunk above current chunk is required.
-            float maxHeight = BiomeHandler::getHeightValue(32 * ptr->xCoordinate + x, 32 * ptr->zCoordinate + z) + Chunk::CHUNK_SIZE;
+            float maxHeight = BiomeHandler::getHeightValue(32 * ptr->xCoordinate + x, 32 * ptr->zCoordinate + z);
 
-            if (maxHeight - (ptr->yCoordinate + 1) * Chunk::CHUNK_SIZE > Chunk::CHUNK_SIZE){
+            if (maxHeight - ptr->yCoordinate * Chunk::CHUNK_SIZE > Chunk::CHUNK_SIZE){
                 appendChunk(new Chunk(ptr->xCoordinate, ptr->yCoordinate + 1, ptr->zCoordinate, ptr->currentLoD));
                 return;
             }

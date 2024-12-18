@@ -8,12 +8,12 @@
 class Textures{
     // Yes I know these are static, I didn't ask.
     inline static const std::string faces[] = {
-        "C:/Users/Johannes/Desktop/GYARB/src/textures/right.png",
-        "C:/Users/Johannes/Desktop/GYARB/src/textures/left.png",
-        "C:/Users/Johannes/Desktop/GYARB/src/textures/top.png",
-        "C:/Users/Johannes/Desktop/GYARB/src/textures/bottom.png",
-        "C:/Users/Johannes/Desktop/GYARB/src/textures/front.png",
-        "C:/Users/Johannes/Desktop/GYARB/src/textures/back.png"
+        "src/textures/skyboxTextures/right.png",
+        "src/textures/skyboxTextures/left.png",
+        "src/textures/skyboxTextures/top.png",
+        "src/textures/skyboxTextures/bottom.png",
+        "src/textures/skyboxTextures/front.png",
+        "src/textures/skyboxTextures/back.png"
     };
 
 
@@ -69,7 +69,7 @@ class Textures{
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
             int textureWidth, textureHeight, nrChannels;
-            unsigned char *data = stbi_load("C:/Users/Johannes/Desktop/GYARB/src/textures/TextureAtlas.png", &textureWidth, &textureHeight, &nrChannels, 0);
+            unsigned char *data = stbi_load("src/textures/TextureAtlas.png", &textureWidth, &textureHeight, &nrChannels, 0);
 
             if (data){
                 glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, textureWidth, textureHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);

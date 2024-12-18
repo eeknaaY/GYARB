@@ -33,8 +33,12 @@ void Camera::updateChunkPosition(){
     if (position.z < 0) currentChunk_z--;
 }
 
-float Camera::distanceFromCamera(float x, float y, float z) const {
-    return sqrtf((x - position.x) * (x - position.x) + (y - position.y) * (y - position.y) + (z - position.z) * (z - position.z));
+float Camera::distanceFromCamera(float x, float y, float z, bool squareRoot) const {
+    if (squareRoot){
+        return sqrtf((x - position.x) * (x - position.x) + (y - position.y) * (y - position.y) + (z - position.z) * (z - position.z));
+    } else {
+        return (x - position.x) * (x - position.x) + (y - position.y) * (y - position.y) + (z - position.z) * (z - position.z);
+    }
 }
 
 std::vector<glm::vec4> Camera::getFrustumCornersWorldSpace(glm::mat4x4* projection) const {
@@ -47,13 +51,10 @@ std::vector<glm::vec4> Camera::getFrustumCornersWorldSpace(glm::mat4x4* projecti
     }
 
     std::vector<glm::vec4> frustumCorners;
-    for (unsigned int x = 0; x < 2; ++x)
-    {
-        for (unsigned int y = 0; y < 2; ++y)
-        {
-            for (unsigned int z = 0; z < 2; ++z)
-            {
-                const glm::vec4 pt = inv * glm::vec4(2.0f * x - 1.0f, 2.0f * y - 1.0f, 2.0f * z - 1.0f, 1.0f);
+    for (unsigned int x = 0; x < 2; ++x){
+        for (unsigned int y = 0; y < 2; ++y){
+            for (unsigned int z = 0; z < 2; ++z){
+                glm::vec4 pt = inv * glm::vec4(2.0f * x - 1.0f, 2.0f * y - 1.0f, 2.0f * z - 1.0f, 1.0f);
                 frustumCorners.push_back(pt / pt.w);
             }
         }
