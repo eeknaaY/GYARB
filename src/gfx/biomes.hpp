@@ -5,6 +5,8 @@
 #include "FastNoiseLite.h"
 #include <limits>
 #include "glm/glm.hpp"
+#include <ctime>
+#include <iostream>
 
 enum class Biomes{
     Forest,
@@ -28,7 +30,13 @@ struct Biome{
 
     virtual int getBlockValue(int globalY, int globalMaxHeight) {return 0;}
     virtual int getHeightValue(float x, float z) {return 0;}
-    virtual bool shouldGenerateTree(int globalY, int globalMaxHeight) {return false;}
+    //virtual bool shouldGenerateTree(int globalY, int globalMaxHeight) {return false;}
+    
+    bool shouldGenerateTree(int globalY, int globalMaxHeight){
+        int yChunk = (int)((globalY - globalY % 32) / 32.f);
+
+        return std::rand() % 100 < treeProbability * 100 && (globalY) > waterLevel && globalY == globalMaxHeight;
+    }
 };
 
 struct ForestBiome : Biome{
@@ -54,12 +62,6 @@ struct ForestBiome : Biome{
         if (localY > (localMaxHeight - 2)) return 3; // Dirt
         return 2; // Stone
     }
-
-    bool shouldGenerateTree(int globalY, int globalMaxHeight){
-        int yChunk = (int)((globalY - globalY % 32) / 32.f);
-
-        return std::rand() % 100 < treeProbability * 100 && (globalY) > waterLevel && globalY == globalMaxHeight;
-    }
 };
 
 struct MountainBiome : Biome{
@@ -81,6 +83,7 @@ struct MountainBiome : Biome{
         int localY = globalY % 32;
         int localMaxHeight = globalMaxHeight - 32 * yChunk;
 
+        if (globalY == 0) return 2;
         if (localY > localMaxHeight && globalY < waterLevel) return 17; // Water
         if (localY > localMaxHeight) return 0; // Air
 
@@ -92,18 +95,12 @@ struct MountainBiome : Biome{
         if (localY > (localMaxHeight - 2)) return 3; // Dirt
         return 2; // Stone
     }
-
-    bool shouldGenerateTree(int globalY, int globalMaxHeight){
-        int yChunk = (int)((globalY - globalY % 32) / 32.f);
-
-        return std::rand() % 100 < treeProbability * 100 && (globalY) > waterLevel && globalY == globalMaxHeight;
-    }
 };
 
 class BiomeHandler{
     public:
         static Biome* getBiome(Biomes biomeVal){
-            int index = static_cast<int>(biomeVal);
+            int index = (int)biomeVal;
 
             if (biomesVector.size() == 0){
                 buildBiomeVector();
@@ -141,33 +138,45 @@ class BiomeHandler{
                                                 currentBiome->getHeightValue(chunkSize * (chunkPosX + 1), chunkSize * (chunkPosZ + 1))
                                                 );
 
-            for (int dx = 0; dx <= 1; dx++){
-                for (int dz = 0; dz <= 1; dz++){
+            for (int dx = -1; dx <= 1; dx++){
+                for (int dz = -1; dz <= 1; dz++){
                     Biome* targetBiome = getBiome(chunkPosX + dx, chunkPosZ + dz);
                     if (targetBiome == currentBiome) continue;
+                    
                     // Chunk is next to a different chunk so we need to interpolate.
-                    cornerManipulated.x = true;
 
                     if (dx <= 0){
                         if (dz <= 0){
-                            //if (!cornerManipulated.x) cornerValues.x = targetBiome->getHeightValue(chunkSize * chunkPosX, chunkSize * chunkPosZ);
-                            //cornerManipulated.x = true;
+                            if (!cornerManipulated.x){
+                                cornerValues.x += targetBiome->getHeightValue(chunkSize * chunkPosX, chunkSize * chunkPosZ);
+                                cornerValues.x /= 2;
+                            } 
+                            cornerManipulated.x = true;
                         } 
                         
                         if (dz >= 0) {
-                            if (!cornerManipulated.z) cornerValues.z = targetBiome->getHeightValue(chunkSize * chunkPosX, chunkSize * (chunkPosZ + 1));
+                            if (!cornerManipulated.z){
+                                cornerValues.z += targetBiome->getHeightValue(chunkSize * chunkPosX, chunkSize * (chunkPosZ + 1));
+                                cornerValues.z /= 2;
+                            } 
                             cornerManipulated.z = true;
                         }
                     }
 
                     if (dx >= 0){
                         if (dz <= 0){
-                            if (!cornerManipulated.y) cornerValues.y = targetBiome->getHeightValue(chunkSize * (chunkPosX + 1), chunkSize * chunkPosZ);
+                            if (!cornerManipulated.y){
+                                cornerValues.y += targetBiome->getHeightValue(chunkSize * (chunkPosX + 1), chunkSize * chunkPosZ);
+                                cornerValues.y /= 2;
+                            } 
                             cornerManipulated.y = true;
                         } 
                         
                         if (dz >= 0) {
-                            if (!cornerManipulated.w) cornerValues.w = targetBiome->getHeightValue(chunkSize * (chunkPosX + 1), chunkSize * (chunkPosZ + 1));
+                            if (!cornerManipulated.w){
+                                cornerValues.w += targetBiome->getHeightValue(chunkSize * (chunkPosX + 1), chunkSize * (chunkPosZ + 1));
+                                cornerValues.w /= 2;
+                            } 
                             cornerManipulated.w = true;
                         }
                     }
@@ -184,6 +193,7 @@ class BiomeHandler{
 
         static void buildBiomeVector(){
             FastNoiseLite noise;
+            noise.SetSeed(std::time(nullptr));
             noise.SetNoiseType(FastNoiseLite::NoiseType_Perlin);
             noise.SetFractalType(FastNoiseLite::FractalType_FBm);
             noise.SetFrequency(0.002);

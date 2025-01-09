@@ -25,13 +25,15 @@ uniform sampler2D textureAtlas;
 uniform sampler2DArray shadowMap;
 uniform mat4 viewMatrix;
 uniform samplerCube skybox;
+uniform float viewDistance;
+uniform mat4 view;
 
 layout (std140) uniform LightSpaceMatrices
 {
     mat4 lightSpaceMatrices[16];
 };
 
-float farPlane = 800;
+float farPlane = viewDistance;
 vec4 cascadePlaneDistances = vec4(farPlane / 16.f, farPlane / 4.f, farPlane / 2.f, farPlane);
 int cascadeCount = 4;
 
@@ -50,29 +52,58 @@ float ShadowCalculation()
     float depthValue = abs(fragPosViewSpace.z);
 
     int shadowLayer = -1;
-    for (int i = 0; i < cascadeCount; ++i)
-    {
+    for (int i = 0; i < cascadeCount; ++i){
         if (depthValue < cascadePlaneDistances[i])
         {
             shadowLayer = i;
             break;
         }
     }
-    if (shadowLayer == -1)
-    {
+    if (shadowLayer == -1){
         shadowLayer = cascadeCount;
     }
-        
+    
+    // calculate bias (based on depth map resolution and slope)
+    vec3 normal = faceNormals[flatVertexData.normalIndex];
+    vec3 sunPos = vec3(playerPos.x + 100, 100, playerPos.z + 100);
+	vec3 lightDir = normalize(sunPos - vertexData.globalPosition);
+    float bias = 0;
+
+    if (shadowLayer == 0){
+        bias = 0.01;//max(0.01 * (1.0 - dot(normal, lightDir)), 0.005);
+    }
+
+    if (shadowLayer == 1){
+        bias = 0.02;
+    }
+
+    if (shadowLayer == 2){
+        bias = 0.03;
+    }
+
+    if (shadowLayer == cascadeCount){
+        //bias *= 1 / (farPlane * 0.5f);
+    }
+    else{
+        bias *= 1 / (cascadePlaneDistances[shadowLayer] * 0.5f);
+    }
 
     vec3 fragPosition = vertexData.globalPosition;
+    vec3 cameraNormal = -vec3(viewMatrix[2]);
 
     if (flatVertexData.normalIndex <= 1){
+        if (shadowLayer == 0){
+            float positionReduction = 0.5 * abs(dot(cameraNormal, lightDir));
+            fragPosition -= vec3(positionReduction, 0, positionReduction);
+        }
+
         if (shadowLayer == 1){
-            fragPosition -= vec3(0.1, 0, 0.1);
+            float positionReduction = -0.1 * abs(dot(cameraNormal, lightDir));
+            fragPosition -= vec3(positionReduction, 0, positionReduction);
         }
 
         if (shadowLayer == 2){
-            fragPosition -= vec3(0.2, 0, 0.2);
+            fragPosition -= vec3(bias * 10, 0, bias * 10);
         }
     }
 
@@ -86,32 +117,6 @@ float ShadowCalculation()
 
     // get depth of current fragment from light's perspective
     float currentDepth = projCoords.z;
-    
-    // calculate bias (based on depth map resolution and slope)
-    vec3 normal = faceNormals[flatVertexData.normalIndex];
-    vec3 sunPos = vec3(playerPos.x + 100, 100, playerPos.z + 100);
-	vec3 lightDir = normalize(sunPos - vertexData.globalPosition);
-
-    float bias = 0;
-
-    if (shadowLayer == 0){
-        bias = max(0.003 * (1.0 - dot(normal, lightDir)), 0.004);
-    }
-
-    if (shadowLayer == 1){
-        bias = 0.018;
-    }
-
-    if (shadowLayer == 2){
-        bias = max(0.02 * (1.0 - dot(normal, lightDir)), 0.02);
-    }
-
-    if (shadowLayer == cascadeCount){
-        bias *= 1 / (farPlane * 0.5f);
-    }
-    else{
-        bias *= 1 / (cascadePlaneDistances[shadowLayer] * 0.5f);
-    }
 
 
     // PCF
@@ -120,7 +125,7 @@ float ShadowCalculation()
     // {
     //     for(int y = -1; y <= 1; ++y)
     //     {
-    //         float pcfDepth = texture(shadowMap, vec3(projCoords.xy + vec2(x, y) * texelSize, shadowLayer)).x; 
+    //         float pcfDepth = texture(shadowMap, vec3(projCoords.xy + vec2(x, y) * vec2(1.0/2048), shadowLayer)).x; 
     //         shadow += currentDepth - bias > pcfDepth  ? 1.0 : 0.0;        
     //     }    
     // }
@@ -154,8 +159,8 @@ void main()
 
 	float ambientStrength = 0.1;
 	
-    float fog_maxdist = 600.0;
-    float fog_mindist = 500.0;
+    float fog_maxdist = min(viewDistance, 200);
+    float fog_mindist = min(viewDistance - 50, 150);
 
     vec4 fogColor = texture(skybox, normalize(vertexData.globalPosition - playerPos));
     float dist = length(vertexData.globalPosition.xyz - playerPos);

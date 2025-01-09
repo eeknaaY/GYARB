@@ -7,7 +7,7 @@ out vec2 TexCoord;
 out vec2 tilePos;
 
 uniform mat4 model;
-uniform mat4 view;
+uniform mat4 viewMatrix;
 uniform mat4 projection;
 uniform vec3 playerPosition;
 
@@ -64,7 +64,7 @@ void main()
     vertexData.localPosition = position;
     vertexData.globalPosition = vec3(model * vec4(position, 1.0));
 
-    gl_Position = projection * view * vec4(vertexData.globalPosition, 1.0);
+    gl_Position = projection * viewMatrix * vec4(vertexData.globalPosition, 1.0);
 
     vertexData.UV = getUVCoordinate(flatVertexData.textureID, flatVertexData.faceID);
     vertexData.objectSize = vec2(bitPackedData2 & 0x3F, (bitPackedData2 >> 6) & 0x3F);

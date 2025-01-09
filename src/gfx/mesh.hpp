@@ -22,10 +22,10 @@ struct Vertex {
 
 class Mesh {
     public:
-        std::vector<Vertex> solid_vertices;
-        std::vector<unsigned int> solid_indices;
-        std::vector<Vertex> transparent_vertices;
-        std::vector<unsigned int> transparent_indices;
+        std::vector<Vertex> opaqueVertices;
+        std::vector<unsigned int> opaqueIndices;
+        std::vector<Vertex> transparentVertices;
+        std::vector<unsigned int> transparentIndices;
         bool bufferExists = false;
 
         void draw(const Shader &shader, int x, int y, int z);
@@ -96,50 +96,6 @@ class SkyboxMesh : public Mesh{
             1.0f, -1.0f, -1.0f,
             -1.0f, -1.0f,  1.0f,
             1.0f, -1.0f,  1.0f
-        };
-        float boxVerticesWithTextures[180] = {
-            // positions          
-            -1.0f,  1.0f, -1.0f, 0.0, 0.0,
-            -1.0f, -1.0f, -1.0f, 0.0, 0.0,
-            1.0f, -1.0f, -1.0f, 0.0, 0.0,
-            1.0f, -1.0f, -1.0f, 0.0, 0.0,
-            1.0f,  1.0f, -1.0f, 0.0, 0.0,
-            -1.0f,  1.0f, -1.0f, 0.0, 0.0,
-
-            -1.0f, -1.0f,  1.0f, 0.0, 0.0,
-            -1.0f, -1.0f, -1.0f, 0.0, 0.0,
-            -1.0f,  1.0f, -1.0f, 0.0, 0.0,
-            -1.0f,  1.0f, -1.0f, 0.0, 0.0,
-            -1.0f,  1.0f,  1.0f, 0.0, 0.0,
-            -1.0f, -1.0f,  1.0f, 0.0, 0.0,
-
-            1.0f, -1.0f, -1.0f, 0.0, 0.0,
-            1.0f, -1.0f,  1.0f, 0.0, 0.0,
-            1.0f,  1.0f,  1.0f, 0.0, 0.0,
-            1.0f,  1.0f,  1.0f, 0.0, 0.0,
-            1.0f,  1.0f, -1.0f, 0.0, 0.0,
-            1.0f, -1.0f, -1.0f, 0.0, 0.0,
-
-            -1.0f, -1.0f,  1.0f, 0.0, 0.0,
-            -1.0f,  1.0f,  1.0f, 0.0, 0.0,
-            1.0f,  1.0f,  1.0f, 0.0, 0.0,
-            1.0f,  1.0f,  1.0f, 0.0, 0.0,
-            1.0f, -1.0f,  1.0f, 0.0, 0.0,
-            -1.0f, -1.0f,  1.0f, 0.0, 0.0,
-
-            -1.0f,  1.0f, -1.0f, 0.0, 0.0,
-            1.0f,  1.0f, -1.0f, 0.0, 0.0,
-            1.0f,  1.0f,  1.0f, 0.0, 0.0,
-            1.0f,  1.0f,  1.0f, 0.0, 0.0,
-            -1.0f,  1.0f,  1.0f, 0.0, 0.0,
-            -1.0f,  1.0f, -1.0f, 0.0, 0.0,
-
-            -1.0f, -1.0f, -1.0f, 0.0, 0.0,
-            -1.0f, -1.0f,  1.0f, 0.0, 0.0,
-            1.0f, -1.0f, -1.0f, 0.0, 0.0,
-            1.0f, -1.0f, -1.0f, 0.0, 0.0,
-            -1.0f, -1.0f,  1.0f, 0.0, 0.0,
-            1.0f, -1.0f,  1.0f, 0.0, 0.0
         };
 };
 

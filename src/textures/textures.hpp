@@ -6,7 +6,6 @@
 #include "stb_image.h"
 
 class Textures{
-    // Yes I know these are static, I didn't ask.
     inline static const std::string faces[] = {
         "src/textures/skyboxTextures/right.png",
         "src/textures/skyboxTextures/left.png",

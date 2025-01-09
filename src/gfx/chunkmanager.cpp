@@ -78,20 +78,20 @@ std::vector<Chunk*> ChunkManager::getChunkVector(int x, int z){
 void ChunkManager::updateChunkMesh(Chunk* _chunk, Camera gameCamera){
     if (!_chunk) return;
     Mesh updatedMesh = buildMesh(_chunk, gameCamera);
-    _chunk->mesh.solid_vertices = updatedMesh.solid_vertices;
-    _chunk->mesh.solid_indices = updatedMesh.solid_indices;
-    _chunk->mesh.transparent_vertices = updatedMesh.transparent_vertices;
-    _chunk->mesh.transparent_indices = updatedMesh.transparent_indices;
+    _chunk->mesh.opaqueVertices = updatedMesh.opaqueVertices;
+    _chunk->mesh.opaqueIndices = updatedMesh.opaqueIndices;
+    _chunk->mesh.transparentVertices = updatedMesh.transparentVertices;
+    _chunk->mesh.transparentIndices = updatedMesh.transparentIndices;
     _chunk->updateMesh();
 }
 
 void ChunkManager::updateChunkMesh_MT(Chunk* _chunk, Camera gameCamera){
     if (!_chunk) return;
     Mesh updatedMesh = buildMesh(_chunk, gameCamera);
-    _chunk->mesh.solid_vertices = updatedMesh.solid_vertices;
-    _chunk->mesh.solid_indices = updatedMesh.solid_indices;
-    _chunk->mesh.transparent_vertices = updatedMesh.transparent_vertices;
-    _chunk->mesh.transparent_indices = updatedMesh.transparent_indices;
+    _chunk->mesh.opaqueVertices = updatedMesh.opaqueVertices;
+    _chunk->mesh.opaqueIndices = updatedMesh.opaqueIndices;
+    _chunk->mesh.transparentVertices = updatedMesh.transparentVertices;
+    _chunk->mesh.transparentIndices = updatedMesh.transparentIndices;
 }
 
 void ChunkManager::startMeshingThreads(Camera* gameCamera){
@@ -160,7 +160,7 @@ void ChunkManager::updateTerrain(Camera* gameCamera, int threadMultiplier){
                 
                 if (dx == xPos + c_dXPos * 4 || dx == xPos + c_dXPos * (renderDistance - 1)){
                     for (Chunk* _chunkptr : getChunkVector(dx, dz)){
-                        if (_chunkptr->mesh.solid_vertices.size() == 0){
+                        if (_chunkptr->mesh.opaqueVertices.size() == 0){
                             int LoD = 5;
                             if (abs(dx - xPos) > 8 || abs(dz - zPos) > 8) LoD = 4;
                             _chunkptr->currentLoD = LoD;
@@ -341,10 +341,10 @@ void ChunkManager::updateTextureValue(int &textureValue, voxelFaces face, int Lo
 Mesh ChunkManager::buildMesh(Chunk* _chunk, Camera gameCamera){
     auto start = std::chrono::high_resolution_clock::now();
 
-    std::vector<Vertex> solid_vertices;
-    std::vector<unsigned int> solid_indices;
-    std::vector<Vertex> transparent_vertices;
-    std::vector<unsigned int> transparent_indices;
+    std::vector<Vertex> opaqueVertices;
+    std::vector<unsigned int> opaqueIndices;
+    std::vector<Vertex> transparentVertices;
+    std::vector<unsigned int> transparentIndices;
     short voxelWidth;
 
     int LoD = _chunk->currentLoD;
@@ -419,12 +419,12 @@ Mesh ChunkManager::buildMesh(Chunk* _chunk, Camera gameCamera){
                     }
                 }
 
-                std::vector<Vertex>* vertices = &solid_vertices;
-                std::vector<unsigned int>* indices = &solid_indices;
+                std::vector<Vertex>* vertices = &opaqueVertices;
+                std::vector<unsigned int>* indices = &opaqueIndices;
 
                 if ((face.texture == (int)Block::Water || face.texture == (int)Block::Glass || face.texture == (int)Block::Leaf) && _chunk->currentLoD == 5){ 
-                    vertices = &transparent_vertices;
-                    indices = &transparent_indices;
+                    vertices = &transparentVertices;
+                    indices = &transparentIndices;
                 }
 
                 int vertexCount = vertices->size();
@@ -508,12 +508,12 @@ Mesh ChunkManager::buildMesh(Chunk* _chunk, Camera gameCamera){
                     }
                 }
 
-                std::vector<Vertex>* vertices = &solid_vertices;
-                std::vector<unsigned int>* indices = &solid_indices;
+                std::vector<Vertex>* vertices = &opaqueVertices;
+                std::vector<unsigned int>* indices = &opaqueIndices;
 
                 if ((face.texture == (int)Block::Water || face.texture == (int)Block::Glass || face.texture == (int)Block::Leaf) && _chunk->currentLoD == 5){ // If texture is water.
-                    vertices = &transparent_vertices;
-                    indices = &transparent_indices;
+                    vertices = &transparentVertices;
+                    indices = &transparentIndices;
                 }
 
                 int vertexCount = vertices->size();
@@ -596,12 +596,12 @@ Mesh ChunkManager::buildMesh(Chunk* _chunk, Camera gameCamera){
                 }
             }
 
-            std::vector<Vertex>* vertices = &solid_vertices;
-            std::vector<unsigned int>* indices = &solid_indices;
+            std::vector<Vertex>* vertices = &opaqueVertices;
+            std::vector<unsigned int>* indices = &opaqueIndices;
 
             if ((face.texture == (int)Block::Water || face.texture == (int)Block::Glass || face.texture == (int)Block::Leaf) && _chunk->currentLoD == 5){ // If texture is water.
-                vertices = &transparent_vertices;
-                indices = &transparent_indices;
+                vertices = &transparentVertices;
+                indices = &transparentIndices;
             }
 
             int vertexCount = vertices->size();
@@ -642,7 +642,7 @@ Mesh ChunkManager::buildMesh(Chunk* _chunk, Camera gameCamera){
     auto stop = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds> (stop-start);
     std::cout << "Meshing took: " << duration.count() << "ms \n";
-    return Mesh(solid_vertices, solid_indices, transparent_vertices, transparent_indices);
+    return Mesh(opaqueVertices, opaqueIndices, transparentVertices, transparentIndices);
 }
 
 ////////////////////////////////////////////////////////////////////////////// Octree stuff ////////////////////////////////////////////////////

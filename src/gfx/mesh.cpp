@@ -18,15 +18,14 @@ Mesh::~Mesh(){
     }
 }
 
-Mesh::Mesh(std::vector<Vertex> solid_vertices, std::vector<unsigned int> solid_indices, std::vector<Vertex> transparent_vertices, std::vector<unsigned int> transparent_indices){
-    this->solid_vertices = solid_vertices;
-    this->solid_indices = solid_indices;
-    this->transparent_vertices = transparent_vertices;
-    this->transparent_indices = transparent_indices;
+Mesh::Mesh(std::vector<Vertex> opaqueVertices, std::vector<unsigned int> opaqueIndices, std::vector<Vertex> transparentVertices, std::vector<unsigned int> transparentIndices){
+    this->opaqueVertices = opaqueVertices;
+    this->opaqueIndices = opaqueIndices;
+    this->transparentVertices = transparentVertices;
+    this->transparentIndices = transparentIndices;
 }
 
-void Mesh::bindMesh()
-{
+void Mesh::bindMesh(){
     glGenVertexArrays(1, &solidVAO);
     glGenBuffers(1, &solidVBO);
     glGenBuffers(1, &solidEBO);
@@ -35,11 +34,11 @@ void Mesh::bindMesh()
     glBindVertexArray(solidVAO);
     glBindBuffer(GL_ARRAY_BUFFER, solidVBO);
 
-    glBufferData(GL_ARRAY_BUFFER, solid_vertices.size() * sizeof(Vertex), &solid_vertices[0], GL_DYNAMIC_DRAW);  
+    glBufferData(GL_ARRAY_BUFFER, opaqueVertices.size() * sizeof(Vertex), &opaqueVertices[0], GL_DYNAMIC_DRAW);  
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, solidEBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, solid_indices.size() * sizeof(unsigned int), 
-                 &solid_indices[0], GL_DYNAMIC_DRAW);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, opaqueIndices.size() * sizeof(unsigned int), 
+                 &opaqueIndices[0], GL_DYNAMIC_DRAW);
 
     // vertex positions
     glEnableVertexAttribArray(0);	
@@ -58,11 +57,11 @@ void Mesh::bindMesh()
     glBindVertexArray(transparentVAO);
     glBindBuffer(GL_ARRAY_BUFFER, transparentVBO);
 
-    glBufferData(GL_ARRAY_BUFFER, transparent_vertices.size() * sizeof(Vertex), &transparent_vertices[0], GL_DYNAMIC_DRAW);  
+    glBufferData(GL_ARRAY_BUFFER, transparentVertices.size() * sizeof(Vertex), &transparentVertices[0], GL_DYNAMIC_DRAW);  
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, transparentEBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, transparent_indices.size() * sizeof(unsigned int), 
-                 &transparent_indices[0], GL_DYNAMIC_DRAW);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, transparentIndices.size() * sizeof(unsigned int), 
+                 &transparentIndices[0], GL_DYNAMIC_DRAW);
 
     // vertex positions
     glEnableVertexAttribArray(0);	
@@ -81,20 +80,20 @@ void Mesh::updateMesh(){
     glBindVertexArray(solidVAO);
     glBindBuffer(GL_ARRAY_BUFFER, solidVBO);
 
-    glBufferData(GL_ARRAY_BUFFER, solid_vertices.size() * sizeof(Vertex), &solid_vertices[0], GL_DYNAMIC_DRAW);   
+    glBufferData(GL_ARRAY_BUFFER, opaqueVertices.size() * sizeof(Vertex), &opaqueVertices[0], GL_DYNAMIC_DRAW);   
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, solidEBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, solid_indices.size() * sizeof(unsigned int), 
-                 &solid_indices[0], GL_DYNAMIC_DRAW);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, opaqueIndices.size() * sizeof(unsigned int), 
+                 &opaqueIndices[0], GL_DYNAMIC_DRAW);
 
     glBindVertexArray(transparentVAO);
     glBindBuffer(GL_ARRAY_BUFFER, transparentVBO);
 
-    glBufferData(GL_ARRAY_BUFFER, transparent_vertices.size() * sizeof(Vertex), &transparent_vertices[0], GL_DYNAMIC_DRAW);   
+    glBufferData(GL_ARRAY_BUFFER, transparentVertices.size() * sizeof(Vertex), &transparentVertices[0], GL_DYNAMIC_DRAW);   
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, transparentEBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, transparent_indices.size() * sizeof(unsigned int), 
-                 &transparent_indices[0], GL_DYNAMIC_DRAW);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, transparentIndices.size() * sizeof(unsigned int), 
+                 &transparentIndices[0], GL_DYNAMIC_DRAW);
 
     glBindVertexArray(0);
 }
@@ -103,43 +102,55 @@ void Mesh::updateTransparentMesh(){
     glBindVertexArray(transparentVAO);
     glBindBuffer(GL_ARRAY_BUFFER, transparentVBO);
 
-    glBufferData(GL_ARRAY_BUFFER, transparent_vertices.size() * sizeof(Vertex), &transparent_vertices[0], GL_DYNAMIC_DRAW);   
+    glBufferData(GL_ARRAY_BUFFER, transparentVertices.size() * sizeof(Vertex), &transparentVertices[0], GL_DYNAMIC_DRAW);   
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, transparentEBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, transparent_indices.size() * sizeof(unsigned int), 
-                 &transparent_indices[0], GL_DYNAMIC_DRAW);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, transparentIndices.size() * sizeof(unsigned int), 
+                 &transparentIndices[0], GL_DYNAMIC_DRAW);
 
     glBindVertexArray(0);
 }
 
-void Mesh::draw(const Shader &shader, int x, int y, int z) 
-{
+void Mesh::draw(const Shader &shader, int x, int y, int z) {
     shader.setMat4("model", glm::translate(glm::mat4(1.0f), glm::vec3(x, y, z)));
 
-    glBindVertexArray(solidVAO);
-    glDrawElements(GL_TRIANGLES, solid_indices.size(), GL_UNSIGNED_INT, 0);
-    glBindVertexArray(transparentVAO);
-    glDrawElements(GL_TRIANGLES, transparent_indices.size(), GL_UNSIGNED_INT, 0);
-    glBindVertexArray(0);
-}
-
-void Mesh::drawChunk(const Shader &shader, int x, int y, int z) 
-{
-    shader.setMat4("model", glm::translate(glm::mat4(1.0f), glm::vec3(32 * x, 32 * y, 32 * z)));
-
-    if (solid_vertices.size() != 0){
+    if (opaqueVertices.size() != 0){
         glBindVertexArray(solidVAO);
-        glDrawElements(GL_TRIANGLES, solid_indices.size(), GL_UNSIGNED_INT, 0);
+        glDrawElements(GL_TRIANGLES, opaqueIndices.size(), GL_UNSIGNED_INT, 0);
     }
 
-    if (transparent_vertices.size() != 0){
+    if (transparentVertices.size() != 0){
         // Disable writing to the depth buffer.
         // glDepthMask(GL_FALSE);
         glEnable(GL_BLEND); 
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
         glBindVertexArray(transparentVAO);
-        glDrawElements(GL_TRIANGLES, transparent_indices.size(), GL_UNSIGNED_INT, 0);
+        glDrawElements(GL_TRIANGLES, transparentIndices.size(), GL_UNSIGNED_INT, 0);
+
+        glDisable(GL_BLEND);
+        //glDepthMask(GL_TRUE);
+    }
+
+    glBindVertexArray(0);
+}
+
+void Mesh::drawChunk(const Shader &shader, int x, int y, int z) {
+    shader.setMat4("model", glm::translate(glm::mat4(1.0f), glm::vec3(32 * x, 32 * y, 32 * z)));
+
+    if (opaqueVertices.size() != 0){
+        glBindVertexArray(solidVAO);
+        glDrawElements(GL_TRIANGLES, opaqueIndices.size(), GL_UNSIGNED_INT, 0);
+    }
+
+    if (transparentVertices.size() != 0){
+        // Disable writing to the depth buffer.
+        // glDepthMask(GL_FALSE);
+        glEnable(GL_BLEND); 
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+        glBindVertexArray(transparentVAO);
+        glDrawElements(GL_TRIANGLES, transparentIndices.size(), GL_UNSIGNED_INT, 0);
 
         glDisable(GL_BLEND);
         //glDepthMask(GL_TRUE);

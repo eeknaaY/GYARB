@@ -29,24 +29,19 @@ void Chunk::sortTransparentFaces(const Camera& camera){
     };
 
     if (this == nullptr) return;
-    if (this->mesh.transparent_indices.size() == 0) return;
+    if (this->mesh.transparentIndices.size() == 0) return;
 
     std::vector<VoxelFace> transparentFaces;
-    for (int faceCount = 0; faceCount < this->mesh.transparent_vertices.size() / 4; faceCount++){
+    for (int faceCount = 0; faceCount < this->mesh.transparentVertices.size() / 4; faceCount++){
         VoxelFace face = VoxelFace();
-        // std::copy(this->mesh.transparent_vertices[4 * faceCount], this->mesh.transparent_vertices[4 * faceCount + 3], face.faceVertices);
-        // std::copy(this->mesh.transparent_indices[6 * faceCount], this->mesh.transparent_indices[6 * faceCount + 5], face.faceIndices);
-        face.faceVertices[0] = this->mesh.transparent_vertices[4 * faceCount];
-        face.faceVertices[1] = this->mesh.transparent_vertices[4 * faceCount + 1];
-        face.faceVertices[2] = this->mesh.transparent_vertices[4 * faceCount + 2];
-        face.faceVertices[3] = this->mesh.transparent_vertices[4 * faceCount + 3];
-        
-        face.faceIndices[0] = this->mesh.transparent_indices[6 * faceCount] % 4;
-        face.faceIndices[1] = this->mesh.transparent_indices[6 * faceCount + 1] % 4;
-        face.faceIndices[2] = this->mesh.transparent_indices[6 * faceCount + 2] % 4;
-        face.faceIndices[3] = this->mesh.transparent_indices[6 * faceCount + 3] % 4;
-        face.faceIndices[4] = this->mesh.transparent_indices[6 * faceCount + 4] % 4;
-        face.faceIndices[5] = this->mesh.transparent_indices[6 * faceCount + 5] % 4;
+
+        for (int i = 0; i < 4; i++){
+            face.faceVertices[i] = this->mesh.transparentVertices[4 * faceCount + i];
+        }
+
+        for (int i = 0; i < 6; i++){
+            face.faceIndices[i] = this->mesh.transparentIndices[6 * faceCount + i] % 4;
+        }
 
         face.setDistanceFromCamera(camera, this);
 
@@ -57,23 +52,23 @@ void Chunk::sortTransparentFaces(const Camera& camera){
         return left.distanceFromFurthestPoint == right.distanceFromFurthestPoint ? left.distanceFromCamera > right.distanceFromCamera : left.distanceFromFurthestPoint > right.distanceFromFurthestPoint;
     });
 
-    this->mesh.transparent_vertices.clear();
-    this->mesh.transparent_indices.clear();
+    this->mesh.transparentVertices.clear();
+    this->mesh.transparentIndices.clear();
 
     for (VoxelFace face : transparentFaces){
-        //this->mesh.transparent_vertices.insert(this->mesh.transparent_vertices.end(), face.faceVertices, face.faceVertices + 4);
-        this->mesh.transparent_vertices.push_back(face.faceVertices[0]);
-        this->mesh.transparent_vertices.push_back(face.faceVertices[1]);
-        this->mesh.transparent_vertices.push_back(face.faceVertices[2]);
-        this->mesh.transparent_vertices.push_back(face.faceVertices[3]);
+        //this->mesh.transparentVertices.insert(this->mesh.transparentVertices.end(), face.faceVertices, face.faceVertices + 4);
+        this->mesh.transparentVertices.push_back(face.faceVertices[0]);
+        this->mesh.transparentVertices.push_back(face.faceVertices[1]);
+        this->mesh.transparentVertices.push_back(face.faceVertices[2]);
+        this->mesh.transparentVertices.push_back(face.faceVertices[3]);
 
-        int arraySize = this->mesh.transparent_vertices.size() - 4;
-        this->mesh.transparent_indices.push_back(face.faceIndices[0] + arraySize);
-        this->mesh.transparent_indices.push_back(face.faceIndices[1] + arraySize);
-        this->mesh.transparent_indices.push_back(face.faceIndices[2] + arraySize);
-        this->mesh.transparent_indices.push_back(face.faceIndices[3] + arraySize);
-        this->mesh.transparent_indices.push_back(face.faceIndices[4] + arraySize);
-        this->mesh.transparent_indices.push_back(face.faceIndices[5] + arraySize);
+        int arraySize = this->mesh.transparentVertices.size() - 4;
+        this->mesh.transparentIndices.push_back(face.faceIndices[0] + arraySize);
+        this->mesh.transparentIndices.push_back(face.faceIndices[1] + arraySize);
+        this->mesh.transparentIndices.push_back(face.faceIndices[2] + arraySize);
+        this->mesh.transparentIndices.push_back(face.faceIndices[3] + arraySize);
+        this->mesh.transparentIndices.push_back(face.faceIndices[4] + arraySize);
+        this->mesh.transparentIndices.push_back(face.faceIndices[5] + arraySize);
     }
 
     updateTransparentMesh();

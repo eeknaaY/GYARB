@@ -64,7 +64,7 @@ std::vector<glm::vec4> Camera::getFrustumCornersWorldSpace(glm::mat4x4* projecti
 }
 
 void Camera::processKeyInput(float deltaTime){
-    float cameraSpeed = 10.0f * deltaTime;
+    float cameraSpeed = this->movementSpeed * deltaTime;
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
         position += cameraSpeed * glm::normalize(glm::vec3(front.x * cos(pitch * 3.14 / 180), 0, front.z * cos(pitch * 3.14/180)));
     if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)

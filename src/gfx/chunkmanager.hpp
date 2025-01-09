@@ -42,7 +42,6 @@ class ChunkManager{
         std::vector<Chunk*> getChunkVector(int x, int z);
         Mesh buildMesh(Chunk* _chunk, Camera gameCamera);
         void updateChunkMesh(Chunk* _chunk, Camera gameCamera);
-        void updateChunkMesh_MT(Chunk* _chunk, Camera gameCamera);
         void startMeshingThreads(Camera* gameCamera);
         void updateTerrain(Camera* gameCamera, int threadMultiplier);
         void setBlockValue(int x, int y, int z, int blockValue);
@@ -55,6 +54,8 @@ class ChunkManager{
         std::thread meshingThread1;
         std::thread meshingThread2;
         
+        void updateChunkMesh_MT(Chunk* _chunk, Camera gameCamera);
+
         // These shouldn't really be inside ChunkManager, but in a meshing class, couldnt fix that so now its here for now
         int getBlockValueFromPosition(Chunk* chunk, int x, int y, int z, int LoD);
         void makeVoxelAccountedFor(bool accountedVoxels[], int x, int y, int z);

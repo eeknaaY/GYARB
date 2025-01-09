@@ -14,7 +14,7 @@ void Renderer::renderVisibleChunks(const Shader &shader, const Camera& camera){
     float maxY = std::numeric_limits<float>::lowest();
     float minZ = std::numeric_limits<float>::max();
     float maxZ = std::numeric_limits<float>::lowest();
-    for (const auto& corner : camera.getFrustumCornersWorldSpace()){
+    for (const glm::vec3& corner : camera.getFrustumCornersWorldSpace()){
         minX = std::min(minX, corner.x);
         maxX = std::max(maxX, corner.x);
         minY = std::min(minY, corner.y);
@@ -126,7 +126,7 @@ void Renderer::drawChunkVector(int x, int z, const Camera& camera, const Shader&
 void Renderer::updataChunkData(){
     while (chunkManager->finishedMeshesth1.size() != 0){
         Chunk* chunk = chunkManager->finishedMeshesth1[0];
-        if (chunk->mesh.solid_vertices.size() != 0){
+        if (chunk->mesh.opaqueVertices.size() != 0){
             chunk->updateMesh();
         }
         chunkManager->finishedMeshesth1.erase(chunkManager->finishedMeshesth1.begin());
@@ -134,7 +134,7 @@ void Renderer::updataChunkData(){
     
     while (chunkManager->finishedMeshesth2.size() != 0){
         Chunk* chunk = chunkManager->finishedMeshesth2[0];
-        if (chunk->mesh.solid_vertices.size() != 0){
+        if (chunk->mesh.opaqueVertices.size() != 0){
             chunk->updateMesh();
         }
         chunkManager->finishedMeshesth2.erase(chunkManager->finishedMeshesth2.begin());
