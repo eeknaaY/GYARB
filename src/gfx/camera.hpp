@@ -11,8 +11,11 @@
 class Camera{
     public:
         float NEAR_FRUSTUM = 0.1f;
-        float FAR_FRUSTUM = 800.0f;
         int renderDistance = 7;
+        float FAR_FRUSTUM = renderDistance * 32;
+
+        int lowerLoDDistance = 6;
+        int disableTransparencyDistance = 1;
 
         float movementSpeed = 5;
         int blockTypeSelected = 0;
@@ -72,6 +75,7 @@ class Camera{
         glm::vec3 right;
 
         glm::vec3 oldPosition;
+
         GLFWwindow* window; 
 
         float lastX;

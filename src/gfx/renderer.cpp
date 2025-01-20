@@ -123,11 +123,12 @@ void Renderer::drawChunkVector(int x, int z, const Camera& camera, const Shader&
     }
 }
 
-void Renderer::updataChunkData(){
+void Renderer::updataChunkData(const Shader& shader){
     while (chunkManager->finishedMeshesth1.size() != 0){
         Chunk* chunk = chunkManager->finishedMeshesth1[0];
         if (chunk->mesh.opaqueVertices.size() != 0){
             chunk->updateMesh();
+            chunk->draw(shader);
         }
         chunkManager->finishedMeshesth1.erase(chunkManager->finishedMeshesth1.begin());
     }
@@ -136,6 +137,7 @@ void Renderer::updataChunkData(){
         Chunk* chunk = chunkManager->finishedMeshesth2[0];
         if (chunk->mesh.opaqueVertices.size() != 0){
             chunk->updateMesh();
+            chunk->draw(shader);
         }
         chunkManager->finishedMeshesth2.erase(chunkManager->finishedMeshesth2.begin());
     }

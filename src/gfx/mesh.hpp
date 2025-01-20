@@ -108,7 +108,7 @@ class ShadowMap{
         std::vector<glm::mat4> getViewMatrices(const Camera& camera);
 
         ShadowMap(const Camera& camera){
-            shadowCascadeLevels = std::vector<float>{camera.FAR_FRUSTUM / 16.f, camera.FAR_FRUSTUM / 4.f, camera.FAR_FRUSTUM / 2.f};
+            shadowCascadeLevels = std::vector<float>{camera.FAR_FRUSTUM / 16.f, camera.FAR_FRUSTUM / 4.f, camera.FAR_FRUSTUM / 2.f, camera.FAR_FRUSTUM};
             bindMesh();
         }
     private:

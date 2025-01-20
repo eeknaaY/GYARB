@@ -27,15 +27,14 @@ uniform mat4 viewMatrix;
 uniform samplerCube skybox;
 uniform float viewDistance;
 uniform mat4 view;
+uniform float[4] cascadePlaneDistances;
 
-layout (std140) uniform LightSpaceMatrices
-{
+layout (std140) uniform LightSpaceMatrices{
     mat4 lightSpaceMatrices[16];
 };
 
 float farPlane = viewDistance;
-vec4 cascadePlaneDistances = vec4(farPlane / 16.f, farPlane / 4.f, farPlane / 2.f, farPlane);
-int cascadeCount = 4;
+int cascadeCount = cascadePlaneDistances.length();
 
 vec3 faceNormals[6] = vec3[6] (
 	vec3(0.0, 1.0, 0.0),
@@ -74,11 +73,15 @@ float ShadowCalculation()
     }
 
     if (shadowLayer == 1){
-        bias = 0.02;
+        bias = 0.01;
     }
 
     if (shadowLayer == 2){
-        bias = 0.03;
+        bias = 0.015;
+    }
+
+    if (shadowLayer == 3){
+        bias = 0.02;
     }
 
     if (shadowLayer == cascadeCount){
@@ -93,17 +96,18 @@ float ShadowCalculation()
 
     if (flatVertexData.normalIndex <= 1){
         if (shadowLayer == 0){
-            float positionReduction = 0.5 * abs(dot(cameraNormal, lightDir));
+            float positionReduction = 0.75 * abs(dot(cameraNormal, lightDir));
             fragPosition -= vec3(positionReduction, 0, positionReduction);
         }
 
         if (shadowLayer == 1){
-            float positionReduction = -0.1 * abs(dot(cameraNormal, lightDir));
+            float positionReduction = 0.5 * abs(dot(cameraNormal, lightDir));
             fragPosition -= vec3(positionReduction, 0, positionReduction);
         }
 
         if (shadowLayer == 2){
-            fragPosition -= vec3(bias * 10, 0, bias * 10);
+            float positionReduction = 0.8 * abs(dot(cameraNormal, lightDir));
+            fragPosition -= vec3(positionReduction, 0, positionReduction);
         }
     }
 
@@ -159,8 +163,8 @@ void main()
 
 	float ambientStrength = 0.1;
 	
-    float fog_maxdist = min(viewDistance, 200);
-    float fog_mindist = min(viewDistance - 50, 150);
+    float fog_maxdist = min(viewDistance, 150);
+    float fog_mindist = min(viewDistance - 50, 120);
 
     vec4 fogColor = texture(skybox, normalize(vertexData.globalPosition - playerPos));
     float dist = length(vertexData.globalPosition.xyz - playerPos);

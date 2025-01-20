@@ -12,8 +12,7 @@ bool Camera::hasChangedBlock() const {
     return position != oldPosition;
 }
 
-void Camera::processInput(GLFWwindow* window, float deltaTime)
-{   
+void Camera::processInput(GLFWwindow* window, float deltaTime){   
     handleMouse(window);
     this->oldPosition = position;
     processKeyInput(deltaTime);

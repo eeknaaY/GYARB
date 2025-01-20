@@ -40,8 +40,6 @@ int main(){
     glBindTexture(GL_TEXTURE_2D_ARRAY, shadowMap.depthMaps);
     glActiveTexture(GL_TEXTURE2);
     glBindTexture(GL_TEXTURE_CUBE_MAP, skybox.texture);
-    
-    shadowMapShader.use();
 
     ChunkManager* chunkManager = new ChunkManager();
     Renderer gameRenderer = Renderer(chunkManager);
@@ -82,8 +80,8 @@ int main(){
     float deltaTime = 0.0f;
     float viewDistance = 0;
 
-    float wait = 0;
-    std::cin >> wait;
+    //float wait = 0;
+    //std::cin >> wait;
 
     while (!glfwWindowShouldClose(window)){   
         frameCounter += 1;
@@ -99,12 +97,21 @@ int main(){
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;  
         gameCamera.processInput(window, deltaTime);
+
+        //float heightDifference = abs(gameCamera.position.y - (BiomeHandler::getHeightValue(gameCamera.position.x, gameCamera.position.z) + 3));
+        // if (abs(gameCamera.position.y - (BiomeHandler::getHeightValue(gameCamera.position.x, gameCamera.position.z) + 3)) > 0.3f){
+        //     if (gameCamera.position.y > BiomeHandler::getHeightValue(gameCamera.position.x, gameCamera.position.z) + 3){
+        //         gameCamera.position.y -= 0.1f;
+        //     } else {
+        //         gameCamera.position.y += 0.5;
+        //     }
+        // }
         
         if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS && !rightMouseButtonDown){
             gameCamera.movementSpeed -= 1;
 
             rightMouseButtonDown = true;
-            Raycast::RaycastInfo ray = Raycast::sendRaycast(gameCamera, chunkManager);
+            Raycast::RaycastInfo ray = Raycast::sendRaycast(gameCamera, 20, chunkManager);
             if (ray.hit){
                 glm::vec3 selectedVoxel = ray.position + ray.normal;
                 chunkManager->updateBlockValueAndMesh(selectedVoxel.x, selectedVoxel.y, selectedVoxel.z, gameCamera.blockTypeSelected, gameCamera);
@@ -119,7 +126,7 @@ int main(){
             gameCamera.movementSpeed += 1;
             
             leftMouseButtonDown = true;
-            Raycast::RaycastInfo ray = Raycast::sendRaycast(gameCamera, chunkManager);
+            Raycast::RaycastInfo ray = Raycast::sendRaycast(gameCamera, 20, chunkManager);
             if (ray.hit){
                 chunkManager->updateBlockValueAndMesh(ray.position.x, ray.position.y, ray.position.z, 0, gameCamera);
             }
@@ -170,7 +177,7 @@ int main(){
         voxelShader.setMat4("viewMatrix", gameCamera.viewMatrix);
 
         gameRenderer.renderVisibleChunks(voxelShader, gameCamera);
-        gameRenderer.updataChunkData();
+        gameRenderer.updataChunkData(voxelShader);
 
         if (viewDistance < gameCamera.FAR_FRUSTUM){
             // voxelShader = Shader("src/shaders/voxelShader.vs", "src/shaders/voxelShader.fs");

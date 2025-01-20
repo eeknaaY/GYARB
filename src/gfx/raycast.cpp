@@ -18,14 +18,50 @@ double intbound(double s, double ds){
     }
 }
 
-RaycastInfo sendRaycast(const Camera &camera, ChunkManager* chunkManager){
+RaycastInfo sendRaycast(const Camera &camera, int maxSteps, ChunkManager* chunkManager, Direction direction){
+    float dx, dy, dz;
+    
+    switch(direction){
+        case Direction::FORWARD:
+            dx = camera.front.x;
+            dy = camera.front.y;
+            dz = camera.front.z;
+            break;
+        
+        case Direction::BACK:
+            dx = -camera.front.x;
+            dy = camera.front.y;
+            dz = -camera.front.z;
+            break;
+
+        case Direction::LEFT:
+            dx = camera.front.z;
+            dy = camera.front.y;
+            dz = -camera.front.x;
+            break;
+
+        case Direction::RIGHT:
+            dx = -camera.front.z;
+            dy = camera.front.y;
+            dz = camera.front.x;
+            break;
+
+        case Direction::UP:
+            dx = camera.up.x;
+            dy = camera.up.y;
+            dz = camera.up.z;
+            break;
+        
+        case Direction::DOWN:
+            dx = camera.up.x;
+            dy = -camera.up.y;
+            dz = camera.up.z;
+            break;
+    }
+    
     int x = (int)floor(camera.position.x);
     int y = (int)floor(camera.position.y);
     int z = (int)floor(camera.position.z);
-
-    float dx = camera.front.x;
-    float dy = camera.front.y;
-    float dz = camera.front.z;
 
     int stepX = signum(dx);
     int stepY = signum(dy);
@@ -41,8 +77,7 @@ RaycastInfo sendRaycast(const Camera &camera, ChunkManager* chunkManager){
 
     RaycastInfo ray;
 
-    const int MAX_STEPS = 30;
-    for (int i = 0; i < MAX_STEPS; i++){
+    for (int i = 0; i < maxSteps; i++){
         int blockValue = chunkManager->getBlockValue(x, y, z);
 
         if (blockValue != 0 && blockValue != 17){

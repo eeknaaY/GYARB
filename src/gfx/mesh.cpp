@@ -218,8 +218,7 @@ glm::mat4 ShadowMap::getViewMatrix(const Camera& camera, float nearPlane, float 
     float maxY = std::numeric_limits<float>::lowest();
     float minZ = std::numeric_limits<float>::max();
     float maxZ = std::numeric_limits<float>::lowest();
-    for (const auto& v : corners)
-    {
+    for (const auto& v : corners){
         const auto trf = lightView * v;
         minX = std::min(minX, trf.x);
         maxX = std::max(maxX, trf.x);
@@ -284,8 +283,7 @@ void ShadowMap::bindMesh(){
     glReadBuffer(GL_NONE);
         
     int status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
-    if (status != GL_FRAMEBUFFER_COMPLETE)
-    {
+    if (status != GL_FRAMEBUFFER_COMPLETE){
         std::cout << "ERROR::FRAMEBUFFER:: Framebuffer is not complete!";
         throw 0;
     }

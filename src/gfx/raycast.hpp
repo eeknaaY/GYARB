@@ -5,6 +5,15 @@
 #include "camera.hpp"
 
 namespace Raycast{
+    enum class Direction{
+        FORWARD,
+        BACK,
+        LEFT,
+        RIGHT,
+        DOWN,
+        UP
+    };
+
     struct RaycastInfo{
         bool hit = false;
         glm::vec3 position = glm::vec3(0, 0, 0);
@@ -12,6 +21,6 @@ namespace Raycast{
     };
 
 
-    RaycastInfo sendRaycast(const Camera &camera, ChunkManager* chunkManager);
+    RaycastInfo sendRaycast(const Camera &camera, int maxSteps, ChunkManager* chunkManager, Direction direction = Direction::FORWARD);
 }
 

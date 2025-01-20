@@ -10,18 +10,20 @@
 
 enum class Biomes{
     Forest,
-    Mountain
+    Plains
 };
 
 struct Biome{
     FastNoiseLite noise;
+    FastNoiseLite waterNoise;
     int waterLevel = 0;
     int averageHeightValue = 0;
     int heightOffsetValue = 0;
     float treeProbability = 0;
 
-    Biome(FastNoiseLite noise, int waterLevel, int averageHeightValue, int heightOffsetValue, float treeProbability){
+    Biome(FastNoiseLite noise, int waterLevel, int averageHeightValue, int heightOffsetValue, float treeProbability, FastNoiseLite waterNoise = FastNoiseLite()){
         this->noise = noise;
+        this->waterNoise = waterNoise;
         this->waterLevel = waterLevel;
         this->averageHeightValue = averageHeightValue;
         this->heightOffsetValue = heightOffsetValue;
@@ -30,7 +32,6 @@ struct Biome{
 
     virtual int getBlockValue(int globalY, int globalMaxHeight) {return 0;}
     virtual int getHeightValue(float x, float z) {return 0;}
-    //virtual bool shouldGenerateTree(int globalY, int globalMaxHeight) {return false;}
     
     bool shouldGenerateTree(int globalY, int globalMaxHeight){
         int yChunk = (int)((globalY - globalY % 32) / 32.f);
@@ -51,6 +52,7 @@ struct ForestBiome : Biome{
         int localY = globalY % 32;
         int localMaxHeight = globalMaxHeight - 32 * yChunk;
 
+        if (globalY == 0) return 2;
         if (localY > localMaxHeight && globalY < waterLevel) return 17; // Water
         if (localY > localMaxHeight) return 0; // Air
 
@@ -64,18 +66,13 @@ struct ForestBiome : Biome{
     }
 };
 
-struct MountainBiome : Biome{
+struct PlainsBiome : Biome{
     using Biome::Biome;
 
     int getHeightValue(float x, float z) {
-        // float noiseValue = noise.GetNoise(x, z);
-
-        // if (noiseValue > 0.55){
-        //     noiseValue = pow(3, noiseValue + 0.3) - 2;
-        // }
-        
-        // return this->averageHeightValue + noiseValue * this->heightOffsetValue;
-        return this->averageHeightValue + noise.GetNoise(x, z) * this->heightOffsetValue;
+        float waterN = waterNoise.GetNoise(x, z) + 0.5 < 0 ? 0 : waterNoise.GetNoise(x, z) + 0.5;
+        float normalN = noise.GetNoise(x, z);
+        return this->averageHeightValue + normalN * this->heightOffsetValue - waterN * 40;
     }
 
     int getBlockValue(int globalY, int globalMaxHeight){
@@ -118,7 +115,7 @@ class BiomeHandler{
             temperature = temperature < 0 ? 0 : temperature;
             float combinedValues = downFall * temperature;
             if (combinedValues > 0.5f) return getBiome(Biomes::Forest);
-            if (combinedValues <= 0.5f) return getBiome(Biomes::Mountain);
+            if (combinedValues <= 0.5f) return getBiome(Biomes::Plains);
 
             return getBiome(Biomes::Forest);
         }
@@ -202,19 +199,25 @@ class BiomeHandler{
 
             { // Forest
                 int waterLevel = 8;
-                int averageHeight = 16;
+                int averageHeight = 20;
                 int averageOffset = 16;
 
                 biomesVector.push_back(new ForestBiome(noise, waterLevel, averageHeight, averageOffset, 0.02f));
             }
 
-            { // Mountain
+            { // Plains
                 int waterLevel = 8;
-                int averageHeight = 50;
-                int averageOffset = 45;
+                int averageHeight = 15;
+                int averageOffset = 10;
 
-                //noise.SetFrequency(0.001);
-                biomesVector.push_back(new MountainBiome(noise, waterLevel, averageHeight, averageOffset, 0.0f));
+                FastNoiseLite waterNoise;
+                waterNoise.SetSeed(std::time(nullptr));
+                waterNoise.SetNoiseType(FastNoiseLite::NoiseType_Cellular);
+                waterNoise.SetCellularReturnType(FastNoiseLite::CellularReturnType::CellularReturnType_Distance);
+                waterNoise.SetCellularDistanceFunction(FastNoiseLite::CellularDistanceFunction::CellularDistanceFunction_EuclideanSq);
+                waterNoise.SetFrequency(0.02);
+
+                biomesVector.push_back(new PlainsBiome(noise, waterLevel, averageHeight, averageOffset, 0.0f, waterNoise));
             }
         }
     private:
