@@ -26,10 +26,17 @@ class Mesh {
         std::vector<unsigned int> opaqueIndices;
         std::vector<Vertex> transparentVertices;
         std::vector<unsigned int> transparentIndices;
-        bool bufferExists = false;
 
+        bool bufferExists = false;
+        
         void draw(const Shader &shader, int x, int y, int z);
+        void drawOpaque(const Shader &shader, int x, int y, int z);
+        void drawTransparent(const Shader &shader, int x, int y, int z);
+
         void drawChunk(const Shader &shader, int x, int y, int z);
+        void drawOpaqueChunk(const Shader &shader, int x, int y, int z);
+        void drawTransparentChunk(const Shader &shader, int x, int y, int z);
+
         void updateMesh();
         void updateTransparentMesh();
         void bindMesh();
@@ -114,4 +121,17 @@ class ShadowMap{
     private:
         void bindMesh();
         inline static bool hasBindedTextures = false;
+};
+
+class LineMesh : public Mesh{
+    std::vector<glm::vec3> opaqueVertices;
+
+    public:
+        void draw();
+        void addCube(glm::vec3 pos, int size);
+        void bindMesh();
+
+        LineMesh(){
+            
+        };
 };

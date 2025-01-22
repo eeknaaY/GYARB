@@ -96,7 +96,7 @@ float ShadowCalculation()
 
     if (flatVertexData.normalIndex <= 1){
         if (shadowLayer == 0){
-            float positionReduction = 0.75 * abs(dot(cameraNormal, lightDir));
+            float positionReduction = 0.5 * abs(dot(cameraNormal, lightDir));
             fragPosition -= vec3(positionReduction, 0, positionReduction);
         }
 
@@ -124,18 +124,18 @@ float ShadowCalculation()
 
 
     // PCF
-    // float shadow = 0.0;
-    // for(int x = -1; x <= 1; ++x)
-    // {
-    //     for(int y = -1; y <= 1; ++y)
-    //     {
-    //         float pcfDepth = texture(shadowMap, vec3(projCoords.xy + vec2(x, y) * vec2(1.0/2048), shadowLayer)).x; 
-    //         shadow += currentDepth - bias > pcfDepth  ? 1.0 : 0.0;        
-    //     }    
-    // }
-    // shadow /= 9.0;
+    float shadow = 0.0;
+    for(int x = -1; x <= 1; ++x)
+    {
+        for(int y = -1; y <= 1; ++y)
+        {
+            float pcfDepth = texture(shadowMap, vec3(projCoords.xy + vec2(x, y) * vec2(1.0/2048), shadowLayer)).x; 
+            shadow += currentDepth - bias > pcfDepth  ? 1.0 : 0.0;        
+        }    
+    }
+    shadow /= 9.0;
 
-    float shadow = currentDepth - bias > texture(shadowMap, vec3(projCoords.xy, shadowLayer)).x ? 1.0 : 0.0;
+    // float shadow = currentDepth - bias > texture(shadowMap, vec3(projCoords.xy, shadowLayer)).x ? 1.0 : 0.0;
     
     if(projCoords.z > 1.0)
         shadow = 0.0;
@@ -163,8 +163,8 @@ void main()
 
 	float ambientStrength = 0.1;
 	
-    float fog_maxdist = min(viewDistance, 150);
-    float fog_mindist = min(viewDistance - 50, 120);
+    float fog_maxdist = min(viewDistance, 650);
+    float fog_mindist = min(viewDistance - 50, 500);
 
     vec4 fogColor = texture(skybox, normalize(vertexData.globalPosition - playerPos));
     float dist = length(vertexData.globalPosition.xyz - playerPos);

@@ -2,6 +2,7 @@
 #include <vector>
 #include "FastNoiseLite.h"
 #include "../gfx/biomes.hpp"
+#include "../gfx/mesh.hpp"
 
 enum nodePositions{
     BottomLeftFront,
@@ -44,12 +45,14 @@ class Octree{
         void optimizeTree();
         void buildAMinecraftTree(int x, int y, int z);
         void updateNodeValueFromPosition(int x, int y, int z, int blockValue);
+        void buildOctreeLineMesh(LineMesh& mesh);
 
         Octree();
         Octree(int _chunk_xcoord, int _chunk_ycoord, int _chunk_zcoord, Biome* biomeType);
         Octree(int initValue);
         ~Octree();
     private:
+        void putNodeEdgesIntoLineMesh(int _x, int _y, int _z, short &width, int _depth, LineMesh& mesh);
         int LoD;
         int chunk_xcoord, chunk_zcoord;
 };

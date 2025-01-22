@@ -75,7 +75,15 @@ void Chunk::sortTransparentFaces(const Camera& camera){
 }
 
 void Chunk::draw(const Shader &shader){
-    mesh.drawChunk(shader, xCoordinate, yCoordinate, zCoordinate);
+    mesh.draw(shader, xCoordinate, yCoordinate, zCoordinate);
+}
+
+void Chunk::drawTransparent(const Shader &shader){
+    mesh.drawTransparentChunk(shader, xCoordinate, yCoordinate, zCoordinate);
+}
+
+void Chunk::drawOpaque(const Shader &shader){
+    mesh.drawOpaqueChunk(shader, xCoordinate, yCoordinate, zCoordinate);
 }
 
 void Chunk::updateTransparentMesh(){

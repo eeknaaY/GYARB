@@ -44,8 +44,8 @@ GLFWwindow* createWindow(int SCR_WIDTH, int SCR_HEIGHT){
     glFrontFace(GL_CCW);
     glCullFace(GL_BACK);  
 
-    glfwWindowHint(GLFW_SAMPLES, 4);
     glEnable(GL_MULTISAMPLE);
+    glfwWindowHint(GLFW_SAMPLES, 4);
 
     return window;
 }

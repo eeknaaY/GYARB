@@ -190,7 +190,7 @@ class BiomeHandler{
 
         static void buildBiomeVector(){
             FastNoiseLite noise;
-            noise.SetSeed(std::time(nullptr));
+            noise.SetSeed(0);
             noise.SetNoiseType(FastNoiseLite::NoiseType_Perlin);
             noise.SetFractalType(FastNoiseLite::FractalType_FBm);
             noise.SetFrequency(0.002);
@@ -211,7 +211,7 @@ class BiomeHandler{
                 int averageOffset = 10;
 
                 FastNoiseLite waterNoise;
-                waterNoise.SetSeed(std::time(nullptr));
+                waterNoise.SetSeed(0);
                 waterNoise.SetNoiseType(FastNoiseLite::NoiseType_Cellular);
                 waterNoise.SetCellularReturnType(FastNoiseLite::CellularReturnType::CellularReturnType_Distance);
                 waterNoise.SetCellularDistanceFunction(FastNoiseLite::CellularDistanceFunction::CellularDistanceFunction_EuclideanSq);

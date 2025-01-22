@@ -80,24 +80,22 @@ int main(){
     float deltaTime = 0.0f;
     float viewDistance = 0;
 
-    //float wait = 0;
-    //std::cin >> wait;
-
     while (!glfwWindowShouldClose(window)){   
         frameCounter += 1;
         if (glfwGetTime() - startTime >= 1.0f){
             std::cout << "ms/frame: " << 1000.0 / double(frameCounter) << "\n";
-            //printf("Speed: %.2f\n", gameCamera.automatedMovementSpeed);
-            //printf("X: %.1f, Z: %.1f\nX: %.1f, Y: %.1f, Z: %.1f\n ", gameCamera.yaw, gameCamera.pitch, gameCamera.position.x, gameCamera.position.y,gameCamera.position.z);
             frameCounter = 0;
             startTime += 1;
         }
+
 
         float currentFrame = glfwGetTime();
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;  
         gameCamera.processInput(window, deltaTime);
 
+        
+        // "Physics"
         //float heightDifference = abs(gameCamera.position.y - (BiomeHandler::getHeightValue(gameCamera.position.x, gameCamera.position.z) + 3));
         // if (abs(gameCamera.position.y - (BiomeHandler::getHeightValue(gameCamera.position.x, gameCamera.position.z) + 3)) > 0.3f){
         //     if (gameCamera.position.y > BiomeHandler::getHeightValue(gameCamera.position.x, gameCamera.position.z) + 3){
@@ -136,8 +134,17 @@ int main(){
             leftMouseButtonDown = false;
         }
 
+        
         glm::mat4 view = glm::mat4(1.0f); // make sure to initialize matrix to identity matrix first
         gameCamera.viewMatrix = glm::lookAt(gameCamera.position, gameCamera.position + gameCamera.front, gameCamera.up);
+
+        if (glfwGetKey(window, GLFW_KEY_P) == GLFW_PRESS){
+            gameCamera.position = glm::vec3(16, 27, 46);
+            gameCamera.pitch = -20;
+            gameCamera.yaw = -90;
+            gameCamera.handleMouse(window);
+            gameCamera.viewMatrix = glm::lookAt(gameCamera.position, gameCamera.position + gameCamera.front, gameCamera.up);
+        }
 
         std::vector<glm::mat4> lightMatrices = shadowMap.getViewMatrices(gameCamera);
         glBindBuffer(GL_UNIFORM_BUFFER, shadowMap.matricesUBO);
@@ -163,10 +170,9 @@ int main(){
         skybox.draw(skyboxShader);
 
         voxelShader.use();
-        voxelShader.setMat4("view", gameCamera.viewMatrix);
 
         if (gameCamera.hasChangedChunk()){
-            chunkManager->startMeshingThreads(&gameCamera);
+            //chunkManager->startMeshingThreads(&gameCamera);
         }
 
         for (int i = 0; i < shadowMap.shadowCascadeLevels.size(); i++){
@@ -180,13 +186,7 @@ int main(){
         gameRenderer.updataChunkData(voxelShader);
 
         if (viewDistance < gameCamera.FAR_FRUSTUM){
-            // voxelShader = Shader("src/shaders/voxelShader.vs", "src/shaders/voxelShader.fs");
-
             voxelShader.use();
-            // glUniform1i(glGetUniformLocation(voxelShader.ID, "textureAtlas"), 0);
-            // glUniform1i(glGetUniformLocation(voxelShader.ID, "shadowMap"), 1);
-            // glUniform1i(glGetUniformLocation(voxelShader.ID, "skybox"), 2);
-            // voxelShader.setMat4("projection", gameCamera.projectionMatrix);
             voxelShader.setFloat("viewDistance", viewDistance);
             viewDistance++;
         }
@@ -200,7 +200,7 @@ int main(){
             glUniform1i(glGetUniformLocation(voxelShader.ID, "skybox"), 2);
             voxelShader.setMat4("projection", gameCamera.projectionMatrix);
             voxelShader.setFloat("viewDistance", viewDistance);
-        } 
+        }
 
         glfwSwapBuffers(window);
         glfwPollEvents();

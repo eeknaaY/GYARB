@@ -31,8 +31,10 @@ class Chunk{
         Mesh mesh;
         Octree* octree;
         
-
         void draw(const Shader &shader);
+        void drawTransparent(const Shader &shader);
+        void drawOpaque(const Shader &shader);
+
         void updateMesh();
         void updateTransparentMesh();
         void sortTransparentFaces(const Camera& camera);

@@ -112,51 +112,44 @@ void Mesh::updateTransparentMesh(){
 }
 
 void Mesh::draw(const Shader &shader, int x, int y, int z) {
+    drawOpaque(shader, x, y, z);
+    drawTransparent(shader, x, y, z);
+}
+
+void Mesh::drawOpaque(const Shader &shader, int x, int y, int z){
+    if (opaqueVertices.size() == 0) return;
+    
     shader.setMat4("model", glm::translate(glm::mat4(1.0f), glm::vec3(x, y, z)));
+    glBindVertexArray(solidVAO);
+    glDrawElements(GL_TRIANGLES, opaqueIndices.size(), GL_UNSIGNED_INT, 0);
+    glBindVertexArray(0);
+}
 
-    if (opaqueVertices.size() != 0){
-        glBindVertexArray(solidVAO);
-        glDrawElements(GL_TRIANGLES, opaqueIndices.size(), GL_UNSIGNED_INT, 0);
-    }
+void Mesh::drawTransparent(const Shader &shader, int x, int y, int z){
+    if (transparentVertices.size() == 0) return;
 
-    if (transparentVertices.size() != 0){
-        // Disable writing to the depth buffer.
-        // glDepthMask(GL_FALSE);
-        glEnable(GL_BLEND); 
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    shader.setMat4("model", glm::translate(glm::mat4(1.0f), glm::vec3(x, y, z)));
+    glEnable(GL_BLEND); 
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-        glBindVertexArray(transparentVAO);
-        glDrawElements(GL_TRIANGLES, transparentIndices.size(), GL_UNSIGNED_INT, 0);
+    glBindVertexArray(transparentVAO);
+    glDrawElements(GL_TRIANGLES, transparentIndices.size(), GL_UNSIGNED_INT, 0);
 
-        glDisable(GL_BLEND);
-        //glDepthMask(GL_TRUE);
-    }
-
+    glDisable(GL_BLEND);
     glBindVertexArray(0);
 }
 
 void Mesh::drawChunk(const Shader &shader, int x, int y, int z) {
-    shader.setMat4("model", glm::translate(glm::mat4(1.0f), glm::vec3(32 * x, 32 * y, 32 * z)));
+    drawOpaqueChunk(shader, x, y, z);
+    drawTransparentChunk(shader, x, y, z);
+}
 
-    if (opaqueVertices.size() != 0){
-        glBindVertexArray(solidVAO);
-        glDrawElements(GL_TRIANGLES, opaqueIndices.size(), GL_UNSIGNED_INT, 0);
-    }
+void Mesh::drawOpaqueChunk(const Shader &shader, int x, int y, int z){
+    drawOpaque(shader, 32 * x, 32 * y, 32 * z);
+}
 
-    if (transparentVertices.size() != 0){
-        // Disable writing to the depth buffer.
-        // glDepthMask(GL_FALSE);
-        glEnable(GL_BLEND); 
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-        glBindVertexArray(transparentVAO);
-        glDrawElements(GL_TRIANGLES, transparentIndices.size(), GL_UNSIGNED_INT, 0);
-
-        glDisable(GL_BLEND);
-        //glDepthMask(GL_TRUE);
-    }
-
-    glBindVertexArray(0);
+void Mesh::drawTransparentChunk(const Shader &shader, int x, int y, int z){
+    drawTransparent(shader, 32 * x, 32 * y, 32 * z);
 }
 
 void SkyboxMesh::bindMesh(){
@@ -299,3 +292,65 @@ void ShadowMap::bindMesh(){
     hasBindedTextures = true;
 }
 
+void LineMesh::bindMesh(){
+    glGenVertexArrays(1, &solidVAO);
+    glGenBuffers(1, &solidVBO);
+    bufferExists = true;
+  
+    glBindVertexArray(solidVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, solidVBO);
+
+    glBufferData(GL_ARRAY_BUFFER, opaqueVertices.size() * sizeof(glm::vec3), &opaqueVertices[0], GL_DYNAMIC_DRAW);  
+
+    // vertex positions
+    glEnableVertexAttribArray(0);	
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void*)0);
+
+    glBindVertexArray(0);
+}
+
+void LineMesh::addCube(glm::vec3 pos, int size){
+    float offSet = 0.005f;
+    opaqueVertices.push_back(glm::vec3(-offSet + pos.x, -offSet + pos.y, -offSet + pos.z));
+    opaqueVertices.push_back(glm::vec3(-offSet + pos.x, offSet + pos.y + size, -offSet + pos.z));
+
+    opaqueVertices.push_back(glm::vec3(-offSet + pos.x, -offSet + pos.y, -offSet + pos.z));
+    opaqueVertices.push_back(glm::vec3(offSet + pos.x + size, -offSet + pos.y, -offSet + pos.z));
+
+    opaqueVertices.push_back(glm::vec3(-offSet + pos.x, -offSet + pos.y, -offSet + pos.z));
+    opaqueVertices.push_back(glm::vec3(-offSet + pos.x, -offSet + pos.y, offSet + pos.z + size));
+
+    opaqueVertices.push_back(glm::vec3(offSet + pos.x + size, -offSet + pos.y, -offSet + pos.z));
+    opaqueVertices.push_back(glm::vec3(offSet + pos.x + size, offSet + pos.y + size, -offSet + pos.z));
+
+    opaqueVertices.push_back(glm::vec3(-offSet + pos.x, -offSet + pos.y, offSet + pos.z + size));
+    opaqueVertices.push_back(glm::vec3(-offSet + pos.x, offSet + pos.y + size, offSet + pos.z + size));
+
+    opaqueVertices.push_back(glm::vec3(-offSet + pos.x, offSet + pos.y + size, -offSet + pos.z));
+    opaqueVertices.push_back(glm::vec3(offSet + pos.x + size, offSet + pos.y + size, -offSet + pos.z));
+
+    opaqueVertices.push_back(glm::vec3(-offSet + pos.x, offSet + pos.y + size, -offSet + pos.z));
+    opaqueVertices.push_back(glm::vec3(-offSet + pos.x, offSet + pos.y + size, offSet + pos.z + size));
+
+    opaqueVertices.push_back(glm::vec3(offSet + pos.x + size, offSet + pos.y + size, -offSet + pos.z));
+    opaqueVertices.push_back(glm::vec3(offSet + pos.x + size, offSet + pos.y + size, offSet + pos.z + size));
+
+    opaqueVertices.push_back(glm::vec3(-offSet + pos.x, offSet + pos.y + size, offSet + pos.z + size));
+    opaqueVertices.push_back(glm::vec3(offSet + pos.x + size, offSet + pos.y + size, offSet + pos.z + size));
+
+    opaqueVertices.push_back(glm::vec3(offSet + pos.x + size, -offSet + pos.y, offSet + pos.z + size));
+    opaqueVertices.push_back(glm::vec3(offSet + pos.x + size, offSet + pos.y + size, offSet + pos.z + size));
+
+    opaqueVertices.push_back(glm::vec3(-offSet + pos.x, -offSet + pos.y, offSet + pos.z + size));
+    opaqueVertices.push_back(glm::vec3(offSet + pos.x + size, -offSet + pos.y, offSet + pos.z + size));
+
+    opaqueVertices.push_back(glm::vec3(offSet + pos.x + size, -offSet + pos.y, -offSet + pos.z));
+    opaqueVertices.push_back(glm::vec3(offSet + pos.x + size, -offSet + pos.y, offSet + pos.z + size));
+}
+
+void LineMesh::draw(){
+    glDepthMask(GL_FALSE);
+    glBindVertexArray(solidVAO);
+    glDrawArrays(GL_LINES, 0, opaqueVertices.size());
+    glDepthMask(GL_TRUE);
+}

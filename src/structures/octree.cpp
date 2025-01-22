@@ -360,3 +360,111 @@ void Octree::updateNodeValueFromPosition(int x, int y, int z, int blockValue){
     }
 }
 
+void Octree::buildOctreeLineMesh(LineMesh& mesh){
+    short w;
+    for (int depth = 1; depth <= 5; depth++){
+        for (int x = 0; x < 32; x++){
+            for (int y = 0; y < 32; y++){
+                for (int z = 0; z < 32; z++){
+                    putNodeEdgesIntoLineMesh(x, y, z, w, depth, mesh);
+                }
+            }
+        }
+    }
+}
+
+void Octree::putNodeEdgesIntoLineMesh(int _x, int _y, int _z, short &width, int _depth, LineMesh& mesh){
+    Node* currentNode = mainNode;
+    glm::vec3 cubePosition = glm::vec3(0);
+
+    if (currentNode->parent != nullptr){
+        return;
+        std::cout << "Trying to get position of invalid node // Octree.getNodeFromPosition()" << std::endl;
+    }
+
+    for (int depth = 1; depth <= _depth; depth++){
+        // If current node doesnt have children -> return
+        if (currentNode->isEndNode){
+            mesh.addCube(cubePosition, width);
+            return;
+        }
+
+        // Since we only need reduction of power of 2 we can use bit shift for fast calculations
+        int midLine = 1 << (5 - depth);
+        int positionReduction = midLine;
+        width = midLine;
+
+        if (_x < midLine){
+            if (_y < midLine){
+                if (_z < midLine){           
+                    currentNode = currentNode->children[BottomLeftFront];
+                    continue;
+                } 
+                else{          
+                    currentNode = currentNode->children[BottomLeftBack];
+                    cubePosition.z += positionReduction;
+                    _z -= positionReduction;
+                    continue;
+                }
+            }
+            else{
+                if (_z < midLine){             
+                    currentNode = currentNode->children[TopLeftFront];
+                    cubePosition.y += positionReduction;
+                    _y -= positionReduction;
+                    continue;
+                }
+                else{               
+                    currentNode = currentNode->children[TopLeftBack];
+                    cubePosition.y += positionReduction;
+                    cubePosition.z += positionReduction;
+                    _y -= positionReduction;
+                    _z -= positionReduction;
+                    continue;
+                }
+            }
+        } 
+        else{
+            if (_y < midLine){
+                if (_z < midLine){                   
+                    currentNode = currentNode->children[BottomRightFront];
+                    cubePosition.x += positionReduction;
+                    _x -= positionReduction;
+                    continue;
+                } 
+                else{   
+                    currentNode = currentNode->children[BottomRightBack];
+                    cubePosition.z += positionReduction;
+                    cubePosition.x += positionReduction;
+                    _z -= positionReduction;
+                    _x -= positionReduction;
+                    continue;
+                }
+            }
+            else{
+                if (_z < midLine){                
+                    currentNode = currentNode->children[TopRightFront];
+                    cubePosition.y += positionReduction;
+                    cubePosition.x += positionReduction;
+                    _y -= positionReduction;
+                    _x -= positionReduction;
+                    continue;
+                }
+                else{      
+                    currentNode = currentNode->children[TopRightBack];
+                    cubePosition.y += positionReduction;
+                    cubePosition.x += positionReduction;
+                    cubePosition.z += positionReduction;
+                    _y -= positionReduction;
+                    _z -= positionReduction;
+                    _x -= positionReduction;
+                    continue;
+                }
+            }
+        }
+    }
+
+    mesh.addCube(cubePosition, width);
+    return;
+}
+

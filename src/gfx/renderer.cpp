@@ -24,28 +24,58 @@ void Renderer::renderVisibleChunks(const Shader &shader, const Camera& camera){
     }
 
     std::vector<float> frustumExtremeValues = {minX, maxX, minY, maxY, minZ, maxZ};
+    renderOpaqueChunks(shader, camera, frustumExtremeValues);
+    renderTransparentChunks(shader, camera, frustumExtremeValues);
+}
 
+void Renderer::renderTransparentChunks(const Shader& shader, const Camera& camera, const std::vector<float>& frustumExtremeValues){
     // Draw them far -> near
     int chunkPositionX = camera.currentChunk_x;
     int chunkPositionZ = camera.currentChunk_z;
     int renderDistance = camera.renderDistance;
     for (int renderSize = renderDistance; renderSize > 0; renderSize--){
         for (int offSet = 0; offSet < renderSize; offSet += 1){
+            drawChunkVector(chunkPositionX - renderSize,          chunkPositionZ - renderSize + offSet, camera, shader, frustumExtremeValues, RenderOptions::TRANSPARENT);
+            drawChunkVector(chunkPositionX - renderSize + offSet, chunkPositionZ + renderSize,          camera, shader, frustumExtremeValues, RenderOptions::TRANSPARENT);
+            drawChunkVector(chunkPositionX + renderSize - offSet, chunkPositionZ - renderSize,          camera, shader, frustumExtremeValues, RenderOptions::TRANSPARENT);
+            drawChunkVector(chunkPositionX + renderSize,          chunkPositionZ + renderSize - offSet, camera, shader, frustumExtremeValues, RenderOptions::TRANSPARENT);
+        }
+
+        for (int offSet = 1; offSet <= renderSize; offSet += 1){
+            drawChunkVector(chunkPositionX - renderSize + offSet, chunkPositionZ - renderSize,          camera, shader, frustumExtremeValues, RenderOptions::TRANSPARENT);
+            drawChunkVector(chunkPositionX - renderSize,          chunkPositionZ + renderSize - offSet, camera, shader, frustumExtremeValues, RenderOptions::TRANSPARENT);
+            drawChunkVector(chunkPositionX + renderSize,          chunkPositionZ - renderSize + offSet, camera, shader, frustumExtremeValues, RenderOptions::TRANSPARENT);
+            drawChunkVector(chunkPositionX + renderSize - offSet, chunkPositionZ + renderSize         , camera, shader, frustumExtremeValues, RenderOptions::TRANSPARENT);
+        }
+    }
+
+    drawChunkVector(chunkPositionX, chunkPositionZ, camera, shader, frustumExtremeValues, RenderOptions::TRANSPARENT);
+}
+
+void Renderer::renderOpaqueChunks(const Shader& shader, const Camera& camera, const std::vector<float>& frustumExtremeValues){
+    // Draw them near -> far
+    int chunkPositionX = camera.currentChunk_x;
+    int chunkPositionZ = camera.currentChunk_z;
+    int renderDistance = camera.renderDistance;
+
+    drawChunkVector(chunkPositionX, chunkPositionZ, camera, shader, frustumExtremeValues);
+
+    for (int renderSize = 0; renderSize < renderDistance; renderSize++){
+        for (int offSet = renderSize; offSet >= 1; offSet--){
+            drawChunkVector(chunkPositionX - renderSize + offSet, chunkPositionZ - renderSize,          camera, shader, frustumExtremeValues);
+            drawChunkVector(chunkPositionX - renderSize,          chunkPositionZ + renderSize - offSet, camera, shader, frustumExtremeValues);
+            drawChunkVector(chunkPositionX + renderSize,          chunkPositionZ - renderSize + offSet, camera, shader, frustumExtremeValues);
+            drawChunkVector(chunkPositionX + renderSize - offSet, chunkPositionZ + renderSize         , camera, shader, frustumExtremeValues);
+        }
+
+        for (int offSet = renderSize - 1; offSet >= 0; offSet--){
             drawChunkVector(chunkPositionX - renderSize,          chunkPositionZ - renderSize + offSet, camera, shader, frustumExtremeValues);
             drawChunkVector(chunkPositionX - renderSize + offSet, chunkPositionZ + renderSize,          camera, shader, frustumExtremeValues);
             drawChunkVector(chunkPositionX + renderSize - offSet, chunkPositionZ - renderSize,          camera, shader, frustumExtremeValues);
             drawChunkVector(chunkPositionX + renderSize,          chunkPositionZ + renderSize - offSet, camera, shader, frustumExtremeValues);
         }
 
-        for (int offSet = 1; offSet <= renderSize; offSet += 1){
-            drawChunkVector(chunkPositionX - renderSize + offSet, chunkPositionZ - renderSize,          camera, shader, frustumExtremeValues);
-            drawChunkVector(chunkPositionX - renderSize,          chunkPositionZ + renderSize - offSet, camera, shader, frustumExtremeValues);
-            drawChunkVector(chunkPositionX + renderSize,          chunkPositionZ - renderSize + offSet, camera, shader, frustumExtremeValues);
-            drawChunkVector(chunkPositionX + renderSize - offSet, chunkPositionZ + renderSize         , camera, shader, frustumExtremeValues);
-        }
     }
-
-    drawChunkVector(chunkPositionX, chunkPositionZ, camera, shader, frustumExtremeValues);
 }
 
 void Renderer::drawChunkVector(int x, int z, const Camera& camera, const Shader& shader){
@@ -78,7 +108,7 @@ void Renderer::drawChunkVector(int x, int z, const Camera& camera, const Shader&
     }
 }
 
-void Renderer::drawChunkVector(int x, int z, const Camera& camera, const Shader& shader, const std::vector<float>& frustumExtremeValues){
+void Renderer::drawChunkVector(int x, int z, const Camera& camera, const Shader& shader, const std::vector<float>& frustumExtremeValues, RenderOptions renderType){
     // If a chunk is outside of the frustum, dont render.
     int errorMargain = 1;
     if ((x + errorMargain) * Chunk::CHUNK_SIZE < frustumExtremeValues[0]) return;
@@ -101,8 +131,19 @@ void Renderer::drawChunkVector(int x, int z, const Camera& camera, const Shader&
         if ((chunk->yCoordinate + errorMargain) * Chunk::CHUNK_SIZE < frustumExtremeValues[2]) continue;
         if ((chunk->yCoordinate - errorMargain) * Chunk::CHUNK_SIZE > frustumExtremeValues[3]) continue;
 
-
-        chunk->draw(shader);
+        switch(renderType){
+            case RenderOptions::OPAQUE:
+                chunk->drawOpaque(shader);
+                break;
+            
+            case RenderOptions::TRANSPARENT:
+                chunk->drawTransparent(shader);
+                break;
+            
+            default:
+                chunk->draw(shader);
+                break;
+        }
     }
 
     std::reverse(chunkVector.begin(), chunkVector.end());
@@ -119,7 +160,19 @@ void Renderer::drawChunkVector(int x, int z, const Camera& camera, const Shader&
         if ((chunk->yCoordinate - errorMargain) * Chunk::CHUNK_SIZE > frustumExtremeValues[3]) continue;
 
 
-        chunk->draw(shader);
+        switch(renderType){
+            case RenderOptions::OPAQUE:
+                chunk->drawOpaque(shader);
+                break;
+            
+            case RenderOptions::TRANSPARENT:
+                chunk->drawTransparent(shader);
+                break;
+            
+            default:
+                chunk->draw(shader);
+                break;
+        }
     }
 }
 
