@@ -5,6 +5,7 @@
 #include <algorithm>
 
 void Chunk::sortTransparentFaces(const Camera& camera){
+    return;
     struct VoxelFace{
         Vertex faceVertices[4];
         unsigned int faceIndices[6];
@@ -100,6 +101,14 @@ void Chunk::updateMesh(){
     }
 }
 
+void Chunk::useBackupMesh(){
+    mesh.opaqueVertices = backupMesh.opaqueVertices;
+    mesh.opaqueIndices = backupMesh.opaqueIndices;
+    mesh.transparentVertices = backupMesh.transparentVertices;
+    mesh.transparentIndices = backupMesh.transparentIndices;
+    updateMesh();
+}
+
 void Chunk::setBlockValue(int x, int y, int z, int blockValue){
     if (!this) return;
     octree->updateNodeValueFromPosition(x, y, z, blockValue);
@@ -108,4 +117,35 @@ void Chunk::setBlockValue(int x, int y, int z, int blockValue){
 int Chunk::getBlockValue(int x, int y, int z){
     if (!this) return 0;
     return octree->getNodeFromPosition(x, y, z)->blockValue;
+}
+
+void Chunk::setInitialBlockValues(){
+    Biome* currentBiome = biomeType;
+
+    for (int x = 0; x < 32; x++){
+        for (int z = 0; z < 32; z++){
+
+            float globalMaxHeight = BiomeHandler::getHeightValue(32 * xCoordinate + x, 32 * zCoordinate + z);
+            int localMaxHeight = globalMaxHeight - 32 * yCoordinate;
+
+            if (localMaxHeight < 0 && yCoordinate == 0) localMaxHeight = 0;
+            int waterLevel = biomeType->waterLevel;
+
+            for (int y = 31; y >= 0; y--){
+                int blockValue = biomeType->getBlockValue(y + 32 * yCoordinate, globalMaxHeight);
+                // This stops the function overriding any non-air blocks when it wants them to be air, fucks trees over.
+                if (blockValue == 0 && octree->getNodeFromPosition(x, y, z)->blockValue > 0) continue;
+                
+                octree->getNodeFromPosition(x, y, z)->blockValue = blockValue;
+
+                if (x > 2 && x < 30 && z > 2 && z < 30 && y < 24){
+                    if (biomeType->shouldGenerateTree(y + 32 * yCoordinate, globalMaxHeight)){
+                        mesh.addTree(octree, x, y + 1, z);
+                    }
+                }
+            }
+        }
+    }
+
+
 }

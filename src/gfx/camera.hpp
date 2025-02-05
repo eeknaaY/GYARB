@@ -14,8 +14,8 @@ class Camera{
         int renderDistance = 7;
         float FAR_FRUSTUM = renderDistance * 32;
 
-        int lowerLoDDistance = 6;
-        int disableTransparencyDistance = 1;
+        int lowerLoDDistance = 10;
+        int disableTransparencyDistance = 7;
 
         float movementSpeed = 5;
         int blockTypeSelected = 0;

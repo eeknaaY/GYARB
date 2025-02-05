@@ -179,18 +179,16 @@ void Renderer::drawChunkVector(int x, int z, const Camera& camera, const Shader&
 void Renderer::updataChunkData(const Shader& shader){
     while (chunkManager->finishedMeshesth1.size() != 0){
         Chunk* chunk = chunkManager->finishedMeshesth1[0];
-        if (chunk->mesh.opaqueVertices.size() != 0){
-            chunk->updateMesh();
-            chunk->draw(shader);
+        if (chunk->backupMesh.opaqueVertices.size() != 0){
+            chunk->useBackupMesh();
         }
         chunkManager->finishedMeshesth1.erase(chunkManager->finishedMeshesth1.begin());
     }
     
     while (chunkManager->finishedMeshesth2.size() != 0){
         Chunk* chunk = chunkManager->finishedMeshesth2[0];
-        if (chunk->mesh.opaqueVertices.size() != 0){
-            chunk->updateMesh();
-            chunk->draw(shader);
+        if (chunk->backupMesh.opaqueVertices.size() != 0){
+            chunk->useBackupMesh();
         }
         chunkManager->finishedMeshesth2.erase(chunkManager->finishedMeshesth2.begin());
     }

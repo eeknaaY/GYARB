@@ -119,16 +119,7 @@ bool Node::aChildIsNotAnEndpoint(){
 }
 
 Octree::Octree(){
-    mainNode = new Node();
-}
-
-Octree::Octree(int _chunkXcoord, int _chunkYcoord, int _chunkZcoord, Biome* biomeType){
-    mainNode = new Node(-1, 0, nullptr, false, true);
-    chunk_xcoord = _chunkXcoord;
-    chunk_zcoord = _chunkZcoord;
-    // chunks only needed to get noise values
-    setInitialBlockValues(_chunkXcoord, _chunkYcoord, _chunkZcoord, biomeType);
-    optimizeTree();
+    mainNode = new Node(0, 0, nullptr, false, true);
 }
 
 Octree::Octree(int initValue){
@@ -225,59 +216,6 @@ Node* Octree::getNodeFromPosition(int _x, int _y, int _z, short &width, int _dep
     return currentNode;
 }
 
-void Octree::buildAMinecraftTree(int x, int y, int z){
-    // Threw this together in 3 mintues, we dont talk about the code.
-    for (int leavesWidthx = x - 2; leavesWidthx <= x + 2; leavesWidthx++){
-        for (int leavesWidthz = z - 2; leavesWidthz <= z + 2; leavesWidthz++){
-            for (int leavesHeight = y + 3; leavesHeight <= y + 4; leavesHeight++){
-                if (leavesWidthx == 0 && leavesWidthz == 0) continue;
-                getNodeFromPosition(leavesWidthx, leavesHeight, leavesWidthz)->blockValue = 6; // Leaves
-            }
-        }
-    }
-
-    for (int leavesWidthx = x - 1; leavesWidthx <= x + 1; leavesWidthx++){
-        for (int leavesWidthz = z - 1; leavesWidthz <= z + 1; leavesWidthz++){
-            for (int leavesHeight = y + 5; leavesHeight <= y + 6; leavesHeight++){
-                getNodeFromPosition(leavesWidthx, leavesHeight, leavesWidthz)->blockValue = 6; // Leaves
-            }
-        }
-    }
-
-    for (int height = 0; height < 6; height++){
-        getNodeFromPosition(x, y + height, z)->blockValue = 5; // Wood
-    }
-}
-
-void Octree::setInitialBlockValues(int _chunk_xcoord, int _chunk_ycoord, int _chunk_zcoord, Biome* biomeType){
-    Biome* currentBiome = biomeType;
-
-    for (int x = 0; x < 32; x++){
-        for (int z = 0; z < 32; z++){
-
-            float globalMaxHeight = BiomeHandler::getHeightValue(32 * _chunk_xcoord + x, 32 * _chunk_zcoord + z);
-            int localMaxHeight = globalMaxHeight - 32 * _chunk_ycoord;
-
-            if (localMaxHeight < 0 && _chunk_ycoord == 0) localMaxHeight = 0;
-            int waterLevel = currentBiome->waterLevel;
-
-            for (int y = 31; y >= 0; y--){
-                int blockValue = currentBiome->getBlockValue(y + 32 * _chunk_ycoord, globalMaxHeight);
-                // This stops the function overriding any non-air blocks when it wants them to be air, fucks trees over.
-                if (blockValue == 0 && getNodeFromPosition(x, y, z)->blockValue > 0) continue;
-                
-                getNodeFromPosition(x, y, z)->blockValue = blockValue;
-
-                if (x > 2 && x < 30 && z > 2 && z < 30 && y < 24){
-                    if (currentBiome->shouldGenerateTree(y + 32 * _chunk_ycoord, globalMaxHeight)){
-                        buildAMinecraftTree(x, y + 1, z);
-                    }
-                }
-            }
-        }
-    }
-}
-
 void Octree::optimizeTree(){
     for (Node* node_1 : mainNode->children){
         for (Node* node_2 : node_1->children){
@@ -358,113 +296,5 @@ void Octree::updateNodeValueFromPosition(int x, int y, int z, int blockValue){
     } else {
         curNode->blockValue = blockValue;
     }
-}
-
-void Octree::buildOctreeLineMesh(LineMesh& mesh){
-    short w;
-    for (int depth = 1; depth <= 5; depth++){
-        for (int x = 0; x < 32; x++){
-            for (int y = 0; y < 32; y++){
-                for (int z = 0; z < 32; z++){
-                    putNodeEdgesIntoLineMesh(x, y, z, w, depth, mesh);
-                }
-            }
-        }
-    }
-}
-
-void Octree::putNodeEdgesIntoLineMesh(int _x, int _y, int _z, short &width, int _depth, LineMesh& mesh){
-    Node* currentNode = mainNode;
-    glm::vec3 cubePosition = glm::vec3(0);
-
-    if (currentNode->parent != nullptr){
-        return;
-        std::cout << "Trying to get position of invalid node // Octree.getNodeFromPosition()" << std::endl;
-    }
-
-    for (int depth = 1; depth <= _depth; depth++){
-        // If current node doesnt have children -> return
-        if (currentNode->isEndNode){
-            mesh.addCube(cubePosition, width);
-            return;
-        }
-
-        // Since we only need reduction of power of 2 we can use bit shift for fast calculations
-        int midLine = 1 << (5 - depth);
-        int positionReduction = midLine;
-        width = midLine;
-
-        if (_x < midLine){
-            if (_y < midLine){
-                if (_z < midLine){           
-                    currentNode = currentNode->children[BottomLeftFront];
-                    continue;
-                } 
-                else{          
-                    currentNode = currentNode->children[BottomLeftBack];
-                    cubePosition.z += positionReduction;
-                    _z -= positionReduction;
-                    continue;
-                }
-            }
-            else{
-                if (_z < midLine){             
-                    currentNode = currentNode->children[TopLeftFront];
-                    cubePosition.y += positionReduction;
-                    _y -= positionReduction;
-                    continue;
-                }
-                else{               
-                    currentNode = currentNode->children[TopLeftBack];
-                    cubePosition.y += positionReduction;
-                    cubePosition.z += positionReduction;
-                    _y -= positionReduction;
-                    _z -= positionReduction;
-                    continue;
-                }
-            }
-        } 
-        else{
-            if (_y < midLine){
-                if (_z < midLine){                   
-                    currentNode = currentNode->children[BottomRightFront];
-                    cubePosition.x += positionReduction;
-                    _x -= positionReduction;
-                    continue;
-                } 
-                else{   
-                    currentNode = currentNode->children[BottomRightBack];
-                    cubePosition.z += positionReduction;
-                    cubePosition.x += positionReduction;
-                    _z -= positionReduction;
-                    _x -= positionReduction;
-                    continue;
-                }
-            }
-            else{
-                if (_z < midLine){                
-                    currentNode = currentNode->children[TopRightFront];
-                    cubePosition.y += positionReduction;
-                    cubePosition.x += positionReduction;
-                    _y -= positionReduction;
-                    _x -= positionReduction;
-                    continue;
-                }
-                else{      
-                    currentNode = currentNode->children[TopRightBack];
-                    cubePosition.y += positionReduction;
-                    cubePosition.x += positionReduction;
-                    cubePosition.z += positionReduction;
-                    _y -= positionReduction;
-                    _z -= positionReduction;
-                    _x -= positionReduction;
-                    continue;
-                }
-            }
-        }
-    }
-
-    mesh.addCube(cubePosition, width);
-    return;
 }
 

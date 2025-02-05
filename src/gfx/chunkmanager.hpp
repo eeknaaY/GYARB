@@ -8,12 +8,14 @@
 #include "chunk.hpp"
 
 struct voxelFace{
-    int x, y, z, width = 0, height = 1, texture;
+    int x, y, z, width, height, texture;
 
     voxelFace(short _x, short _y, short _z){
         x = _x;
         y = _y;
         z = _z;
+        width = 0;
+        height = 1;
     }
 };
 
@@ -56,7 +58,7 @@ class ChunkManager{
         
         void updateChunkMesh_MT(Chunk* _chunk, Camera gameCamera);
 
-        // These shouldn't really be inside ChunkManager, but in a meshing class, couldnt fix that so now its here for now
+        // Used for meshing.
         int getBlockValueFromPosition(Chunk* chunk, int x, int y, int z, int LoD);
         void makeVoxelAccountedFor(bool accountedVoxels[], int x, int y, int z);
         bool isAirBlock(int voxelValues[], int x, int y, int z, int LoD);

@@ -4,18 +4,19 @@
 #include "../shaders/shaders.hpp"
 #include "glm/glm.hpp"
 #include "camera.hpp"
+#include "../structures/octree.hpp"
 
 struct Vertex {
     int bitPackedData1;
     short bitPackedData2;
     Vertex(){};
-    Vertex(int _x, int _y, int _z, int faceIndex, int textureID, int uvID, int blockWidth, int blockHeight){
+    Vertex(int x, int y, int z, int faceIndex, int textureID, int uvID, int blockWidth, int blockHeight){
         // XYZ = 18 bits
         // faceIndex = 3 bits
         // textureID 8 bits
         // uvID = 2 bits
         // blockSize = 12 bits
-        bitPackedData1 = (uvID << 29) | (textureID << 21) | (faceIndex << 18) | (_x << 12) | (_y << 6) | _z;
+        bitPackedData1 = (uvID << 29) | (textureID << 21) | (faceIndex << 18) | (x << 12) | (y << 6) | z;
         bitPackedData2 = (blockHeight << 6) | blockWidth;
     }
 };
@@ -40,6 +41,8 @@ class Mesh {
         void updateMesh();
         void updateTransparentMesh();
         void bindMesh();
+
+        void addTree(Octree* octree, int x, int y, int z);
 
         Mesh();
         ~Mesh();
@@ -115,7 +118,7 @@ class ShadowMap{
         std::vector<glm::mat4> getViewMatrices(const Camera& camera);
 
         ShadowMap(const Camera& camera){
-            shadowCascadeLevels = std::vector<float>{camera.FAR_FRUSTUM / 16.f, camera.FAR_FRUSTUM / 4.f, camera.FAR_FRUSTUM / 2.f, camera.FAR_FRUSTUM};
+            shadowCascadeLevels = std::vector<float>{camera.FAR_FRUSTUM / 16.f, camera.FAR_FRUSTUM / 8.f, camera.FAR_FRUSTUM / 4.f, camera.FAR_FRUSTUM};
             bindMesh();
         }
     private:

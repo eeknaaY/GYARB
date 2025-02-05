@@ -14,7 +14,7 @@ flat in struct FlatVertexData{
     int faceID;
 } flatVertexData;
 
-in vec3 playerPos;
+uniform vec3 playerPosition;
 
 // Dont know why I need to send these from vs, and why they dont work inside vertex.
 in vec2 TexCoord;
@@ -25,7 +25,7 @@ uniform sampler2D textureAtlas;
 uniform sampler2DArray shadowMap;
 uniform mat4 viewMatrix;
 uniform samplerCube skybox;
-uniform float viewDistance;
+uniform int viewDistance;
 uniform mat4 view;
 uniform float[4] cascadePlaneDistances;
 
@@ -58,13 +58,14 @@ float ShadowCalculation()
             break;
         }
     }
+
     if (shadowLayer == -1){
         shadowLayer = cascadeCount;
     }
     
     // calculate bias (based on depth map resolution and slope)
     vec3 normal = faceNormals[flatVertexData.normalIndex];
-    vec3 sunPos = vec3(playerPos.x + 100, 100, playerPos.z + 100);
+    vec3 sunPos = vec3(playerPosition.x + 100, 100, playerPosition.z + 100);
 	vec3 lightDir = normalize(sunPos - vertexData.globalPosition);
     float bias = 0;
 
@@ -73,15 +74,15 @@ float ShadowCalculation()
     }
 
     if (shadowLayer == 1){
-        bias = 0.01;
+        bias = 0.02;
     }
 
     if (shadowLayer == 2){
-        bias = 0.015;
+        bias = 0.03;
     }
 
     if (shadowLayer == 3){
-        bias = 0.02;
+        bias = 0.07;
     }
 
     if (shadowLayer == cascadeCount){
@@ -101,7 +102,7 @@ float ShadowCalculation()
         }
 
         if (shadowLayer == 1){
-            float positionReduction = 0.5 * abs(dot(cameraNormal, lightDir));
+            float positionReduction = 0.6 * abs(dot(cameraNormal, lightDir));
             fragPosition -= vec3(positionReduction, 0, positionReduction);
         }
 
@@ -147,7 +148,7 @@ float ShadowCalculation()
 void main()
 {
     vec4 cursorColor = vec4(0.65, 0.65, 0.65, 1.0);
-    if (gl_FragCoord.x < 807 && gl_FragCoord.x > 793 && gl_FragCoord.y < 452 && gl_FragCoord.y > 448){
+     if (gl_FragCoord.x < 807 && gl_FragCoord.x > 793 && gl_FragCoord.y < 452 && gl_FragCoord.y > 448){
         FragColor = cursorColor;
         return;
     }
@@ -160,22 +161,26 @@ void main()
     vec2 dx = dFdx(TexCoord);
 	vec2 dy = dFdy(TexCoord);
 	vec2 texcoord = tilePos + vec2(1.0/16, 1.0/16) * fract(TexCoord);
+	vec4 textureColor = textureGrad(textureAtlas, texcoord, dx, dy);
+
+    if (flatVertexData.textureID == 6 || flatVertexData.textureID == 7){
+        if (textureColor.w < 0.5) discard;
+    }
 
 	float ambientStrength = 0.1;
 	
     float fog_maxdist = min(viewDistance, 650);
     float fog_mindist = min(viewDistance - 50, 500);
 
-    vec4 fogColor = texture(skybox, normalize(vertexData.globalPosition - playerPos));
-    float dist = length(vertexData.globalPosition.xyz - playerPos);
+    vec4 fogColor = texture(skybox, normalize(vertexData.globalPosition - playerPosition));
+    float dist = length(vertexData.globalPosition.xyz - playerPosition);
     float fogFactor = (fog_maxdist - dist) / (fog_maxdist - fog_mindist);
     fogFactor = clamp(fogFactor, 0.0, 1.0);
 
-    vec3 sunPos = playerPos + 1000;
+    vec3 sunPos = playerPosition + 1000;
 	vec3 lightDir = normalize(sunPos - vertexData.globalPosition);
 	float diff = max(dot(faceNormals[flatVertexData.normalIndex], lightDir), 0);
 
-	vec4 textureColor = textureGrad(textureAtlas, texcoord, dx, dy);
 	float shadow = ShadowCalculation();
 	vec4 fragColor = (ambientStrength + (1.0 - shadow) * diff) * textureColor;
 

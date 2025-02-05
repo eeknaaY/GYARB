@@ -88,10 +88,10 @@ void ChunkManager::updateChunkMesh(Chunk* _chunk, Camera gameCamera){
 void ChunkManager::updateChunkMesh_MT(Chunk* _chunk, Camera gameCamera){
     if (!_chunk) return;
     Mesh updatedMesh = buildMesh(_chunk, gameCamera);
-    _chunk->mesh.opaqueVertices = updatedMesh.opaqueVertices;
-    _chunk->mesh.opaqueIndices = updatedMesh.opaqueIndices;
-    _chunk->mesh.transparentVertices = updatedMesh.transparentVertices;
-    _chunk->mesh.transparentIndices = updatedMesh.transparentIndices;
+    _chunk->backupMesh.opaqueVertices = updatedMesh.opaqueVertices;
+    _chunk->backupMesh.opaqueIndices = updatedMesh.opaqueIndices;
+    _chunk->backupMesh.transparentVertices = updatedMesh.transparentVertices;
+    _chunk->backupMesh.transparentIndices = updatedMesh.transparentIndices;
 }
 
 void ChunkManager::startMeshingThreads(Camera* gameCamera){
@@ -151,7 +151,10 @@ void ChunkManager::updateTerrain(Camera* gameCamera, int threadMultiplier){
                     continue;
                 }
                 
-                if (dx == xPos + c_dXPos * gameCamera->lowerLoDDistance || dx == xPos + c_dXPos * (renderDistance - 1) || dx == xPos + c_dXPos * gameCamera->disableTransparencyDistance){
+                if (dx == xPos + c_dXPos * gameCamera->lowerLoDDistance || 
+                    dx == xPos + c_dXPos * (renderDistance - 1) || 
+                    dx == xPos + c_dXPos * gameCamera->disableTransparencyDistance ||
+                    dx == xPos - c_dXPos * (gameCamera->disableTransparencyDistance + 1)){
                     for (Chunk* _chunkptr : getChunkVector(dx, dz)){
                         int LoD = 5;
                         if (abs(dx - xPos) > gameCamera->lowerLoDDistance || abs(dz - zPos) > gameCamera->lowerLoDDistance) LoD = 4;
@@ -182,7 +185,10 @@ void ChunkManager::updateTerrain(Camera* gameCamera, int threadMultiplier){
                     continue;
                 }
 
-                if (dz == zPos + c_dZPos * gameCamera->lowerLoDDistance || dz == zPos + c_dZPos * (renderDistance - 1) || dz == zPos + c_dZPos * gameCamera->disableTransparencyDistance){
+                if (dz == zPos + c_dZPos * gameCamera->lowerLoDDistance || 
+                    dz == zPos + c_dZPos * (renderDistance - 1) || 
+                    dz == zPos + c_dZPos * gameCamera->disableTransparencyDistance ||
+                    dz == zPos - c_dZPos * (gameCamera->disableTransparencyDistance + 1)){
                     for (Chunk* _chunkptr : getChunkVector(dx, dz)){
                         int LoD = 5;
                         if (abs(dx - xPos) > gameCamera->lowerLoDDistance || abs(dz - zPos) > gameCamera->lowerLoDDistance) LoD = 4;
@@ -266,38 +272,47 @@ bool ChunkManager::isAirBlock(int voxelVal[], int x, int y, int z, int LoD){
 bool ChunkManager::isFacingAirblock(int voxelVal[], int x, int y, int z, int reverseConstant, int constantPos, int LoD){
     int currentBlockValue = getVoxelValue(voxelVal, x, y, z);
     
-    switch (constantPos)
-    {
-    case 1:
-        x += reverseConstant;
-        break;
-    case 2:
-        y += reverseConstant;
-        break;
-    case 3:
-        z += reverseConstant;
-        break;
+    switch (constantPos){
+        case 1:
+            x += reverseConstant;
+            break;
+        case 2:
+            y += reverseConstant;
+            break;
+        case 3:
+            z += reverseConstant;
+            break;
 
-    default:
-        break;
+        default:
+            break;
     }
 
+    // Doing this because im lazy
     int facingBlockValue = getVoxelValue(voxelVal, x, y, z);
+
 
     if (currentBlockValue == (int)Block::Water || currentBlockValue == (int)Block::Glass){
         return facingBlockValue == (int)Block::Air;
     }
+    
+    if (LoD == 4 && (x == -1 || y == -1 || z == -1 || x == 32 || y == 32 || z == 32)) return true;
 
     // Facing water or air
     return (facingBlockValue == (int)Block::Air || facingBlockValue == (int)Block::Water || facingBlockValue == (int)Block::Glass || facingBlockValue == (int)Block::Leaf);
 }
 
 int ChunkManager::getVoxelValue(int voxelValues[], int x, int y, int z){
+    if (x < -1) return 0;
+    if (x > 33) return 0;
+    if (y < -1) return 0;
+    if (y > 33) return 0;
+    if (z < -1) return 0;
+    if (z > 33) return 0;
+
     return voxelValues[(x + 1) + (z + 1) * 34 + (y + 1) * 34 * 34];
 }
 
 void ChunkManager::buildVoxelValueArray(int voxelValues[], Chunk* chunk, int LoD){
-    int jumpLength = 1 << (5 - LoD);
     for (int x = -1; x < 33; x++){
         for (int y = -1; y < 33; y++){
             for (int z = -1; z < 33; z++){
@@ -309,19 +324,26 @@ void ChunkManager::buildVoxelValueArray(int voxelValues[], Chunk* chunk, int LoD
 
 void ChunkManager::updateTextureValue(int &textureValue, voxelFaces face, int LoD){ // Replace sides of a grass block to semi dirt + semi grass
     Block blockType = (Block)textureValue;
-    switch (blockType)
-    {
-    case Block::Grass:
-        if (face == BOTTOM_FACE) blockType = Block::Dirt;
-        if (face != TOP_FACE && LoD == 5) blockType = Block::Grassy_Dirt;
-        break;
-    
-    case Block::Grassy_Dirt:
-        if (face == TOP_FACE) blockType = Block::Grass;
-        if (face == BOTTOM_FACE) blockType = Block::Dirt;
+    switch (blockType){
+        case Block::Grass:
+            if (face != TOP_FACE && LoD == 5) blockType = Block::Grassy_Dirt;
+            if (face != TOP_FACE && LoD != 5) blockType = Block::Dirt;
+            if (face == BOTTOM_FACE) blockType = Block::Dirt;
+            break;
         
-    default:
-        break;
+        case Block::Grassy_Dirt:
+            if (face == TOP_FACE) blockType = Block::Grass;
+            if (face == BOTTOM_FACE) blockType = Block::Dirt;
+            break;
+
+        case Block::Dirt:
+            if (LoD != 5){
+                if (face == TOP_FACE) blockType = Block::Grass;
+            }
+            break;
+            
+        default:
+            break;
     }
 
     textureValue = (int)blockType;
@@ -413,9 +435,9 @@ Mesh ChunkManager::buildMesh(Chunk* _chunk, Camera gameCamera){
                 std::vector<Vertex>* vertices = &opaqueVertices;
                 std::vector<unsigned int>* indices = &opaqueIndices;
 
-                if (face.texture == (int)Block::Water || (face.texture == (int)Block::Glass || face.texture == (int)Block::Leaf) && chunk_dx <= gameCamera.disableTransparencyDistance
-                                                                                                                                 && chunk_dy <= gameCamera.disableTransparencyDistance
-                                                                                                                                 && chunk_dz <= gameCamera.disableTransparencyDistance){ 
+                if (face.texture == (int)Block::Water || (face.texture == (int)Block::Glass || face.texture == (int)Block::Leaf) && chunk_dx < gameCamera.disableTransparencyDistance
+                                                                                                                                 && chunk_dy < gameCamera.disableTransparencyDistance
+                                                                                                                                 && chunk_dz < gameCamera.disableTransparencyDistance){ 
                     vertices = &transparentVertices;
                     indices = &transparentIndices;
                 }
@@ -504,9 +526,9 @@ Mesh ChunkManager::buildMesh(Chunk* _chunk, Camera gameCamera){
                 std::vector<Vertex>* vertices = &opaqueVertices;
                 std::vector<unsigned int>* indices = &opaqueIndices;
 
-                if (face.texture == (int)Block::Water || (face.texture == (int)Block::Glass || face.texture == (int)Block::Leaf) && chunk_dx <= gameCamera.disableTransparencyDistance
-                                                                                                                                 && chunk_dy <= gameCamera.disableTransparencyDistance
-                                                                                                                                 && chunk_dz <= gameCamera.disableTransparencyDistance){
+                if (face.texture == (int)Block::Water || (face.texture == (int)Block::Glass || face.texture == (int)Block::Leaf) && chunk_dx < gameCamera.disableTransparencyDistance
+                                                                                                                                 && chunk_dy < gameCamera.disableTransparencyDistance
+                                                                                                                                 && chunk_dz < gameCamera.disableTransparencyDistance){
                     vertices = &transparentVertices;
                     indices = &transparentIndices;
                 }
@@ -594,9 +616,9 @@ Mesh ChunkManager::buildMesh(Chunk* _chunk, Camera gameCamera){
             std::vector<Vertex>* vertices = &opaqueVertices;
             std::vector<unsigned int>* indices = &opaqueIndices;
 
-            if (face.texture == (int)Block::Water || (face.texture == (int)Block::Glass || face.texture == (int)Block::Leaf) && chunk_dx <= gameCamera.disableTransparencyDistance
-                                                                                                                             && chunk_dy <= gameCamera.disableTransparencyDistance
-                                                                                                                             && chunk_dz <= gameCamera.disableTransparencyDistance){
+            if (face.texture == (int)Block::Water || (face.texture == (int)Block::Glass || face.texture == (int)Block::Leaf) && chunk_dx < gameCamera.disableTransparencyDistance
+                                                                                                                             && chunk_dy < gameCamera.disableTransparencyDistance
+                                                                                                                             && chunk_dz < gameCamera.disableTransparencyDistance){
                 vertices = &transparentVertices;
                 indices = &transparentIndices;
             }

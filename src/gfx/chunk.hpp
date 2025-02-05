@@ -29,6 +29,7 @@ class Chunk{
 
         Biome* biomeType;
         Mesh mesh;
+        Mesh backupMesh;
         Octree* octree;
         
         void draw(const Shader &shader);
@@ -36,6 +37,7 @@ class Chunk{
         void drawOpaque(const Shader &shader);
 
         void updateMesh();
+        void useBackupMesh();
         void updateTransparentMesh();
         void sortTransparentFaces(const Camera& camera);
         void setBlockValue(int x, int y, int z, int blockValue);
@@ -48,7 +50,9 @@ class Chunk{
             this->zCoordinate = _zCoordinate;
             this->yCoordinate = _yCoordinate;
             currentLoD = LoD;
-            octree = new Octree(_xCoordinate, _yCoordinate, _zCoordinate, biomeType);
+            octree = new Octree();
+            setInitialBlockValues();
+            octree->optimizeTree();
             octreeExists = true;
         }
 
@@ -72,6 +76,7 @@ class Chunk{
 
     private:
         bool octreeExists = false;
+        void setInitialBlockValues();
 };
 
 #endif

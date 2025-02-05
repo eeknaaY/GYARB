@@ -130,11 +130,13 @@ void Mesh::drawTransparent(const Shader &shader, int x, int y, int z){
 
     shader.setMat4("model", glm::translate(glm::mat4(1.0f), glm::vec3(x, y, z)));
     glEnable(GL_BLEND); 
+    glEnable(GL_SAMPLE_ALPHA_TO_COVERAGE);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
+    
     glBindVertexArray(transparentVAO);
     glDrawElements(GL_TRIANGLES, transparentIndices.size(), GL_UNSIGNED_INT, 0);
 
+    glDisable(GL_SAMPLE_ALPHA_TO_COVERAGE);
     glDisable(GL_BLEND);
     glBindVertexArray(0);
 }
@@ -152,6 +154,31 @@ void Mesh::drawTransparentChunk(const Shader &shader, int x, int y, int z){
     drawTransparent(shader, 32 * x, 32 * y, 32 * z);
 }
 
+void Mesh::addTree(Octree* octree, int x, int y, int z){
+    // Threw this together in 3 mintues, we dont talk about the code.
+    for (int leavesWidthx = x - 2; leavesWidthx <= x + 2; leavesWidthx++){
+        for (int leavesWidthz = z - 2; leavesWidthz <= z + 2; leavesWidthz++){
+            for (int leavesHeight = y + 3; leavesHeight <= y + 4; leavesHeight++){
+                if (leavesWidthx == 0 && leavesWidthz == 0) continue;
+                octree->getNodeFromPosition(leavesWidthx, leavesHeight, leavesWidthz)->blockValue = 6; // Leaves
+            }
+        }
+    }
+
+    for (int leavesWidthx = x - 1; leavesWidthx <= x + 1; leavesWidthx++){
+        for (int leavesWidthz = z - 1; leavesWidthz <= z + 1; leavesWidthz++){
+            for (int leavesHeight = y + 5; leavesHeight <= y + 6; leavesHeight++){
+                octree->getNodeFromPosition(leavesWidthx, leavesHeight, leavesWidthz)->blockValue = 6; // Leaves
+            }
+        }
+    }
+
+    for (int height = 0; height < 6; height++){
+        octree->getNodeFromPosition(x, y + height, z)->blockValue = 5; // Wood
+    }
+}
+
+    
 void SkyboxMesh::bindMesh(){
     glGenVertexArrays(1, &solidVAO);
     glGenBuffers(1, &solidVBO);
