@@ -14,6 +14,7 @@ GLFWwindow* createWindow(int SCR_WIDTH, int SCR_HEIGHT){
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    glfwWindowHint(GLFW_SAMPLES, 4);
 
     #ifdef __APPLE__
         glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
@@ -45,7 +46,6 @@ GLFWwindow* createWindow(int SCR_WIDTH, int SCR_HEIGHT){
     glCullFace(GL_BACK);  
 
     glEnable(GL_MULTISAMPLE);
-    glfwWindowHint(GLFW_SAMPLES, 8);
 
     return window;
 }
